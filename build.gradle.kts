@@ -1,7 +1,14 @@
 // Archivo build.gradle.kts de nivel raíz.
-// Declara (sin aplicar) los plugins que usa el módulo :app, con sus versiones.
+// Declara (sin aplicar) los plugins "reales" que usan los módulos, para que
+// se resuelvan una sola vez y queden disponibles para que los convention
+// plugins de build-logic los apliquen por id (pluginManager.apply(...)) sin
+// tener que repetir la versión en cada módulo.
 plugins {
-    id("com.android.application") version "8.6.0" apply false
-    id("org.jetbrains.kotlin.android") version "2.0.20" apply false
-    id("org.jetbrains.kotlin.plugin.compose") version "2.0.20" apply false
+    alias(libs.plugins.android.application) apply false
+    alias(libs.plugins.android.library) apply false
+    alias(libs.plugins.compose.compiler) apply false
+    alias(libs.plugins.kotlin.serialization) apply false
+    alias(libs.plugins.ksp) apply false
+    alias(libs.plugins.hilt) apply false
+    alias(libs.plugins.detekt) apply false
 }
