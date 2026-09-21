@@ -4,6 +4,7 @@ import android.content.Context
 import android.net.Uri
 import android.util.Log
 import androidx.core.content.FileProvider
+import es.sebas1705.nanodemo.core.common.ErrorReporter
 import es.sebas1705.nanodemo.data.cloudgemini.CloudGeminiBackend
 import es.sebas1705.nanodemo.data.firebaseai.FirebaseAiBackend
 import es.sebas1705.nanodemo.data.history.IHistoryRepository
@@ -23,6 +24,7 @@ import es.sebas1705.nanodemo.domain.models.Role
 import es.sebas1705.nanodemo.domain.models.TierAvailability
 import es.sebas1705.nanodemo.domain.models.TierCapabilities
 import dagger.hilt.android.qualifiers.ApplicationContext
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.async
@@ -55,6 +57,7 @@ class InferenceRepository @Inject constructor(
     liteRtLmBackend: LiteRtLmBackend,
     firebaseAiBackend: FirebaseAiBackend,
     private val historyRepository: IHistoryRepository,
+    private val errorReporter: ErrorReporter,
 ) : IInferenceRepository {
 
     private val scope = CoroutineScope(SupervisorJob() + Dispatchers.Main.immediate)
@@ -107,6 +110,9 @@ class InferenceRepository @Inject constructor(
     override val compareStates: StateFlow<Map<InferenceTier, DemoState>> = _compareStates.asStateFlow()
 
     init {
+        // Contexto técnico que acompaña a cualquier crash o error no fatal (sin contenido del usuario).
+        scope.launch { _activeTier.collect { errorReporter.setKey("active_tier", it.name) } }
+        scope.launch { mediaPipeBackend.selectedModel.collect { errorReporter.setKey("mediapipe_model", it.name) } }
         autoSelectTier()
     }
 
@@ -145,6 +151,7 @@ class InferenceRepository @Inject constructor(
             backends.getValue(tier).checkAvailability()
         } catch (e: Exception) {
             Log.e(TAG, "checkTier($tier): excepción comprobando disponibilidad", e)
+            report(e, "checkAvailability($tier)")
             TierAvailability.UNAVAILABLE
         }
         Log.d(TAG, "checkTier($tier): $result")
@@ -165,6 +172,7 @@ class InferenceRepository @Inject constructor(
     override fun downloadModel() {
         val tier = _activeTier.value
         Log.d(TAG, "downloadModel: iniciando para $tier")
+        errorReporter.log("download($tier): inicio")
         scope.launch {
             _state.update { DemoState.Downloading() }
             try {
@@ -173,6 +181,7 @@ class InferenceRepository @Inject constructor(
                 }
             } catch (e: Exception) {
                 Log.e(TAG, "downloadModel($tier): falló", e)
+                report(e, "download($tier)")
                 _state.update { DemoState.Error(e.message ?: "Error preparando el modelo") }
                 return@launch
             }
@@ -304,6 +313,7 @@ class InferenceRepository @Inject constructor(
             FileProvider.getUriForFile(context, "${context.packageName}.fileprovider", file)
         } catch (e: Exception) {
             Log.e(TAG, "exportMetricsCsv: falló", e)
+            report(e, "exportMetricsCsv")
             null
         }
     }
@@ -314,6 +324,7 @@ class InferenceRepository @Inject constructor(
         onStateChange: (DemoState) -> Unit,
     ): Result<String> {
         Log.d(TAG, "runGeneration($tier): history de ${history.size} turnos")
+        errorReporter.log("generate($tier): ${history.size} turnos, imagen=${history.last().imageUri != null}")
         val startedAtMs = System.currentTimeMillis()
         var firstChunkLatencyMs: Long? = null
         var fullResponse = ""
@@ -333,10 +344,16 @@ class InferenceRepository @Inject constructor(
             Result.success(fullResponse)
         } catch (e: Exception) {
             Log.e(TAG, "runGeneration($tier): falló", e)
+            report(e, "generate($tier)")
             onStateChange(DemoState.Error(e.message ?: "Error generando contenido"))
             recordMetric(tier, history.last().text, fullResponse, startedAtMs, firstChunkLatencyMs, memoryBeforeBytes, success = false)
             Result.failure(e)
         }
+    }
+
+    /** Errores manejados que la app convierte en estado de UI: se mandan como no fatales, salvo cancelaciones. */
+    private fun report(e: Exception, context: String) {
+        if (e !is CancellationException) errorReporter.recordNonFatal(e, context)
     }
 
     private fun recordMetric(

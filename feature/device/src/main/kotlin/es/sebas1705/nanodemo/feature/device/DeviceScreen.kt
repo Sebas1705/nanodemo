@@ -11,6 +11,7 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
@@ -117,6 +118,33 @@ fun DeviceScreen(viewModel: DeviceViewModel = hiltViewModel()) {
             letterSpacing = 1.5.sp,
         )
         CapabilitiesTable(viewModel)
+
+        Text(
+            "DIAGNÓSTICO (CRASHLYTICS)",
+            style = MaterialTheme.typography.labelSmall,
+            color = DemoColors.Muted,
+            letterSpacing = 1.5.sp,
+        )
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .background(DemoColors.Panel, RoundedCornerShape(8.dp))
+                .padding(16.dp),
+            verticalArrangement = Arrangement.spacedBy(8.dp),
+        ) {
+            Text(
+                "Para comprobar que los errores llegan a la consola de Firebase. El crash real se " +
+                    "envía la próxima vez que abras la app.",
+                style = readoutStyle,
+                color = DemoColors.Muted,
+            )
+            OutlinedButton(onClick = viewModel::sendTestNonFatal, modifier = Modifier.fillMaxWidth()) {
+                Text("Enviar error no fatal de prueba")
+            }
+            OutlinedButton(onClick = { viewModel.forceTestCrash() }, modifier = Modifier.fillMaxWidth()) {
+                Text("Forzar crash de prueba")
+            }
+        }
     }
 }
 

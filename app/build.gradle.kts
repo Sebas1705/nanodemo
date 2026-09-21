@@ -43,7 +43,11 @@ android {
 
 dependencies {
     implementation(projects.core.ui)
+    implementation(projects.core.common)
     implementation(projects.feature.main)
+    // Proveedor de ErrorReporter (Crashlytics): :app lo enlaza al grafo de Hilt. Para cambiar de
+    // proveedor basta con sustituir este módulo por otro que enlace ErrorReporter.
+    implementation(projects.data.crashlytics)
 
     implementation(libs.androidx.activity.compose)
 }

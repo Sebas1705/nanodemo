@@ -42,6 +42,8 @@ include(":data:mediapipe")
 include(":data:cloudgemini")
 include(":data:litertlm")
 include(":data:firebaseai")
+include(":data:firebasecore")
+include(":data:crashlytics")
 include(":data:repositories")
 include(":data:history")
 

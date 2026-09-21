@@ -4,6 +4,7 @@ plugins {
 
 dependencies {
     implementation(projects.domain.models)
+    implementation(projects.core.common)
     implementation(projects.data.mlkitnano)
     implementation(projects.data.mediapipe)
     implementation(projects.data.cloudgemini)

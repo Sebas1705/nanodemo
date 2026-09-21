@@ -58,10 +58,18 @@ litertlm = "0.17.1"
 # mano con FirebaseOptions desde local.properties (ver data:firebaseai).
 firebaseAi = "17.17.0"
 
+# Crashlytics (tier de observabilidad, no de IA). 20.1.1 = la del BoM 34.19.0 junto con firebase-ai 17.17.0;
+# ambas dependen de firebase-common 22.0.1, que se declara aparte porque data:firebasecore usa
+# FirebaseApp/FirebaseOptions directamente. Sin el plugin de Gradle de Crashlytics (ver data:crashlytics).
+firebaseCrashlytics = "20.1.1"
+firebaseCommon = "22.0.1"
+
 [libraries]
 # Tiers de inferencia
 litertlm-android = { group = "com.google.ai.edge.litertlm", name = "litertlm-android", version.ref = "litertlm" }
 firebase-ai = { group = "com.google.firebase", name = "firebase-ai", version.ref = "firebaseAi" }
+firebase-common = { group = "com.google.firebase", name = "firebase-common", version.ref = "firebaseCommon" }
+firebase-crashlytics = { group = "com.google.firebase", name = "firebase-crashlytics", version.ref = "firebaseCrashlytics" }
 mlkit-genai-prompt ={ group = "com.google.mlkit", name = "genai-prompt", version.ref = "mlkitGenaiPrompt" }
 mediapipe-tasks-genai = { group = "com.google.mediapipe", name = "tasks-genai", version.ref = "mediapipeTasksGenai" }
 

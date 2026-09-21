@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!--
+        Crashlytics exige un "build id" que normalmente genera su plugin de Gradle (para enlazar los
+        reportes con el mapping de R8 y los símbolos nativos). Este proyecto no usa el plugin ni
+        ofusca, y sin build id el SDK lanza IllegalStateException al arrancar y se queda apagado.
+        El SDK lee esta resource (com.google.firebase.crashlytics.RequireBuildId) para saltarse
+        esa comprobación. Si algún día se activa R8/minify, aplicar el plugin
+        com.google.firebase.crashlytics y borrar este archivo.
+    -->
+    <bool name="com.google.firebase.crashlytics.RequireBuildId">false</bool>
+</resources>

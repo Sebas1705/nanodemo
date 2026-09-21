@@ -9,9 +9,8 @@ import es.sebas1705.nanodemo.domain.models.InferenceBackend
 import es.sebas1705.nanodemo.domain.models.Role
 import es.sebas1705.nanodemo.domain.models.TierAvailability
 import es.sebas1705.nanodemo.domain.models.TierCapabilities
+import es.sebas1705.nanodemo.data.firebasecore.FirebaseBootstrap
 import com.google.firebase.Firebase
-import com.google.firebase.FirebaseApp
-import com.google.firebase.FirebaseOptions
 import com.google.firebase.ai.ai
 import com.google.firebase.ai.type.GenerativeBackend
 import com.google.firebase.ai.type.content
@@ -40,7 +39,7 @@ private const val CLOUD_MODEL = "gemini-3.5-flash"
  *
  * Decisiones:
  * - Sin el plugin google-services: `FirebaseApp` se inicializa a mano con `FirebaseOptions`
- *   desde `local.properties` (ver `build.gradle.kts` de este módulo). Sin esos tres
+ *   desde Doppler o `local.properties` (ver `data:firebasecore`). Sin esos tres
  *   valores el tier queda UNAVAILABLE.
  * - No se activa App Check (la doc lo recomienda para producción): el proyecto de Firebase
  *   queda sin enforcement, suficiente para un demo local.
@@ -52,6 +51,7 @@ private const val CLOUD_MODEL = "gemini-3.5-flash"
  */
 class FirebaseAiBackend @Inject constructor(
     @param:ApplicationContext private val context: Context,
+    private val firebase: FirebaseBootstrap,
 ) : InferenceBackend {
 
     override val capabilities = TierCapabilities(
@@ -66,29 +66,15 @@ class FirebaseAiBackend @Inject constructor(
 
     private var lastResponseTokens: Int? = null
 
-    private fun isConfigured(): Boolean =
-        BuildConfig.FIREBASE_API_KEY.isNotBlank() &&
-            BuildConfig.FIREBASE_APP_ID.isNotBlank() &&
-            BuildConfig.FIREBASE_PROJECT_ID.isNotBlank()
-
-    /** Inicializa `FirebaseApp` (la app "default", la que usa `Firebase.ai`) si todavía no existe. */
+    /** Garantiza la `FirebaseApp` "default" (la que usa `Firebase.ai`); normalmente ya la creó `Application`. */
     private fun ensureInitialized() {
-        check(isConfigured()) { "Falta FIREBASE_API_KEY / FIREBASE_APP_ID / FIREBASE_PROJECT_ID en local.properties" }
-        if (FirebaseApp.getApps(context).isEmpty()) {
-            Log.d(TAG, "ensureInitialized: inicializando FirebaseApp a mano")
-            FirebaseApp.initializeApp(
-                context,
-                FirebaseOptions.Builder()
-                    .setApiKey(BuildConfig.FIREBASE_API_KEY)
-                    .setApplicationId(BuildConfig.FIREBASE_APP_ID)
-                    .setProjectId(BuildConfig.FIREBASE_PROJECT_ID)
-                    .build(),
-            )
+        check(firebase.ensureInitialized()) {
+            "Falta FIREBASE_API_KEY / FIREBASE_APP_ID / FIREBASE_PROJECT_ID (Doppler o local.properties)"
         }
     }
 
     override suspend fun checkAvailability(): TierAvailability {
-        val configured = isConfigured()
+        val configured = firebase.isConfigured
         val hasInternet = hasInternetConnection(context)
         Log.d(TAG, "checkAvailability: configured=$configured hasInternet=$hasInternet")
         return if (configured && hasInternet) TierAvailability.AVAILABLE else TierAvailability.UNAVAILABLE
