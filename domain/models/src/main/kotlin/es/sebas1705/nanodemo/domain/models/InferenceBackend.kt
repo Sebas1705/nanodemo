@@ -4,14 +4,15 @@ import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.emptyFlow
 
 /**
- * Contrato común que implementa cada uno de los 3 tiers de IA del demo
- * (adaptadores en `data:mlkitnano`/`data:mediapipe`/`data:cloudgemini`).
+ * Contrato común que implementa cada uno de los 5 tiers de IA del demo
+ * (adaptadores en `data:mlkitnano`/`data:mediapipe`/`data:cloudgemini`/
+ * `data:litertlm`/`data:firebaseai`).
  *
  * Vive en `domain:models` (no en `data:repositories`, como decía el plan
- * original): así los 3 módulos `data:*` que lo implementan dependen de
- * `domain:models`, y `data:repositories` depende de esos 3 módulos para
- * armar el mapa de backends — sin esto, `data:repositories` y los `data:*`
- * quedarían en dependencia circular.
+ * original): así los módulos `data:*` que lo implementan dependen de
+ * `domain:models`, y `data:repositories` depende de ellos para armar el
+ * mapa de backends — sin esto, `data:repositories` y los `data:*` quedarían
+ * en dependencia circular. Guía de portado: docs/AI_MODULES.md.
  */
 interface InferenceBackend {
 

@@ -1,8 +1,13 @@
-# Demo de IA en móvil — 3 niveles de fallback
+# Demo de IA en móvil — 5 motores con fallback
 
 Demo en Kotlin + Jetpack Compose que intenta cubrir **cualquier hardware**,
-probando tres niveles de IA de más a menos exigente y cayendo automáticamente
-al siguiente si el dispositivo (o la configuración) no soporta el anterior:
+probando cinco motores de IA (tiers) en orden y cayendo automáticamente
+al siguiente si el dispositivo (o la configuración) no soporta el anterior.
+Cada motor es un módulo Gradle reutilizable — ver
+[docs/AI_MODULES.md](docs/AI_MODULES.md) para llevarlos a otra app — y el APK
+se distribuye con dos vías (Firebase App Distribution y GitHub Release) — ver
+[docs/DISTRIBUTION.md](docs/DISTRIBUTION.md). Los tres primeros, de más a menos
+exigente:
 
 1. **Tier A — ML Kit GenAI Prompt API (Gemini Nano on-device vía AICore)**:
    la mejor calidad, pero solo en flagships 2026 con ≥12GB de RAM.
@@ -50,14 +55,14 @@ Models framework de Apple).
 
 ## Qué hace
 
-1. Al abrir la app, prueba los tres tiers en orden (A → B → C) y se queda en
+1. Al abrir la app, prueba los tiers en orden (A → B → C → D → E) y se queda en
    el primero disponible o descargable.
-2. Un selector arriba (`Nano` / `MediaPipe` / `Cloud`) permite forzar
-   cualquiera de los tres manualmente, para comparar respuestas en el mismo
-   dispositivo.
+2. Un selector arriba permite forzar cualquiera de los cinco manualmente, para
+   comparar respuestas en el mismo dispositivo.
 3. Si el tier activo necesita un paso previo (descargar el modelo de Gemini
-   Nano o el `.task` de MediaPipe), lo muestra en pantalla con un botón para
-   descargarlo — con progreso cuando se conoce — en vez de fallar en silencio.
+   Nano, el `.task` de MediaPipe o el `.litertlm` de LiteRT-LM), lo muestra en
+   pantalla con un botón para descargarlo — con progreso cuando se conoce — en
+   vez de fallar en silencio.
 4. Panel de **parámetros de generación** (temperature, top-K, top-P, max
    output tokens, system prompt) — cada control se deshabilita si el tier
    activo no lo soporta (ver tabla de capacidades más abajo).
@@ -65,12 +70,12 @@ Models framework de Apple).
    transcript que se manda de contexto en el siguiente turno; "Nueva
    conversación" lo resetea (y cierra la sesión de MediaPipe, si aplica).
 6. **Imágenes**: se puede adjuntar una foto (Photo Picker, sin permisos) al
-   turno de usuario — soportado en Nano y Cloud, no en MediaPipe (el modelo
-   que tenemos hosteado no tiene encoder de visión).
-7. **Modo comparación**: un toggle que corre el mismo prompt en los 3 tiers
-   a la vez, mostrando las 3 respuestas lado a lado.
+   turno de usuario — soportado en Nano, Cloud, LiteRT-LM y Firebase AI, no
+   en MediaPipe (el modelo que tenemos hosteado no tiene encoder de visión).
+7. **Modo comparación**: un toggle que corre el mismo prompt en los 5 tiers
+   a la vez, mostrando las respuestas lado a lado (en cuadrícula adaptativa).
 8. **Banco de prompts / benchmark**: una fila de presets (resumen, código,
-   traducción, etc.) y un botón para correrlos todos contra los 3 tiers de
+   traducción, etc.) y un botón para correrlos todos contra los 5 tiers de
    forma repetible.
 9. El panel de **estadísticas** compara latencia (promedio, p50, p95),
    velocidad y tokens (reales cuando el backend los expone, aproximados si
@@ -97,7 +102,7 @@ La app está dividida en módulos Gradle por capa (convention plugins en
 - **`domain:models`** — `ChatMessage`/`Role`, `GenerationConfig`,
   `TierCapabilities`, `GenerationMetric`, `PromptPreset`, `DemoState`,
   `InferenceTier`/`TierAvailability`, `InferenceBackend` (el contrato común a
-  los 3 tiers), `Conversation`, `MediaPipeModelOption`.
+  los 5 tiers), `Conversation`, `MediaPipeModelOption`.
 - **`domain:usescases:inference`** / **`domain:usescases:history`** — un caso
   de uso por acción (`GenerateUseCase`, `SelectTierUseCase`,
   `LoadConversationUseCase`, etc.), la única frontera que `feature:*` puede
@@ -133,7 +138,10 @@ La app está dividida en módulos Gradle por capa (convention plugins en
 | tokens reales en stats | ❌ (aproximado) | ✅ (`sizeInTokens()`) | ✅ (`usageMetadata`) |
 
 Ver qué soporta cada tier es en sí mismo parte del estudio — por eso la UI
-deshabilita en vez de ocultar los controles no soportados.
+deshabilita en vez de ocultar los controles no soportados. La tabla cubre los
+tiers A–C; las capacidades de D (LiteRT-LM) y E (Firebase AI Logic) las declara
+cada backend en su `TierCapabilities` (`data/litertlm`, `data/firebaseai`) y
+sus particularidades están en [docs/AI_MODULES.md](docs/AI_MODULES.md).
 
 ## Ver qué está pasando (Logcat)
 
@@ -146,8 +154,8 @@ filtrá por tag:
 tag:NanoDemo
 ```
 
-(o `tag:NanoDemo.MlKitNano`, `tag:NanoDemo.MediaPipe`, `tag:NanoDemo.CloudGemini`
-para ver solo un backend). Los chunks de streaming se loguean en nivel
+(o `tag:NanoDemo.MlKitNano`, `tag:NanoDemo.MediaPipe`, `tag:NanoDemo.CloudGemini`,
+`tag:NanoDemo.LiteRtLm`, `tag:NanoDemo.FirebaseAI` para ver solo un backend). Los chunks de streaming se loguean en nivel
 `VERBOSE`, así que subí el nivel mínimo del filtro si no los ves.
 
 ## Cómo probarlo
@@ -256,7 +264,12 @@ para ver solo un backend). Los chunks de streaming se loguean en nivel
   dependencias nuevas. Es el mismo patrón que ese bloqueo intenta evitar —
   aceptable para este demo local con la key fuera de git, pero **no para una
   app publicada**: para eso, migrar a Firebase AI Logic con App Check.
-- **Verificado en dispositivo real**: los tres tiers llegaron a compilar y
+- **Tiers D y E**: compilan y el APK release se genera y distribuye desde CI, pero
+  **todavía no se han ejecutado en un dispositivo real**. En el Tier D falta confirmar
+  que el streaming de `sendMessageAsync` emite deltas (así está asumido); el Tier E
+  necesita Firebase AI Logic habilitado en la consola (sin eso falla con un error de
+  permisos, y a veces hace falta registrar el SHA-1 de la firma release).
+- **Verificado en dispositivo real**: los tres primeros tiers llegaron a compilar y
   correr en un dispositivo físico durante el desarrollo (no solo en el
   entorno donde se escribió el código). El hallazgo del bloqueo de
   seguridad del Tier C salió justamente de los logs de una corrida real
@@ -307,44 +320,29 @@ usarlo en local:
 
 `local.properties` a mano sigue funcionando igual que antes.
 
-## Distribución automática (Firebase App Distribution)
+## Distribución
 
-`.github/workflows/distribute.yml`: cada push a `master` (o un disparo manual desde
-la pestaña Actions) compila `assembleRelease`, firma el APK con un keystore fijo y lo
-sube a Firebase App Distribution; los testers del grupo reciben el aviso. También
-queda el APK como artefacto del run (14 días). En GitHub solo hace falta un secreto,
-`DOPPLER_TOKEN`; el resto lo trae Doppler.
+Dos vías, independientes, que comparten el mismo build firmado (acción compuesta
+`.github/actions/build-release-apk`, secretos desde Doppler — en GitHub solo hace falta
+`DOPPLER_TOKEN`):
 
-**Qué hay que preparar una sola vez**
+| Vía | Workflow | Cuándo corre | Resultado |
+|---|---|---|---|
+| Firebase App Distribution | `.github/workflows/distribute.yml` | push a `master` / manual | Release en Firebase + aviso al grupo `testers` |
+| GitHub Release | `.github/workflows/release-apk.yml` | tag `vX.Y.Z` / manual con versión | Release con `nanodemo-vX.Y.Z.apk`, su `.sha256` y notas generadas |
 
-1. **Keystore fijo** (no lo commitees): si CI firmara con la key de debug, cada
-   runner generaría una distinta y los testers tendrían que desinstalar para actualizar.
-   ```
-   keytool -genkeypair -v -keystore nanodemo-release.jks -alias nanodemo \
-     -keyalg RSA -keysize 2048 -validity 10000
-   base64 -w0 nanodemo-release.jks   # este texto va al secreto SIGNING_KEYSTORE_BASE64
-   ```
-   Guardá el `.jks` y sus contraseñas en un lugar seguro: si se pierde, los testers
-   tendrían que reinstalar la app.
-2. **Cuenta de servicio** en Google Cloud (proyecto `nanodemo-79f3a`) con el rol
-   **Firebase App Distribution Admin**; generá su clave JSON (va al secreto
-   `FIREBASE_SERVICE_ACCOUNT_JSON`). Más adelante se puede pasar a Workload Identity
-   Federation para no guardar una clave de larga vida.
-3. **Grupo de testers** en la consola de Firebase → App Distribution. El alias por
-   defecto es `testers`; se cambia con la variable de repo `FIREBASE_TESTER_GROUP`.
-4. **Service token de Doppler** de solo lectura para `nanodemo/prd`
-   (`doppler configs tokens create ci --project nanodemo --config prd --plain`), guardado
-   en GitHub como secreto `DOPPLER_TOKEN` (Settings → Secrets and variables → Actions).
-   El workflow avisa con el nombre exacto si a Doppler le falta alguno de los secretos.
+```bash
+git tag v1.2.0 && git push origin v1.2.0   # publica una GitHub Release del APK
+```
 
-`versionCode` sale del número de run de GitHub (`VERSION_CODE`), así cada build
-puede instalarse encima del anterior; en local sigue en 1.
+`versionCode` sale del número de run de GitHub (`VERSION_CODE`), así cada build puede
+instalarse encima del anterior; en local sigue en 1. La preparación de una sola vez
+(keystore fijo, cuenta de servicio, grupo de testers, `DOPPLER_TOKEN`), los detalles de cada
+vía y cómo llevarlas al template están en **[docs/DISTRIBUTION.md](docs/DISTRIBUTION.md)**.
 
 **Ojo con los secretos dentro del APK**: `GEMINI_API_KEY` y `MEDIAPIPE_MODEL_TOKEN` se
-compilan en `BuildConfig`, así que cualquier tester puede extraerlos del APK. El token
-de MediaPipe da lectura al repo privado. Repartilo solo a gente de confianza, o sacá
-esos secretos del build (p. ej. modelos en un origen público, como hace el Tier D).
-Doppler protege dónde viven los secretos, no lo que termina dentro del APK.
+compilan en `BuildConfig`, así que cualquiera con el APK puede extraerlos (el token de
+MediaPipe da lectura al repo privado). Repartilo solo a gente de confianza.
 
 ## Fuentes usadas para este código
 
