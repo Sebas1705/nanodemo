@@ -1,0 +1,89 @@
+name: Distribuir a Firebase App Distribution
+
+# Cada push a master (o un disparo manual) compila un APK release firmado con el keystore fijo
+# y lo sube a Firebase App Distribution. Todos los secretos viven en Doppler: en GitHub solo
+# hace falta el secreto DOPPLER_TOKEN (ver README, sección "Distribución automática").
+on:
+  push:
+    branches: [master]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: distribute
+  cancel-in-progress: true
+
+jobs:
+  distribute:
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    env:
+      # Service token de Doppler, de solo lectura y limitado al proyecto+config de CI: ya lleva
+      # embebido cuál usar, así que `doppler run` no necesita flags.
+      DOPPLER_TOKEN: ${{ secrets.DOPPLER_TOKEN }}
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: dopplerhq/cli-action@v4
+
+      - name: Verificar que Doppler tenga todos los secretos
+        run: |
+          [ -n "$DOPPLER_TOKEN" ] || { echo "::error::Falta el secreto DOPPLER_TOKEN en GitHub"; exit 1; }
+          doppler run -- bash -c '
+            missing=0
+            for name in GEMINI_API_KEY FIREBASE_API_KEY FIREBASE_APP_ID FIREBASE_PROJECT_ID \
+                        MEDIAPIPE_MODEL_TOKEN MEDIAPIPE_MODEL_URL \
+                        MEDIAPIPE_MODEL_URL_GEMMA_2_2B_PART1 MEDIAPIPE_MODEL_URL_GEMMA_2_2B_PART2 \
+                        SIGNING_KEYSTORE_BASE64 SIGNING_STORE_PASSWORD SIGNING_KEY_ALIAS SIGNING_KEY_PASSWORD \
+                        FIREBASE_SERVICE_ACCOUNT_JSON; do
+              if [ -z "${!name:-}" ]; then echo "::error::Falta el secreto $name en Doppler"; missing=1; fi
+            done
+            exit $missing'
+
+      - uses: actions/setup-java@v6
+        with:
+          distribution: temurin
+          java-version: 21
+
+      - uses: gradle/actions/setup-gradle@v6
+
+      - name: Preparar el keystore
+        run: |
+          doppler run -- bash -c 'printf "%s" "$SIGNING_KEYSTORE_BASE64" | base64 -d > "$RUNNER_TEMP/release.jks"'
+          echo "SIGNING_KEYSTORE_PATH=$RUNNER_TEMP/release.jks" >> "$GITHUB_ENV"
+
+      # Las keys de los tiers llegan como variables de entorno (doppler run) y el build las compila
+      # en BuildConfig: no hace falta generar local.properties. gradlew se commiteó sin el bit de
+      # ejecución (se creó desde Windows), de ahí el chmod.
+      - name: Compilar el APK release
+        env:
+          VERSION_CODE: ${{ github.run_number }}
+        run: |
+          chmod +x gradlew
+          doppler run -- ./gradlew :app:assembleRelease "-Dorg.gradle.jvmargs=-Xmx4g -Dfile.encoding=UTF-8"
+
+      - uses: actions/upload-artifact@v7
+        with:
+          name: app-release-${{ github.run_number }}
+          path: app/build/outputs/apk/release/app-release.apk
+          retention-days: 14
+
+      - name: Subir a Firebase App Distribution
+        env:
+          TESTER_GROUP: ${{ vars.FIREBASE_TESTER_GROUP || 'testers' }}
+        run: |
+          export NOTES="$(git log -1 --pretty='%s (%h)')"
+          doppler run -- bash -c '
+            umask 077
+            printf "%s" "$FIREBASE_SERVICE_ACCOUNT_JSON" > "$RUNNER_TEMP/firebase-sa.json"
+            export GOOGLE_APPLICATION_CREDENTIALS="$RUNNER_TEMP/firebase-sa.json"
+            npx --yes firebase-tools appdistribution:distribute app/build/outputs/apk/release/app-release.apk \
+              --app "$FIREBASE_APP_ID" \
+              --groups "$TESTER_GROUP" \
+              --release-notes "$NOTES"'
+
+      - name: Borrar credenciales del runner
+        if: always()
+        run: rm -f "$RUNNER_TEMP/release.jks" "$RUNNER_TEMP/firebase-sa.json"

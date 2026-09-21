@@ -307,6 +307,45 @@ usarlo en local:
 
 `local.properties` a mano sigue funcionando igual que antes.
 
+## Distribución automática (Firebase App Distribution)
+
+`.github/workflows/distribute.yml`: cada push a `master` (o un disparo manual desde
+la pestaña Actions) compila `assembleRelease`, firma el APK con un keystore fijo y lo
+sube a Firebase App Distribution; los testers del grupo reciben el aviso. También
+queda el APK como artefacto del run (14 días). En GitHub solo hace falta un secreto,
+`DOPPLER_TOKEN`; el resto lo trae Doppler.
+
+**Qué hay que preparar una sola vez**
+
+1. **Keystore fijo** (no lo commitees): si CI firmara con la key de debug, cada
+   runner generaría una distinta y los testers tendrían que desinstalar para actualizar.
+   ```
+   keytool -genkeypair -v -keystore nanodemo-release.jks -alias nanodemo \
+     -keyalg RSA -keysize 2048 -validity 10000
+   base64 -w0 nanodemo-release.jks   # este texto va al secreto SIGNING_KEYSTORE_BASE64
+   ```
+   Guardá el `.jks` y sus contraseñas en un lugar seguro: si se pierde, los testers
+   tendrían que reinstalar la app.
+2. **Cuenta de servicio** en Google Cloud (proyecto `nanodemo-79f3a`) con el rol
+   **Firebase App Distribution Admin**; generá su clave JSON (va al secreto
+   `FIREBASE_SERVICE_ACCOUNT_JSON`). Más adelante se puede pasar a Workload Identity
+   Federation para no guardar una clave de larga vida.
+3. **Grupo de testers** en la consola de Firebase → App Distribution. El alias por
+   defecto es `testers`; se cambia con la variable de repo `FIREBASE_TESTER_GROUP`.
+4. **Service token de Doppler** de solo lectura para `nanodemo/prd`
+   (`doppler configs tokens create ci --project nanodemo --config prd --plain`), guardado
+   en GitHub como secreto `DOPPLER_TOKEN` (Settings → Secrets and variables → Actions).
+   El workflow avisa con el nombre exacto si a Doppler le falta alguno de los secretos.
+
+`versionCode` sale del número de run de GitHub (`VERSION_CODE`), así cada build
+puede instalarse encima del anterior; en local sigue en 1.
+
+**Ojo con los secretos dentro del APK**: `GEMINI_API_KEY` y `MEDIAPIPE_MODEL_TOKEN` se
+compilan en `BuildConfig`, así que cualquier tester puede extraerlos del APK. El token
+de MediaPipe da lectura al repo privado. Repartilo solo a gente de confianza, o sacá
+esos secretos del build (p. ej. modelos en un origen público, como hace el Tier D).
+Doppler protege dónde viven los secretos, no lo que termina dentro del APK.
+
 ## Fuentes usadas para este código
 
 - https://developers.google.com/ml-kit/genai/prompt/android/get-started
