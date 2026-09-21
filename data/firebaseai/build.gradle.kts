@@ -1,6 +1,3 @@
-import java.io.FileInputStream
-import java.util.Properties
-
 plugins {
     alias(libs.plugins.buildlogic.data)
 }
@@ -8,17 +5,16 @@ plugins {
 // Firebase AI Logic se inicializa a mano con FirebaseOptions (ver FirebaseAiBackend), sin el
 // plugin com.google.gms.google-services ni google-services.json — así el proyecto sigue
 // compilando aunque nadie haya creado un proyecto de Firebase. Los tres valores salen de
-// la consola de Firebase (Configuración del proyecto -> tu app Android) y van en
-// local.properties; si falta alguno, el tier queda UNAVAILABLE en vez de crashear.
-val localProperties = Properties().apply {
-    val file = rootProject.file("local.properties")
-    if (file.exists()) load(FileInputStream(file))
-}
+// la consola de Firebase (Configuración del proyecto -> tu app Android) y se leen de Doppler
+// (variable de entorno) o de local.properties — ver `secret` en el build.gradle.kts raíz.
+// Si falta alguno, el tier queda UNAVAILABLE en vez de crashear.
+@Suppress("UNCHECKED_CAST")
+val secret = rootProject.extra["secret"] as (String, String) -> String
 
 android {
     defaultConfig {
         listOf("FIREBASE_API_KEY", "FIREBASE_APP_ID", "FIREBASE_PROJECT_ID").forEach { key ->
-            buildConfigField("String", key, "\"${localProperties.getProperty(key, "")}\"")
+            buildConfigField("String", key, "\"${secret(key, "")}\"")
         }
     }
 }

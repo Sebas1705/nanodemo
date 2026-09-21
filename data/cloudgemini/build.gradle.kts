@@ -1,25 +1,16 @@
-import java.io.FileInputStream
-import java.util.Properties
-
 plugins {
     alias(libs.plugins.buildlogic.data)
 }
 
-// GEMINI_API_KEY vive en local.properties (gitignored) — si no está
-// configurada, este tier se marca UNAVAILABLE en vez de intentar una llamada
-// que fallaría igualmente (ver CloudGeminiBackend.checkAvailability()).
-val localProperties = Properties().apply {
-    val file = rootProject.file("local.properties")
-    if (file.exists()) load(FileInputStream(file))
-}
+// GEMINI_API_KEY viene de Doppler (variable de entorno) o de local.properties — ver `secret` en el
+// build.gradle.kts raíz. Si no está, este tier se marca UNAVAILABLE en vez de intentar una
+// llamada que fallaría igualmente (ver CloudGeminiBackend.checkAvailability()).
+@Suppress("UNCHECKED_CAST")
+val secret = rootProject.extra["secret"] as (String, String) -> String
 
 android {
     defaultConfig {
-        buildConfigField(
-            "String",
-            "GEMINI_API_KEY",
-            "\"${localProperties.getProperty("GEMINI_API_KEY", "")}\"",
-        )
+        buildConfigField("String", "GEMINI_API_KEY", "\"${secret("GEMINI_API_KEY", "")}\"")
     }
 }
 

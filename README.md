@@ -279,6 +279,34 @@ para ver solo un backend). Los chunks de streaming se loguean en nivel
   `res/xml/file_paths.xml`) para compartir el archivo sin exponer una ruta
   de archivo cruda a otras apps.
 
+## Secretos con Doppler
+
+Todos los secretos y la config que se compilan en el APK (API keys, URLs de modelos,
+ids de Firebase, y para CI el keystore y la cuenta de servicio) viven en un proyecto de
+[Doppler](https://www.doppler.com) llamado `nanodemo`, con dos configs: **`dev`**
+(local) y **`prd`** (CI / builds distribuidos).
+
+| Secreto | Para qué |
+|---|---|
+| `GEMINI_API_KEY` | Tier C |
+| `FIREBASE_API_KEY`, `FIREBASE_APP_ID`, `FIREBASE_PROJECT_ID` | Tier E (y `FIREBASE_APP_ID` también sube a App Distribution) |
+| `MEDIAPIPE_MODEL_TOKEN`, `MEDIAPIPE_MODEL_URL`, `MEDIAPIPE_MODEL_URL_GEMMA_2_2B_PART1`, `MEDIAPIPE_MODEL_URL_GEMMA_2_2B_PART2` | Tier B |
+| `LITERTLM_MODEL_URL` (opcional) | Tier D, para apuntar a otro modelo |
+| `SIGNING_KEYSTORE_BASE64`, `SIGNING_STORE_PASSWORD`, `SIGNING_KEY_ALIAS`, `SIGNING_KEY_PASSWORD` | Solo CI (`prd`) |
+| `FIREBASE_SERVICE_ACCOUNT_JSON` | Solo CI (`prd`) |
+
+El build lee cada clave primero de una **variable de entorno**, después de
+`local.properties`, y si no está queda vacía (el tier sale "no disponible"). Dos formas de
+usarlo en local:
+
+- **Línea de comandos**: `doppler setup` (una vez: proyecto `nanodemo`, config `dev`) y
+  después `doppler run -- ./gradlew :app:assembleDebug`.
+- **Android Studio** (no hereda el entorno de Doppler): `scripts/doppler-sync-local-properties.sh`
+  escribe esas claves en `local.properties` (sin tocar `sdk.dir` ni lo demás). Volvé a
+  correrlo cuando cambie un secreto.
+
+`local.properties` a mano sigue funcionando igual que antes.
+
 ## Fuentes usadas para este código
 
 - https://developers.google.com/ml-kit/genai/prompt/android/get-started
