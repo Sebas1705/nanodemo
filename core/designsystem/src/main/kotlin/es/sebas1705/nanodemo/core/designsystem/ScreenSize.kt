@@ -21,6 +21,14 @@ fun rememberScreenSizeClass(): ScreenSizeClass {
     }
 }
 
+/** Columnas para las grillas de tarjetas por tier (Comparar, Estadísticas): son 5, no caben todas en fila. */
+val ScreenSizeClass.tierColumns: Int
+    get() = when (this) {
+        ScreenSizeClass.COMPACT -> 1
+        ScreenSizeClass.MEDIUM -> 2
+        ScreenSizeClass.EXPANDED -> 3
+    }
+
 /**
  * Un teléfono en landscape suele leer como ancho medium/expanded (>600dp)
  * pero con muy poca altura (<480dp, el breakpoint "compact height" de

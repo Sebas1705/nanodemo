@@ -44,6 +44,29 @@ import es.sebas1705.nanodemo.domain.models.TierAvailability
  * de chat, adjuntar imagen.
  */
 
+/**
+ * Grilla simple de `columns` columnas: filas de celdas del mismo ancho (`weight(1f)`);
+ * las celdas que sobran en la última fila se rellenan con espacio vacío para que
+ * no se estiren. No es lazy — se usa dentro de pantallas que ya scrollean.
+ */
+@Composable
+fun <T> AdaptiveGrid(
+    items: List<T>,
+    columns: Int,
+    modifier: Modifier = Modifier,
+    spacing: androidx.compose.ui.unit.Dp = 12.dp,
+    itemContent: @Composable (item: T, modifier: Modifier) -> Unit,
+) {
+    Column(modifier = modifier, verticalArrangement = Arrangement.spacedBy(spacing)) {
+        items.chunked(columns.coerceAtLeast(1)).forEach { rowItems ->
+            Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(spacing)) {
+                rowItems.forEach { item -> itemContent(item, Modifier.weight(1f)) }
+                repeat(columns - rowItems.size) { Spacer(Modifier.weight(1f)) }
+            }
+        }
+    }
+}
+
 @Composable
 fun TierChannelRow(
     tier: InferenceTier,

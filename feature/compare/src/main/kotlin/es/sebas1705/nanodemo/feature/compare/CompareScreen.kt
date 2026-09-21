@@ -29,10 +29,12 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
+import es.sebas1705.nanodemo.core.designsystem.AdaptiveGrid
 import es.sebas1705.nanodemo.core.designsystem.ScreenSizeClass
 import es.sebas1705.nanodemo.core.designsystem.channelLetter
 import es.sebas1705.nanodemo.core.designsystem.label
 import es.sebas1705.nanodemo.core.designsystem.signalColor
+import es.sebas1705.nanodemo.core.designsystem.tierColumns
 import es.sebas1705.nanodemo.core.ui.DemoColors
 import es.sebas1705.nanodemo.core.ui.readoutStyle
 import es.sebas1705.nanodemo.domain.models.DemoState
@@ -63,38 +65,28 @@ fun CompareScreen(
 
         PromptBankRow(onPresetSelected = { promptText = it })
 
+        val tierCount = InferenceTier.entries.size
         OutlinedTextField(
             value = promptText,
             onValueChange = { promptText = it },
-            label = { Text("Prompt (se manda a los 3 tiers a la vez)") },
+            label = { Text("Prompt (se manda a los $tierCount tiers a la vez)") },
             modifier = Modifier.fillMaxWidth()
         )
         Button(onClick = { viewModel.generateCompare(promptText) }, modifier = Modifier.fillMaxWidth()) {
-            Text("Generar en los 3 tiers")
+            Text("Generar en los $tierCount tiers")
         }
 
-        if (sizeClass == ScreenSizeClass.COMPACT) {
-            Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
-                InferenceTier.entries.forEach { tier ->
-                    CompareCard(tier = tier, tierState = compareStates[tier], modifier = Modifier.fillMaxWidth())
-                }
-            }
-        } else {
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.spacedBy(12.dp),
-            ) {
-                InferenceTier.entries.forEach { tier ->
-                    CompareCard(tier = tier, tierState = compareStates[tier], modifier = Modifier.weight(1f))
-                }
-            }
+        // Solo corren los tiers ya comprobados como disponibles (se prueban desde Chat);
+        // los demás muestran "No disponible".
+        AdaptiveGrid(items = InferenceTier.entries, columns = sizeClass.tierColumns) { tier, cardModifier ->
+            CompareCard(tier = tier, tierState = compareStates[tier], modifier = cardModifier)
         }
 
         Button(
             onClick = { viewModel.runBenchmark() },
             modifier = Modifier.fillMaxWidth(),
         ) {
-            Text("Correr banco de prompts completo (${PROMPT_BANK.size} presets × 3 tiers)")
+            Text("Correr banco de prompts completo (${PROMPT_BANK.size} presets × $tierCount tiers)")
         }
     }
 }

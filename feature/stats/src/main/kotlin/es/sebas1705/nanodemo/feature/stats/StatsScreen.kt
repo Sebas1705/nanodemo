@@ -33,10 +33,12 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
+import es.sebas1705.nanodemo.core.designsystem.AdaptiveGrid
 import es.sebas1705.nanodemo.core.designsystem.channelLetter
 import es.sebas1705.nanodemo.core.designsystem.label
 import es.sebas1705.nanodemo.core.designsystem.signalColor
 import es.sebas1705.nanodemo.core.designsystem.ScreenSizeClass
+import es.sebas1705.nanodemo.core.designsystem.tierColumns
 import es.sebas1705.nanodemo.core.ui.DemoColors
 import es.sebas1705.nanodemo.core.ui.readoutStyle
 import es.sebas1705.nanodemo.domain.models.GenerationMetric
@@ -93,18 +95,8 @@ fun StatsScreen(sizeClass: ScreenSizeClass, viewModel: StatsViewModel = hiltView
         val stats = InferenceTier.entries.mapNotNull { tier -> byTier[tier]?.let { tier to computeTierStat(it) } }
         val maxAvgLatencyMs = stats.maxOf { it.second.avgLatencyMs }.coerceAtLeast(1.0)
 
-        if (sizeClass == ScreenSizeClass.COMPACT) {
-            Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
-                stats.forEach { (tier, stat) ->
-                    StatCard(tier, stat, maxAvgLatencyMs, Modifier.fillMaxWidth())
-                }
-            }
-        } else {
-            Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-                stats.forEach { (tier, stat) ->
-                    StatCard(tier, stat, maxAvgLatencyMs, Modifier.weight(1f))
-                }
-            }
+        AdaptiveGrid(items = stats, columns = sizeClass.tierColumns) { (tier, stat), cardModifier ->
+            StatCard(tier, stat, maxAvgLatencyMs, cardModifier)
         }
     }
 }
