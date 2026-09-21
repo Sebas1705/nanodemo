@@ -1,0 +1,4 @@
+# Los scripts de shell y el wrapper de Gradle se ejecutan con bash/sh (incluso en Windows, vía Git Bash):
+# con CRLF fallan ("\r: command not found"), así que siempre van con LF aunque core.autocrlf esté activo.
+*.sh text eol=lf
+gradlew text eol=lf
