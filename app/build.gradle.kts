@@ -3,10 +3,10 @@ plugins {
 }
 
 android {
-    namespace = "com.example.geminifnanodemo"
+    namespace = "es.sebas1705.nanodemo"
 
     defaultConfig {
-        applicationId = "com.example.geminifnanodemo"
+        applicationId = "es.sebas1705.nanodemo"
         versionCode = 1
         versionName = "1.0"
     }

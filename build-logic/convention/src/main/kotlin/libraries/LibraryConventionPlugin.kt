@@ -24,8 +24,8 @@ class LibraryConventionPlugin : Plugin<Project> {
             extensions.configure<LibraryExtension> {
                 configureKotlinAndroid(this)
                 // Cada módulo de librería usa un namespace propio derivado de su path
-                // (ej. ":core:common" -> "com.example.geminifnanodemo.core.common").
-                namespace = "com.example.geminifnanodemo" +
+                // (ej. ":core:common" -> "es.sebas1705.nanodemo.core.common").
+                namespace = "es.sebas1705.nanodemo" +
                     path.trim(':').replace(':', '.').let { if (it.isEmpty()) "" else ".$it" }
             }
         }

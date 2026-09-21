@@ -173,7 +173,7 @@ para ver solo un backend). Los chunks de streaming se loguean en nivel
    archivo directamente con `adb push` (sirve igual, la app solo comprueba
    si el archivo ya existe):
    ```
-   adb push gemma3-1b-it-int4.task /sdcard/Android/data/com.example.geminifnanodemo/files/gemma-model.task
+   adb push gemma3-1b-it-int4.task /sdcard/Android/data/es.sebas1705.nanodemo/files/gemma-model.task
    ```
    Si usás Git Bash en Windows, cuidado con la conversión automática de
    rutas de MSYS — si `adb push` falla con `remote secure_mkdirs() failed`,
