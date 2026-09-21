@@ -1,0 +1,65 @@
+name: Compilar APK release firmado
+description: >
+  Compila `:app:assembleRelease` firmado con el keystore fijo. Todos los secretos salen de Doppler
+  (el job tiene que exportar DOPPLER_TOKEN y haber hecho checkout antes). El APK queda en
+  app/build/outputs/apk/release/app-release.apk. Lo comparten las dos vías de distribución
+  (Firebase App Distribution y GitHub Release) para no duplicar el build.
+
+inputs:
+  version-name:
+    description: versionName del APK (p. ej. 1.2.0). Vacío = 1.0.<run_number>.
+    required: false
+    default: ""
+  extra-secrets:
+    description: >
+      Secretos de Doppler adicionales que la vía de distribución necesita (separados por espacios),
+      además de los de build y firma que se comprueban siempre.
+    required: false
+    default: ""
+
+runs:
+  using: composite
+  steps:
+    - uses: dopplerhq/cli-action@v4
+
+    - name: Verificar que Doppler tenga todos los secretos
+      shell: bash
+      env:
+        EXTRA_SECRETS: ${{ inputs.extra-secrets }}
+      run: |
+        [ -n "$DOPPLER_TOKEN" ] || { echo "::error::Falta el secreto DOPPLER_TOKEN en GitHub"; exit 1; }
+        doppler run -- bash -c '
+          missing=0
+          for name in GEMINI_API_KEY FIREBASE_API_KEY FIREBASE_APP_ID FIREBASE_PROJECT_ID \
+                      MEDIAPIPE_MODEL_TOKEN MEDIAPIPE_MODEL_URL \
+                      MEDIAPIPE_MODEL_URL_GEMMA_2_2B_PART1 MEDIAPIPE_MODEL_URL_GEMMA_2_2B_PART2 \
+                      SIGNING_KEYSTORE_BASE64 SIGNING_STORE_PASSWORD SIGNING_KEY_ALIAS SIGNING_KEY_PASSWORD \
+                      $EXTRA_SECRETS; do
+            if [ -z "${!name:-}" ]; then echo "::error::Falta el secreto $name en Doppler"; missing=1; fi
+          done
+          exit $missing'
+
+    - uses: actions/setup-java@v6
+      with:
+        distribution: temurin
+        java-version: 21
+
+    - uses: gradle/actions/setup-gradle@v6
+
+    - name: Preparar el keystore
+      shell: bash
+      run: |
+        doppler run -- bash -c 'printf "%s" "$SIGNING_KEYSTORE_BASE64" | base64 -d > "$RUNNER_TEMP/release.jks"'
+        echo "SIGNING_KEYSTORE_PATH=$RUNNER_TEMP/release.jks" >> "$GITHUB_ENV"
+
+    # Las keys de los tiers llegan como variables de entorno (doppler run) y el build las compila
+    # en BuildConfig: no hace falta generar local.properties. gradlew se commiteó sin el bit de
+    # ejecución (se creó desde Windows), de ahí el chmod.
+    - name: Compilar el APK release
+      shell: bash
+      env:
+        VERSION_CODE: ${{ github.run_number }}
+        VERSION_NAME: ${{ inputs.version-name }}
+      run: |
+        chmod +x gradlew
+        doppler run -- ./gradlew :app:assembleRelease "-Dorg.gradle.jvmargs=-Xmx4g -Dfile.encoding=UTF-8"

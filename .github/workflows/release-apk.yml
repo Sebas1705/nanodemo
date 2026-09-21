@@ -1,0 +1,89 @@
+name: Release APK
+
+# Vía 2 de distribución: al empujar un tag `vX.Y.Z` (o al disparar el workflow a mano indicando la
+# versión) compila el APK release firmado y crea una GitHub Release con el APK adjunto, su SHA-256
+# y las notas generadas a partir de los PRs/commits desde el tag anterior. No necesita Firebase:
+# solo Doppler (DOPPLER_TOKEN) — el mismo build que la vía de Firebase.
+on:
+  push:
+    tags: ["v*"]
+  workflow_dispatch:
+    inputs:
+      version:
+        description: "Versión sin prefijo, p. ej. 1.2.0 (o 1.2.0-beta.1 para pre-release)"
+        required: true
+        type: string
+
+permissions:
+  contents: write
+
+# Nunca cancelar una release a medias: dos tags seguidos se encolan.
+concurrency:
+  group: release-apk
+  cancel-in-progress: false
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    env:
+      DOPPLER_TOKEN: ${{ secrets.DOPPLER_TOKEN }}
+      GH_TOKEN: ${{ github.token }}
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
+
+      - name: Resolver versión y tag
+        id: ver
+        env:
+          EVENT: ${{ github.event_name }}
+          INPUT_VERSION: ${{ inputs.version }}
+        run: |
+          if [ "$EVENT" = "workflow_dispatch" ]; then RAW="$INPUT_VERSION"; else RAW="$GITHUB_REF_NAME"; fi
+          VERSION="${RAW#v}"
+          if ! [[ "$VERSION" =~ ^[0-9]+\.[0-9]+\.[0-9]+(-[0-9A-Za-z.]+)?$ ]]; then
+            echo "::error::Versión inválida '$RAW'. Formato esperado: X.Y.Z o X.Y.Z-sufijo (p. ej. 1.2.0, 1.2.0-beta.1)"
+            exit 1
+          fi
+          TAG="v$VERSION"
+          if [ "$EVENT" = "workflow_dispatch" ] && gh release view "$TAG" >/dev/null 2>&1; then
+            echo "::error::Ya existe la release $TAG. Elegí otra versión."
+            exit 1
+          fi
+          echo "version=$VERSION" >> "$GITHUB_OUTPUT"
+          echo "tag=$TAG" >> "$GITHUB_OUTPUT"
+          case "$VERSION" in *-*) echo "prerelease=--prerelease" >> "$GITHUB_OUTPUT" ;; *) echo "prerelease=" >> "$GITHUB_OUTPUT" ;; esac
+
+      - uses: ./.github/actions/build-release-apk
+        with:
+          version-name: ${{ steps.ver.outputs.version }}
+
+      - name: Preparar los archivos de la release
+        id: assets
+        env:
+          TAG: ${{ steps.ver.outputs.tag }}
+        run: |
+          APK="nanodemo-$TAG.apk"
+          cp app/build/outputs/apk/release/app-release.apk "$RUNNER_TEMP/$APK"
+          (cd "$RUNNER_TEMP" && sha256sum "$APK" > "$APK.sha256")
+          echo "apk=$RUNNER_TEMP/$APK" >> "$GITHUB_OUTPUT"
+          echo "sha=$RUNNER_TEMP/$APK.sha256" >> "$GITHUB_OUTPUT"
+
+      # Con un tag ya empujado la release se cuelga de él (--verify-tag); con disparo manual `gh`
+      # crea el tag sobre el commit del run (--target).
+      - name: Crear la GitHub Release
+        env:
+          EVENT: ${{ github.event_name }}
+          TAG: ${{ steps.ver.outputs.tag }}
+          PRERELEASE: ${{ steps.ver.outputs.prerelease }}
+          APK: ${{ steps.assets.outputs.apk }}
+          SHA: ${{ steps.assets.outputs.sha }}
+        run: |
+          if [ "$EVENT" = "workflow_dispatch" ]; then REF_FLAG="--target $GITHUB_SHA"; else REF_FLAG="--verify-tag"; fi
+          # shellcheck disable=SC2086
+          gh release create "$TAG" "$APK" "$SHA" --title "$TAG" --generate-notes $PRERELEASE $REF_FLAG
+
+      - name: Borrar credenciales del runner
+        if: always()
+        run: rm -f "$RUNNER_TEMP/release.jks"
