@@ -4,7 +4,7 @@
 
 [versions]
 # Gradle plugins / toolchain
-agp = "9.4.0"
+agp = "9.4.1"
 kotlin = "2.3.21"
 ksp = "2.3.7"
 detekt = "1.23.8"
