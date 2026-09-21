@@ -20,3 +20,7 @@ out/
 
 # Config de Firebase: los valores viven en local.properties, no se commitea.
 google-services.json
+
+# Keystores de firma (nunca al repo: viven en Doppler)
+*.jks
+*.keystore
