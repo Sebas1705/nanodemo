@@ -40,6 +40,8 @@ include(":domain:usescases:history")
 include(":data:mlkitnano")
 include(":data:mediapipe")
 include(":data:cloudgemini")
+include(":data:litertlm")
+include(":data:firebaseai")
 include(":data:repositories")
 include(":data:history")
 

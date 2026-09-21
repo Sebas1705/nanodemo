@@ -49,9 +49,20 @@ kotlinSerializationJson = "1.9.0"
 # Room — historial de conversaciones en SQLite local (data:history).
 room = "2.8.5"
 
+# Tier D: LiteRT-LM (sucesor oficial de MediaPipe LLM Inference). API verificada
+# contra el .aar real de 0.17.1 (Engine/Conversation/SamplerConfig/Contents).
+litertlm = "0.17.1"
+
+# Tier E: Firebase AI Logic (acceso a Gemini vía Firebase). API verificada contra
+# el .aar real de 17.17.0. Sin el plugin google-services: la app se inicializa a
+# mano con FirebaseOptions desde local.properties (ver data:firebaseai).
+firebaseAi = "17.17.0"
+
 [libraries]
 # Tiers de inferencia
-mlkit-genai-prompt = { group = "com.google.mlkit", name = "genai-prompt", version.ref = "mlkitGenaiPrompt" }
+litertlm-android = { group = "com.google.ai.edge.litertlm", name = "litertlm-android", version.ref = "litertlm" }
+firebase-ai = { group = "com.google.firebase", name = "firebase-ai", version.ref = "firebaseAi" }
+mlkit-genai-prompt ={ group = "com.google.mlkit", name = "genai-prompt", version.ref = "mlkitGenaiPrompt" }
 mediapipe-tasks-genai = { group = "com.google.mediapipe", name = "tasks-genai", version.ref = "mediapipeTasksGenai" }
 
 # Core AndroidX

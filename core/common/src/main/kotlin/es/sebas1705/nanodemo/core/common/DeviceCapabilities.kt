@@ -21,6 +21,17 @@ fun hasEnoughRamForMediaPipe(context: Context): Boolean {
     return !activityManager.isLowRamDevice && memoryInfo.totalMem >= MEDIAPIPE_MIN_RAM_BYTES
 }
 
+/**
+ * `totalMem` reporta algo menos que la RAM nominal (un teléfono de "6GB" suele
+ * informar ~5.5GB), así que el umbral se pasa ya descontado.
+ */
+fun hasAtLeastRamBytes(context: Context, minBytes: Long): Boolean {
+    val activityManager = context.getSystemService(Context.ACTIVITY_SERVICE) as ActivityManager
+    val memoryInfo = ActivityManager.MemoryInfo()
+    activityManager.getMemoryInfo(memoryInfo)
+    return !activityManager.isLowRamDevice && memoryInfo.totalMem >= minBytes
+}
+
 /** RAM total del dispositivo en GB, para mostrar en la pantalla de Dispositivo. */
 fun totalRamGb(context: Context): Double {
     val activityManager = context.getSystemService(Context.ACTIVITY_SERVICE) as ActivityManager

@@ -10,6 +10,38 @@ al siguiente si el dispositivo (o la configuración) no soporta el anterior:
    gestionado por la propia app, corre en gama media (~4GB+ RAM).
 3. **Tier C — Gemini API en la nube**: fallback universal, funciona en
    cualquier dispositivo con internet, pero ya no es on-device.
+4. **Tier D — LiteRT-LM + Gemma 4 E2B** (on-device): el runtime que Google
+   recomienda como sucesor de MediaPipe LLM Inference. Soporta imágenes y
+   guarda el historial al retomar una charla. Necesita ~6GB+ de RAM.
+5. **Tier E — Firebase AI Logic** (nube): la forma recomendada por Google de
+   llamar a Gemini desde una app móvil (contraste directo con el Tier C, que
+   usa la REST API con la key embebida).
+
+Los tiers D y E se agregaron para poder comparar los motores más nuevos de
+Android; van al final del orden de fallback, así que no cambian qué tier se
+elige por defecto. Para no acumular varios modelos en RAM, al cambiar de tier
+se libera el motor de MediaPipe / LiteRT-LM del que dejás.
+
+**Configuración de los tiers nuevos**
+
+- **Tier D** no requiere nada: Gemma 4 E2B (~2.6 GB, Apache 2.0) se descarga
+  directo de Hugging Face, sin login ni token, desde el botón "Descargar modelo".
+  (`LITERTLM_MODEL_URL` en `local.properties` permite apuntar a otro modelo.)
+- **Tier E** requiere un proyecto de Firebase: creá uno en
+  https://console.firebase.google.com, habilitá **Firebase AI Logic** (con el
+  proveedor "Gemini Developer API"), registrá una app Android con el paquete
+  `es.sebas1705.nanodemo` y copiá estos tres valores (Configuración del
+  proyecto → tu app) a `local.properties`:
+  ```
+  FIREBASE_API_KEY=...
+  FIREBASE_APP_ID=1:1234567890:android:abcdef
+  FIREBASE_PROJECT_ID=...
+  ```
+  No hace falta `google-services.json` ni el plugin de Gradle: la app inicializa
+  Firebase a mano con esos valores. Sin ellos, el tier queda "no disponible".
+  App Check (recomendado para producción) no está activado en este demo. El modo
+  híbrido on-device de Firebase AI Logic no se incluyó (es experimental y termina
+  usando Gemini Nano, que ya es el Tier A).
 
 Es el proyecto de ejemplo que salió de la investigación sobre implementación
 de agentes de IA en móvil (ver el proyecto "IA en móvil" en Claude, donde
@@ -70,8 +102,9 @@ La app está dividida en módulos Gradle por capa (convention plugins en
   de uso por acción (`GenerateUseCase`, `SelectTierUseCase`,
   `LoadConversationUseCase`, etc.), la única frontera que `feature:*` puede
   cruzar hacia la capa de datos.
-- **`data:mlkitnano`** / **`data:mediapipe`** / **`data:cloudgemini`** — un
-  backend por tier, cada uno implementando `InferenceBackend`.
+- **`data:mlkitnano`** / **`data:mediapipe`** / **`data:cloudgemini`** /
+  **`data:litertlm`** / **`data:firebaseai`** — un backend por tier, cada uno
+  implementando `InferenceBackend`.
 - **`data:repositories`** — `InferenceRepository` (`@Singleton`): única
   fuente de verdad compartida por todas las pantallas (reemplaza al viejo
   `InferenceOrchestratorViewModel`), orquesta fallback automático,

@@ -5,7 +5,9 @@ import android.net.Uri
 import android.util.Log
 import androidx.core.content.FileProvider
 import es.sebas1705.nanodemo.data.cloudgemini.CloudGeminiBackend
+import es.sebas1705.nanodemo.data.firebaseai.FirebaseAiBackend
 import es.sebas1705.nanodemo.data.history.IHistoryRepository
+import es.sebas1705.nanodemo.data.litertlm.LiteRtLmBackend
 import es.sebas1705.nanodemo.data.mediapipe.MediaPipeBackend
 import es.sebas1705.nanodemo.data.mlkitnano.MlKitNanoBackend
 import es.sebas1705.nanodemo.data.repositories.interfaces.IInferenceRepository
@@ -50,6 +52,8 @@ class InferenceRepository @Inject constructor(
     mlKitNanoBackend: MlKitNanoBackend,
     private val mediaPipeBackend: MediaPipeBackend,
     cloudGeminiBackend: CloudGeminiBackend,
+    liteRtLmBackend: LiteRtLmBackend,
+    firebaseAiBackend: FirebaseAiBackend,
     private val historyRepository: IHistoryRepository,
 ) : IInferenceRepository {
 
@@ -59,7 +63,16 @@ class InferenceRepository @Inject constructor(
         InferenceTier.ML_KIT_NANO to mlKitNanoBackend,
         InferenceTier.MEDIAPIPE_LOCAL to mediaPipeBackend,
         InferenceTier.CLOUD_GEMINI to cloudGeminiBackend,
+        InferenceTier.LITERT_LM_LOCAL to liteRtLmBackend,
+        InferenceTier.FIREBASE_AI to firebaseAiBackend,
     )
+
+    /**
+     * Tiers cuyo motor mantiene el modelo cargado en RAM (~1-3GB cada uno). Al cambiar de
+     * tier se libera el de los demás para no acumular varios a la vez y que el sistema
+     * mate la app; el motor se recrea solo en el próximo turno de ese tier.
+     */
+    private val residentEngineTiers = setOf(InferenceTier.MEDIAPIPE_LOCAL, InferenceTier.LITERT_LM_LOCAL)
 
     override val mediaPipeModels: List<MediaPipeModelOption> = mediaPipeBackend.availableModels
     override val selectedMediaPipeModel: StateFlow<MediaPipeModelOption> = mediaPipeBackend.selectedModel
@@ -119,6 +132,7 @@ class InferenceRepository @Inject constructor(
 
     override fun selectTier(tier: InferenceTier) {
         Log.d(TAG, "selectTier: override manual a $tier")
+        residentEngineTiers.filter { it != tier }.forEach { backends.getValue(it).close() }
         _activeTier.update { tier }
         scope.launch {
             applyAvailabilityToState(checkTier(tier))

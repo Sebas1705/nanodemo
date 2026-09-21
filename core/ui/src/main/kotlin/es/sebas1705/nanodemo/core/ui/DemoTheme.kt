@@ -23,6 +23,8 @@ object DemoColors {
     val TierA = Color(0xFF5CF29B) // Nano — canal más cercano al silicio.
     val TierB = Color(0xFFF2B35C) // MediaPipe — on-device, canal "tibio".
     val TierC = Color(0xFF5CC7F2) // Cloud — señal que viaja lejos.
+    val TierD = Color(0xFFB08CF2) // LiteRT-LM — on-device, runtime nuevo de Google.
+    val TierE = Color(0xFFF25CB6) // Firebase AI Logic — nube vía Firebase.
     val Danger = Color(0xFFF26D5C)
 }
 

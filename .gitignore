@@ -17,3 +17,6 @@ local.properties
 bin/
 gen/
 out/
+
+# Config de Firebase: los valores viven en local.properties, no se commitea.
+google-services.json

@@ -24,6 +24,12 @@ class AppConventionPlugin : Plugin<Project> {
             extensions.configure<ApplicationExtension> {
                 configureKotlinAndroid(this)
                 defaultConfig.targetSdk = 36
+                // firebase-ai trae ktor/okhttp, que repiten estos archivos de licencia en
+                // varios jars; son los excludes estándar de la plantilla de Android Studio
+                // para evitar "Duplicate files copied in APK META-INF/...".
+                packaging.resources.excludes.addAll(
+                    listOf("/META-INF/{AL2.0,LGPL2.1}", "/META-INF/INDEX.LIST", "/META-INF/DEPENDENCIES"),
+                )
             }
         }
     }

@@ -7,6 +7,8 @@ dependencies {
     implementation(projects.data.mlkitnano)
     implementation(projects.data.mediapipe)
     implementation(projects.data.cloudgemini)
+    implementation(projects.data.litertlm)
+    implementation(projects.data.firebaseai)
     implementation(projects.data.history)
 
     // FileProvider (compartir el CSV de estadísticas exportado).
