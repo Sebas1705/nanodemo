@@ -92,15 +92,51 @@ ni de ninguna feature: se instancian a mano en `InferenceRepository`.
 ### `data:firebaseai` — Tier E · Firebase AI Logic
 
 - **Dependencia**: `com.google.firebase:firebase-ai:17.17.0`.
-- **Secretos / BuildConfig**: `FIREBASE_API_KEY`, `FIREBASE_APP_ID`, `FIREBASE_PROJECT_ID`.
+- **Depende de** `data:firebasecore` (ver abajo), que aporta `FirebaseBootstrap` y los
+  secretos `FIREBASE_API_KEY`, `FIREBASE_APP_ID`, `FIREBASE_PROJECT_ID`.
 - **Requisitos de consola**: habilitar Firebase AI Logic (Gemini Developer API) en el
   proyecto de Firebase.
-- **Particularidades**: **sin** plugin `google-services` ni `google-services.json`:
-  `FirebaseApp.initializeApp(context, FirebaseOptions)` manual y perezoso
-  (`ensureInitialized()`); modelo `gemini-3.5-flash`; se crea un `generativeModel` por turno.
-  Firebase ya inicializado por el plugin en la app destino → quitar `ensureInitialized()`.
+- **Particularidades**: modelo `gemini-3.5-flash`; se crea un `generativeModel` por turno;
+  `ensureInitialized()` delega en `FirebaseBootstrap` (la `FirebaseApp` ya suele existir porque
+  `Application` la crea al arrancar).
 - **Al portarlo**: en el template ya hay un `FirebaseConventionPlugin` y un `FirebaseModule`
-  en `:app`; usarlos en lugar de la inicialización manual.
+  en `:app`; si la app destino inicializa Firebase con `google-services`, se puede quitar
+  `FirebaseBootstrap` y su llamada.
+
+### `data:firebasecore` — arranque común de Firebase
+
+`FirebaseBootstrap` (`@Singleton`): crea la `FirebaseApp` por defecto **a mano** con
+`FirebaseOptions` (sin plugin `google-services` ni `google-services.json`), de forma
+idempotente. La comparten Firebase AI y Crashlytics. Dependencia: `firebase-common:22.0.1`
+(la misma que arrastran `firebase-ai` y `firebase-crashlytics`). Secretos: los tres
+`FIREBASE_*`; si falta alguno no se inicializa nada y los consumidores se desactivan solos.
+
+### `data:crashlytics` — reporte de errores (Firebase Crashlytics)
+
+- **Contrato**: `ErrorReporter` en `core:common` (`initialize`, `log`, `setKey`,
+  `recordNonFatal`); cualquier capa lo inyecta sin conocer Firebase. `CrashlyticsErrorReporter`
+  lo implementa y `CrashlyticsModule` lo enlaza con Hilt.
+- **Dependencia**: `com.google.firebase:firebase-crashlytics:20.1.1` (sin `-ktx`, que ya no
+  existe desde el BoM 32).
+- **Secretos**: `CRASHLYTICS_ENABLED` opcional (por defecto `true`; `false` apaga la
+  recolección).
+- **Arranque**: `NanoDemoApplication.onCreate()` llama a `errorReporter.initialize()`. El SDK
+  solo captura crashes desde que existe la `FirebaseApp`.
+- **Sin plugin de Gradle de Crashlytics**: el SDK necesita un *build id* que solo genera ese
+  plugin; sin él lanza `IllegalStateException` y se queda apagado. Se evita con la resource
+  `com.google.firebase.crashlytics.RequireBuildId=false` (`app/src/main/res/values/crashlytics.xml`).
+  Válido mientras no haya R8/minify; al activarlo hay que aplicar el plugin
+  `com.google.firebase.crashlytics` y borrar esa resource (para que los stack traces se
+  desofusquen con el mapping).
+- **Qué se reporta**: errores manejados de `InferenceRepository` (comprobar disponibilidad,
+  descargar modelo, generar, exportar CSV; las cancelaciones no), con las claves
+  `active_tier` y `mediapipe_model` y migas de pan por turno. **Nunca** prompts ni respuestas.
+- **Límites**: sin `firebase-crashlytics-ndk`, los crashes nativos (MediaPipe y LiteRT-LM son
+  C++) no se capturan; si el sistema mata la app por falta de RAM tampoco hay reporte.
+- **Al portarlo**: copiar `data:firebasecore` + `data:crashlytics`, la resource de `:app`, la
+  llamada `initialize()` en la `Application`, y `implementation(projects.data.crashlytics)` en
+  `:app`. El template ya usa `firebase-crashlytics` con el plugin y `google-services`: allí basta
+  con enlazar `ErrorReporter` a esa dependencia y omitir la resource.
 
 ### `data:history` — historial local (opcional)
 

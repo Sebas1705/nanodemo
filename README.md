@@ -117,6 +117,9 @@ La app está dividida en módulos Gradle por capa (convention plugins en
   persiste cada turno vía `data:history`.
 - **`data:history`** — base de datos Room (`conversations`/`messages`) detrás
   de `IHistoryRepository`.
+- **`data:firebasecore`** / **`data:crashlytics`** — arranque común de Firebase
+  (inicialización manual, sin `google-services`) y el reporte de errores a
+  Crashlytics detrás del contrato `ErrorReporter` de `core:common`.
 - **`feature:chat`** / **`compare`** / **`config`** / **`device`** /
   **`stats`** / **`history`** — una pantalla + su propio `@HiltViewModel` cada
   una.
@@ -305,6 +308,7 @@ ids de Firebase, y para CI el keystore y la cuenta de servicio) viven en un proy
 | `FIREBASE_API_KEY`, `FIREBASE_APP_ID`, `FIREBASE_PROJECT_ID` | Tier E (y `FIREBASE_APP_ID` también sube a App Distribution) |
 | `MEDIAPIPE_MODEL_TOKEN`, `MEDIAPIPE_MODEL_URL`, `MEDIAPIPE_MODEL_URL_GEMMA_2_2B_PART1`, `MEDIAPIPE_MODEL_URL_GEMMA_2_2B_PART2` | Tier B |
 | `LITERTLM_MODEL_URL` (opcional) | Tier D, para apuntar a otro modelo |
+| `CRASHLYTICS_ENABLED` (opcional, por defecto `true`) | `false` apaga el envío de errores a Crashlytics (útil en `dev`) |
 | `SIGNING_KEYSTORE_BASE64`, `SIGNING_STORE_PASSWORD`, `SIGNING_KEY_ALIAS`, `SIGNING_KEY_PASSWORD` | Solo CI (`prd`) |
 | `FIREBASE_SERVICE_ACCOUNT_JSON` | Solo CI (`prd`) |
 
@@ -319,6 +323,26 @@ usarlo en local:
   correrlo cuando cambie un secreto.
 
 `local.properties` a mano sigue funcionando igual que antes.
+
+## Errores y crashes (Firebase Crashlytics)
+
+La app manda a Crashlytics los **crashes** y los **errores manejados** (fallos al
+comprobar un tier, descargar un modelo o generar), con el tier y el modelo activos
+como contexto — nunca el texto de los prompts ni de las respuestas. Se ven en la
+[consola de Firebase](https://console.firebase.google.com/project/nanodemo-79f3a/crashlytics)
+→ Crashlytics.
+
+**Una sola vez**: en la consola, abrí Crashlytics y pulsá **Habilitar** (sin eso
+no aparecen los reportes). No hace falta plugin de Gradle ni `google-services.json`.
+
+**Comprobar que funciona**: en la pestaña *Dispositivo*, sección *Diagnóstico*:
+- *Enviar error no fatal de prueba*: llega en unos minutos a *No fatales*.
+- *Forzar crash de prueba*: cierra la app; el reporte se envía **al reabrirla** y
+  el primer crash de una app nueva puede tardar unos minutos en verse.
+
+`CRASHLYTICS_ENABLED=false` (Doppler o `local.properties`) apaga el envío. Límites
+conocidos: los crashes nativos (MediaPipe / LiteRT-LM) y las muertes por falta de
+RAM no se capturan. Detalle técnico en [docs/AI_MODULES.md](docs/AI_MODULES.md).
 
 ## Distribución
 
