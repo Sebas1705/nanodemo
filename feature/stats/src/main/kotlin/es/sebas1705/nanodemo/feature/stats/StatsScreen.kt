@@ -112,6 +112,10 @@ private val METRIC_HELP: List<Pair<String, String>> = listOf(
         "palabras) de la respuesta. Real cuando el backend lo expone (MediaPipe, Cloud); " +
         "aproximado (caracteres/4) en ML Kit Nano.",
     "Éxito" to "Cuántas de las corridas contra este tier terminaron sin error, sobre el total.",
+    "Costo (estimado)" to "Solo Cloud y Firebase AI (los tiers en la nube) lo muestran — los " +
+        "on-device no llaman a ninguna API paga, cuestan \$0. Se calcula con el precio público de " +
+        "Gemini Flash (entrada/salida) y una aproximación de tokens del prompt (caracteres/4, no " +
+        "hay conteo exacto de entrada); tratalo como orden de magnitud, no como factura real.",
 )
 
 @Composable
@@ -170,6 +174,8 @@ private data class TierStat(
     val tokensExact: Boolean,
     val successCount: Int,
     val totalCount: Int,
+    /** `null` en los tiers on-device (A/B/D): no hay llamada facturada, el costo real es 0. */
+    val totalCostUsd: Double?,
 )
 
 private fun computeTierStat(runs: List<GenerationMetric>): TierStat {
@@ -189,8 +195,36 @@ private fun computeTierStat(runs: List<GenerationMetric>): TierStat {
         tokensExact = runs.any { it.responseTokensExact },
         successCount = runs.count { it.success },
         totalCount = runs.size,
+        totalCostUsd = estimatedCostUsd(runs),
     )
 }
+
+// Precios de Gemini Flash (nivel pagado, USD/millón de tokens), verificados en
+// https://ai.google.dev/gemini-api/docs/pricing el 22/09/2026 — Gemini 3.7/3.8 Flash: $0.75
+// entrada / $3.75 salida (vigente hasta el 31/12/2026). El modelo real que usan los Tiers C/E
+// (`gemini-3.5-flash`) no está listado ahí con precio propio; se usa el de la familia Flash más
+// cercana como aproximación — de ahí el "(estimado)" en la UI. Sube a $1.50/$7.50 desde 2027.
+private const val INPUT_USD_PER_MILLION_TOKENS = 0.75
+private const val OUTPUT_USD_PER_MILLION_TOKENS = 3.75
+
+/** Solo los tiers en la nube facturan por token; los on-device (A/B/D) no llaman a ninguna API paga. */
+private val METERED_TIERS = setOf(InferenceTier.CLOUD_GEMINI, InferenceTier.FIREBASE_AI)
+
+private fun estimatedCostUsd(runs: List<GenerationMetric>): Double? {
+    val tier = runs.firstOrNull()?.tier ?: return null
+    if (tier !in METERED_TIERS) return null
+    return runs.sumOf { run ->
+        // No se captura el conteo real de tokens del prompt (solo de la respuesta): se aproxima
+        // igual que el resto del código (caracteres/4, ver GenerationMetric.responseTokensExact).
+        val inputTokens = run.promptChars / CHARS_PER_TOKEN_APPROX
+        val outputTokens = run.responseTokens.toDouble()
+        (inputTokens * INPUT_USD_PER_MILLION_TOKENS + outputTokens * OUTPUT_USD_PER_MILLION_TOKENS) /
+            TOKENS_PER_MILLION
+    }
+}
+
+private const val CHARS_PER_TOKEN_APPROX = 4.0
+private const val TOKENS_PER_MILLION = 1_000_000.0
 
 /** Percentil simple sobre una lista YA ordenada ascendentemente. */
 private fun percentile(sortedValues: List<Long>, fraction: Double): Double {
@@ -236,6 +270,9 @@ private fun StatCard(tier: InferenceTier, stat: TierStat, maxAvgLatencyMs: Doubl
             String.format(Locale.US, "%.0f%s", stat.avgTokens, if (stat.tokensExact) "" else " (aprox.)"),
         )
         StatRow("Éxito", "${stat.successCount}/${stat.totalCount}")
+        if (stat.totalCostUsd != null) {
+            StatRow("Costo (estimado)", String.format(Locale.US, "\$%.4f", stat.totalCostUsd))
+        }
     }
 }
 
