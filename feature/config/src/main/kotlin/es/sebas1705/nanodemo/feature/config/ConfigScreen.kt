@@ -204,9 +204,13 @@ fun ConfigScreen(viewModel: ConfigViewModel = hiltViewModel()) {
                 )
             }
             Text(
-                "Grounding con Google Search: el modelo busca antes de responder, para preguntas " +
-                    "actuales que no puede saber por su corte de entrenamiento. Solo Cloud y Firebase " +
-                    "AI; si también prendiste Herramientas, esta gana (no se probaron juntas).",
+                "El modelo busca antes de responder, para preguntas actuales que no puede saber por " +
+                    "su corte de entrenamiento. Cloud/Firebase AI usan grounding nativo (Google " +
+                    "Search de la propia API); Nano/MediaPipe/LiteRT-LM no tienen red propia, así que " +
+                    "la app busca por ellos (Google Custom Search) y les pasa los resultados — hace " +
+                    "falta configurar GOOGLE_CSE_API_KEY/GOOGLE_CSE_ENGINE_ID, si no la búsqueda " +
+                    "queda deshabilitada con un aviso. Si también prendiste Herramientas, esta gana " +
+                    "(no se probaron juntas).",
                 style = MaterialTheme.typography.bodySmall,
                 color = DemoColors.Muted,
             )

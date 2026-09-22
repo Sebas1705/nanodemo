@@ -8,9 +8,10 @@ package es.sebas1705.nanodemo.data.mediapipe
 
 import android.content.Context
 import android.util.Log
-import es.sebas1705.nanodemo.core.common.DemoTools
+import es.sebas1705.nanodemo.core.common.WebSearchTool
 import es.sebas1705.nanodemo.core.common.buildLocalSystemPrompt
 import es.sebas1705.nanodemo.core.common.hasEnoughRamForMediaPipe
+import es.sebas1705.nanodemo.core.common.resolveLocalToolCall
 import es.sebas1705.nanodemo.domain.models.ChatMessage
 import es.sebas1705.nanodemo.domain.models.GenerationConfig
 import es.sebas1705.nanodemo.domain.models.InferenceBackend
@@ -32,6 +33,7 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.callbackFlow
 import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.flow.flowOn
+import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import java.io.File
 import java.net.HttpURLConnection
@@ -90,12 +92,16 @@ class MediaPipeBackend @Inject constructor(
         // Ninguno de los modelos del catálogo tiene encoder de visión —
         // habilitar esto requeriría hostear un .task multimodal aparte.
         images = false,
-        // Ambas emuladas por prompt (ver core:common/LocalPromptEmulation.kt) -- LlmInferenceSession
-        // no tiene tool-calling ni responseMimeType nativos. Como el resto de los parámetros de
-        // sesión, activar/desactivarlas a mitad de charla no tiene efecto: se agregan a la sesión al
-        // crearla (getOrCreateSession), así que hace falta "Nueva conversación" para que se apliquen.
+        // Las 3 emuladas por prompt (ver core:common/LocalPromptEmulation.kt) -- LlmInferenceSession
+        // no tiene tool-calling, búsqueda ni responseMimeType nativos. Como el resto de los
+        // parámetros de sesión, activar/desactivarlas a mitad de charla no tiene efecto: se agregan
+        // a la sesión al crearla (getOrCreateSession), así que hace falta "Nueva conversación" para
+        // que se apliquen.
         structuredOutput = true,
         functionCalling = true,
+        // A diferencia de las otras 2, SÍ depende de un secreto (Google Custom Search) -- si no
+        // está configurado, el toggle sale deshabilitado en vez de fallar en runtime.
+        webSearch = WebSearchTool.isConfigured,
     )
 
     val availableModels: List<MediaPipeModelOption> = MediaPipeModelOption.entries
@@ -235,13 +241,15 @@ class MediaPipeBackend @Inject constructor(
     }.flowOn(Dispatchers.IO)
 
     /**
-     * Sin tool-calling: un solo `generateResponseAsync`, transmite chunk a chunk (comportamiento sin
-     * cambios). Con tool-calling (emulado por prompt, ver DemoTools y la instrucción agregada en
-     * `getOrCreateSession`): el primer pase se bufferea completo (nada se emite todavía) porque recién
-     * al llegar `done=true` se puede decidir si el texto ENTERO fue el pedido de herramienta o una
-     * respuesta normal. `isGenerating` se mantiene `true` durante los dos pases -- es una sola
-     * generación desde la perspectiva de `close()`/`resetConversation()`, así que el cierre diferido
-     * (ver `runOrDefer`) solo se resuelve una vez, al terminar el pase que de verdad sea el último.
+     * Sin herramientas: un solo `generateResponseAsync`, transmite chunk a chunk (comportamiento sin
+     * cambios). Con herramientas (function calling y/o búsqueda, emuladas por prompt — ver la
+     * instrucción agregada en `getOrCreateSession` y `resolveLocalToolCall`): el primer pase se
+     * bufferea completo (nada se emite todavía) porque recién al llegar `done=true` se puede decidir
+     * si el texto ENTERO fue un pedido de herramienta o una respuesta normal. `resolveLocalToolCall`
+     * es `suspend` (la búsqueda hace red), de ahí el `launch` dentro del callback. `isGenerating` se
+     * mantiene `true` durante los dos pases -- es una sola generación desde la perspectiva de
+     * `close()`/`resetConversation()`, así que el cierre diferido (ver `runOrDefer`) solo se resuelve
+     * una vez, al terminar el pase que de verdad sea el último.
      */
     override fun generateContentStream(history: List<ChatMessage>, config: GenerationConfig): Flow<String> = callbackFlow {
         lastResponseText = ""
@@ -262,7 +270,7 @@ class MediaPipeBackend @Inject constructor(
             close() // ProducerScope.close(): termina este Flow (no es MediaPipeBackend.close()).
         }
 
-        if (!config.functionCalling) {
+        if (!config.functionCalling && !config.webSearch) {
             activeSession.generateResponseAsync { partialResult, done ->
                 Log.v(TAG, "chunk (done=$done): \"$partialResult\"")
                 lastResponseText += partialResult
@@ -275,26 +283,24 @@ class MediaPipeBackend @Inject constructor(
                 firstPassBuffer.append(partialResult)
                 if (!done) return@generateResponseAsync
                 val firstPassText = firstPassBuffer.toString()
-                val timezone = DemoTools.matchReactCall(firstPassText)
-                if (timezone == null) {
-                    lastResponseText += firstPassText
-                    trySend(firstPassText)
-                    finishGeneration()
-                    return@generateResponseAsync
-                }
-                Log.d(TAG, "generateContentStream: pidió get_current_time($timezone)")
-                val marker = "🔧 usando \"${DemoTools.GET_CURRENT_TIME}\"…\n\n"
-                lastResponseText += marker
-                trySend(marker)
-                val toolResult = DemoTools.executeCurrentTime(timezone.ifBlank { null })
-                activeSession.addQueryChunk(
-                    "Resultado de get_current_time: ${toolResult["legible"]} (${toolResult["iso8601"]})",
-                )
-                activeSession.generateResponseAsync { partialResult2, done2 ->
-                    Log.v(TAG, "chunk 2do pase (done=$done2): \"$partialResult2\"")
-                    lastResponseText += partialResult2
-                    trySend(partialResult2)
-                    if (done2) finishGeneration()
+                launch {
+                    val toolCall = resolveLocalToolCall(firstPassText, config.functionCalling, config.webSearch)
+                    if (toolCall == null) {
+                        lastResponseText += firstPassText
+                        trySend(firstPassText)
+                        finishGeneration()
+                        return@launch
+                    }
+                    Log.d(TAG, "generateContentStream: pidió una herramienta")
+                    lastResponseText += toolCall.marker
+                    trySend(toolCall.marker)
+                    activeSession.addQueryChunk(toolCall.resultMessage)
+                    activeSession.generateResponseAsync { partialResult2, done2 ->
+                        Log.v(TAG, "chunk 2do pase (done=$done2): \"$partialResult2\"")
+                        lastResponseText += partialResult2
+                        trySend(partialResult2)
+                        if (done2) finishGeneration()
+                    }
                 }
             }
         }
@@ -330,7 +336,8 @@ class MediaPipeBackend @Inject constructor(
             config.topP?.let { sessionOptionsBuilder.setTopP(it) }
 
             val newSession = LlmInferenceSession.createFromOptions(inference, sessionOptionsBuilder.build())
-            val fullSystemPrompt = buildLocalSystemPrompt(config.systemPrompt, config.functionCalling, config.jsonMode)
+            val fullSystemPrompt =
+                buildLocalSystemPrompt(config.systemPrompt, config.functionCalling, config.webSearch, config.jsonMode)
             fullSystemPrompt?.let { newSession.addQueryChunk("Instrucciones: $it\n\n") }
             session = newSession
             newSession

@@ -5,8 +5,9 @@ import android.graphics.Bitmap
 import android.graphics.BitmapFactory
 import android.net.Uri
 import android.util.Log
-import es.sebas1705.nanodemo.core.common.DemoTools
+import es.sebas1705.nanodemo.core.common.WebSearchTool
 import es.sebas1705.nanodemo.core.common.buildLocalSystemPrompt
+import es.sebas1705.nanodemo.core.common.resolveLocalToolCall
 import es.sebas1705.nanodemo.domain.models.ChatMessage
 import es.sebas1705.nanodemo.domain.models.GenerationConfig
 import es.sebas1705.nanodemo.domain.models.InferenceBackend
@@ -58,12 +59,15 @@ class MlKitNanoBackend @Inject constructor(
         systemPrompt = true, // requiere Gemini Nano V3+; se valida en runtime con isSystemPromptAvailable()
         multiTurn = true,
         images = true,
-        // Ambas emuladas por prompt (ver core:common/LocalPromptEmulation.kt) -- no hay
-        // tool-calling ni responseMimeType nativos en esta API. Dependen del mismo
+        // Las 3 emuladas por prompt (ver core:common/LocalPromptEmulation.kt) -- no hay
+        // tool-calling, búsqueda ni responseMimeType nativos en esta API. Dependen del mismo
         // isSystemPromptAvailable() que systemPrompt: si el dispositivo no lo soporta, la
         // instrucción no llega y el modelo nunca la va a respetar.
         structuredOutput = true,
         functionCalling = true,
+        // A diferencia de las otras 2, SÍ depende de un secreto (Google Custom Search) -- si no
+        // está configurado, el toggle sale deshabilitado en vez de fallar en runtime.
+        webSearch = WebSearchTool.isConfigured,
     )
 
     override suspend fun checkAvailability(): TierAvailability {
@@ -89,15 +93,16 @@ class MlKitNanoBackend @Inject constructor(
     }
 
     /**
-     * Sin tool-calling: transmite chunk a chunk tal cual llegan (comportamiento sin cambios).
-     * Con tool-calling (emulado por prompt, ver DemoTools): esta API es stateless, no hay forma de
-     * "seguir" una generación en curso — el primer pase se bufferea completo (nada se emite todavía)
-     * para poder decidir si el texto ENTERO fue el pedido de herramienta o una respuesta normal, y
-     * recién ahí se resuelve uno u otro camino. Mismo trade-off que Cloud/Firebase: sin streaming
-     * visible durante el pase que decide si hay o no pedido de herramienta.
+     * Sin herramientas: transmite chunk a chunk tal cual llegan (comportamiento sin cambios). Con
+     * herramientas (function calling y/o búsqueda, ambas emuladas por prompt — ver
+     * `resolveLocalToolCall`): esta API es stateless, no hay forma de "seguir" una generación en
+     * curso — el primer pase se bufferea completo (nada se emite todavía) para poder decidir si el
+     * texto ENTERO fue un pedido de herramienta o una respuesta normal, y recién ahí se resuelve uno
+     * u otro camino. Mismo trade-off que Cloud/Firebase: sin streaming visible durante el pase que
+     * decide si hubo o no pedido de herramienta.
      */
     override fun generateContentStream(history: List<ChatMessage>, config: GenerationConfig): Flow<String> = flow {
-        if (!config.functionCalling) {
+        if (!config.functionCalling && !config.webSearch) {
             runPass(history, config).collect { text ->
                 Log.v(TAG, "chunk: \"$text\"")
                 emit(text)
@@ -108,18 +113,17 @@ class MlKitNanoBackend @Inject constructor(
         val buffer = StringBuilder()
         runPass(history, config).collect { buffer.append(it) }
         val firstPassText = buffer.toString()
-        val timezone = DemoTools.matchReactCall(firstPassText)
-        if (timezone == null) {
+        val toolCall = resolveLocalToolCall(firstPassText, config.functionCalling, config.webSearch)
+        if (toolCall == null) {
             emit(firstPassText)
             return@flow
         }
 
-        Log.d(TAG, "generateContentStream: pidió get_current_time($timezone)")
-        emit("🔧 usando \"${DemoTools.GET_CURRENT_TIME}\"…\n\n")
-        val toolResult = DemoTools.executeCurrentTime(timezone.ifBlank { null })
+        Log.d(TAG, "generateContentStream: pidió una herramienta")
+        emit(toolCall.marker)
         val extendedHistory = history + listOf(
             ChatMessage(Role.MODEL, firstPassText),
-            ChatMessage(Role.USER, "Resultado de get_current_time: ${toolResult["legible"]} (${toolResult["iso8601"]})"),
+            ChatMessage(Role.USER, toolCall.resultMessage),
         )
         runPass(extendedHistory, config).collect { text ->
             Log.v(TAG, "chunk (2do pase): \"$text\"")
@@ -143,7 +147,8 @@ class MlKitNanoBackend @Inject constructor(
         config.temperature?.let { requestBuilder.temperature = it }
         config.topK?.let { requestBuilder.topK = it }
         config.maxOutputTokens?.let { requestBuilder.maxOutputTokens = it }
-        val fullSystemPrompt = buildLocalSystemPrompt(config.systemPrompt, config.functionCalling, config.jsonMode)
+        val fullSystemPrompt =
+            buildLocalSystemPrompt(config.systemPrompt, config.functionCalling, config.webSearch, config.jsonMode)
         if (fullSystemPrompt != null && generativeModel.isSystemPromptAvailable()) {
             requestBuilder.systemInstruction = SystemInstruction(fullSystemPrompt)
         }

@@ -5,9 +5,10 @@ import android.graphics.Bitmap
 import android.graphics.BitmapFactory
 import android.net.Uri
 import android.util.Log
-import es.sebas1705.nanodemo.core.common.DemoTools
+import es.sebas1705.nanodemo.core.common.WebSearchTool
 import es.sebas1705.nanodemo.core.common.buildLocalSystemPrompt
 import es.sebas1705.nanodemo.core.common.hasAtLeastRamBytes
+import es.sebas1705.nanodemo.core.common.resolveLocalToolCall
 import es.sebas1705.nanodemo.domain.models.ChatMessage
 import es.sebas1705.nanodemo.domain.models.GenerationConfig
 import es.sebas1705.nanodemo.domain.models.InferenceBackend
@@ -88,12 +89,15 @@ class LiteRtLmBackend @Inject constructor(
         systemPrompt = true,
         multiTurn = true,
         images = true,
-        // Ambas emuladas por prompt (ver core:common/LocalPromptEmulation.kt) -- este runtime no
-        // tiene tool-calling ni salida JSON nativos. Como el resto de la config de la conversación,
-        // activarlas/desactivarlas a mitad de charla no tiene efecto hasta "Nueva conversación" (se
-        // agregan al systemInstruction al crearla).
+        // Las 3 emuladas por prompt (ver core:common/LocalPromptEmulation.kt) -- este runtime no
+        // tiene tool-calling, búsqueda ni salida JSON nativos. Como el resto de la config de la
+        // conversación, activarlas/desactivarlas a mitad de charla no tiene efecto hasta "Nueva
+        // conversación" (se agregan al systemInstruction al crearla).
         structuredOutput = true,
         functionCalling = true,
+        // A diferencia de las otras 2, SÍ depende de un secreto (Google Custom Search) -- si no
+        // está configurado, el toggle sale deshabilitado en vez de fallar en runtime.
+        webSearch = WebSearchTool.isConfigured,
     )
 
     private var engine: Engine? = null
@@ -158,13 +162,14 @@ class LiteRtLmBackend @Inject constructor(
     }.flowOn(Dispatchers.IO)
 
     /**
-     * Sin tool-calling: un solo `sendMessageAsync`, transmite chunk a chunk (comportamiento sin
-     * cambios). Con tool-calling (emulado por prompt, ver DemoTools y la instrucción agregada en
-     * `getOrCreateConversation`): el primer pase se bufferea completo (nada se emite todavía) porque
-     * recién al terminar el flow se puede decidir si el texto ENTERO fue el pedido de herramienta o
-     * una respuesta normal — mismo trade-off que Cloud/Firebase (sin streaming visible durante el
-     * pase que decide). `Conversation` es de por sí persistente entre turnos, así que el segundo pase
-     * es solo otro `sendMessageAsync` con el resultado de la herramienta como mensaje nuevo.
+     * Sin herramientas: un solo `sendMessageAsync`, transmite chunk a chunk (comportamiento sin
+     * cambios). Con herramientas (function calling y/o búsqueda, emuladas por prompt — ver la
+     * instrucción agregada en `getOrCreateConversation` y `resolveLocalToolCall`): el primer pase se
+     * bufferea completo (nada se emite todavía) porque recién al terminar el flow se puede decidir
+     * si el texto ENTERO fue un pedido de herramienta o una respuesta normal — mismo trade-off que
+     * Cloud/Firebase (sin streaming visible durante el pase que decide). `Conversation` es de por sí
+     * persistente entre turnos, así que el segundo pase es solo otro `sendMessageAsync` con el
+     * resultado de la herramienta como mensaje nuevo.
      */
     override fun generateContentStream(history: List<ChatMessage>, config: GenerationConfig): Flow<String> = flow {
         val lastUserMessage = history.lastOrNull { it.role == Role.USER }
@@ -173,7 +178,7 @@ class LiteRtLmBackend @Inject constructor(
         val contents = buildContents(lastUserMessage)
         Log.d(TAG, "generateContentStream: enviando turno")
 
-        if (!config.functionCalling) {
+        if (!config.functionCalling && !config.webSearch) {
             activeConversation.sendMessageAsync(contents).collect { message ->
                 val text = extractText(message)
                 Log.v(TAG, "chunk: \"$text\"")
@@ -185,17 +190,14 @@ class LiteRtLmBackend @Inject constructor(
         val firstPassBuffer = StringBuilder()
         activeConversation.sendMessageAsync(contents).collect { message -> firstPassBuffer.append(extractText(message)) }
         val firstPassText = firstPassBuffer.toString()
-        val timezone = DemoTools.matchReactCall(firstPassText)
-        if (timezone == null) {
+        val toolCall = resolveLocalToolCall(firstPassText, config.functionCalling, config.webSearch)
+        if (toolCall == null) {
             emit(firstPassText)
             return@flow
         }
-        Log.d(TAG, "generateContentStream: pidió get_current_time($timezone)")
-        emit("🔧 usando \"${DemoTools.GET_CURRENT_TIME}\"…\n\n")
-        val toolResult = DemoTools.executeCurrentTime(timezone.ifBlank { null })
-        val toolResultContents = Contents.of(
-            "Resultado de get_current_time: ${toolResult["legible"]} (${toolResult["iso8601"]})",
-        )
+        Log.d(TAG, "generateContentStream: pidió una herramienta")
+        emit(toolCall.marker)
+        val toolResultContents = Contents.of(toolCall.resultMessage)
         activeConversation.sendMessageAsync(toolResultContents).collect { message ->
             val text = extractText(message)
             Log.v(TAG, "chunk 2do pase: \"$text\"")
@@ -243,7 +245,8 @@ class LiteRtLmBackend @Inject constructor(
                 samplerConfig = sampler,
                 maxOutputToken = config.maxOutputTokens,
             )
-            val fullSystemPrompt = buildLocalSystemPrompt(config.systemPrompt, config.functionCalling, config.jsonMode)
+            val fullSystemPrompt =
+                buildLocalSystemPrompt(config.systemPrompt, config.functionCalling, config.webSearch, config.jsonMode)
             if (fullSystemPrompt != null) {
                 conversationConfig = conversationConfig.copy(systemInstruction = Contents.of(fullSystemPrompt))
             }
