@@ -7,6 +7,9 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.statusBarsPadding
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Settings
+import androidx.compose.material3.FloatingActionButton
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.NavigationBar
@@ -19,6 +22,9 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
@@ -42,8 +48,6 @@ import es.sebas1705.nanodemo.domain.models.InferenceTier
 import es.sebas1705.nanodemo.domain.models.TierAvailability
 import es.sebas1705.nanodemo.feature.chat.ChatScreen
 import es.sebas1705.nanodemo.feature.compare.CompareScreen
-import es.sebas1705.nanodemo.feature.config.ConfigScreen
-import es.sebas1705.nanodemo.feature.device.DeviceScreen
 import es.sebas1705.nanodemo.feature.history.HistoryScreen
 import es.sebas1705.nanodemo.feature.stats.StatsScreen
 
@@ -62,6 +66,7 @@ fun AppNav(initialSharedText: String? = null, mainViewModel: MainViewModel = hil
     val currentDestination = (backStack.lastOrNull() as? AppGraph)?.toDestination()
     val activeTier by mainViewModel.activeTier.collectAsState()
     val availability by mainViewModel.availability.collectAsState()
+    var showSettings by remember { mutableStateOf(false) }
 
     // Una vista de pantalla por cambio de pestaña. Abrir una conversación desde el historial no cambia
     // de destino (sigue siendo Chat), así que no cuenta como pantalla nueva.
@@ -101,6 +106,11 @@ fun AppNav(initialSharedText: String? = null, mainViewModel: MainViewModel = hil
                         )
                     }
                 }
+            },
+            floatingActionButton = {
+                FloatingActionButton(onClick = { showSettings = true }) {
+                    Icon(Icons.Filled.Settings, contentDescription = "Ajustes")
+                }
             }
         ) { padding ->
             AppNavHost(
@@ -111,7 +121,14 @@ fun AppNav(initialSharedText: String? = null, mainViewModel: MainViewModel = hil
         }
     } else {
         Row(Modifier.fillMaxSize()) {
-            NavigationRail(containerColor = DemoColors.Panel) {
+            NavigationRail(
+                containerColor = DemoColors.Panel,
+                header = {
+                    FloatingActionButton(onClick = { showSettings = true }) {
+                        Icon(Icons.Filled.Settings, contentDescription = "Ajustes")
+                    }
+                },
+            ) {
                 Destination.entries.forEach { destination ->
                     NavigationRailItem(
                         selected = currentDestination == destination,
@@ -141,6 +158,10 @@ fun AppNav(initialSharedText: String? = null, mainViewModel: MainViewModel = hil
                 )
             }
         }
+    }
+
+    if (showSettings) {
+        SettingsSheet(onDismiss = { showSettings = false })
     }
 }
 
@@ -203,8 +224,6 @@ private fun AppNavHost(
         entryProvider = entryProvider {
             entry<AppGraph.Chat> { route -> ChatScreen(conversationId = route.conversationId, sharedText = route.sharedText) }
             entry<AppGraph.Compare> { CompareScreen(sizeClass) }
-            entry<AppGraph.Config> { ConfigScreen() }
-            entry<AppGraph.Device> { DeviceScreen() }
             entry<AppGraph.Stats> { StatsScreen(sizeClass) }
             entry<AppGraph.History> {
                 HistoryScreen(

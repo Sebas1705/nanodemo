@@ -4,12 +4,9 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Text
@@ -47,6 +44,11 @@ private val CAPABILITY_ROWS: List<Pair<String, (TierCapabilities) -> Boolean>> =
     "Imágenes" to { it.images },
 )
 
+/**
+ * Ya no es una pantalla propia con su propio scroll — vive dentro de la hoja "Ajustes"
+ * (`feature:main/SettingsSheet.kt`), que aporta el scroll y el padding compartidos con
+ * `ConfigScreen`.
+ */
 @Composable
 fun DeviceScreen(viewModel: DeviceViewModel = hiltViewModel()) {
     val context = LocalContext.current
@@ -55,11 +57,7 @@ fun DeviceScreen(viewModel: DeviceViewModel = hiltViewModel()) {
     val hasInternet = remember { hasInternetConnection(context) }
 
     Column(
-        modifier = Modifier
-            .fillMaxSize()
-            // Padding después del scroll, no antes — ver la nota en ChatScreen.kt.
-            .verticalScroll(rememberScrollState())
-            .padding(16.dp),
+        modifier = Modifier.fillMaxWidth(),
         verticalArrangement = Arrangement.spacedBy(16.dp),
     ) {
         Column(

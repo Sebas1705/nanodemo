@@ -3,7 +3,11 @@ package es.sebas1705.nanodemo.feature.main
 import androidx.navigation3.runtime.NavKey
 import kotlinx.serialization.Serializable
 
-/** Rutas de las 6 pantallas de la app (Navigation 3). */
+/**
+ * Rutas de las 4 pestañas de la app (Navigation 3). Parámetros y Dispositivo dejaron de ser
+ * pestañas propias — viven en la hoja modal "Ajustes" (`SettingsSheet.kt`), que se abre con un
+ * FAB y no participa del backstack (es estado local de `AppNav`, no una ruta).
+ */
 sealed interface AppGraph : NavKey {
 
     /**
@@ -16,12 +20,6 @@ sealed interface AppGraph : NavKey {
 
     @Serializable
     data object Compare : AppGraph
-
-    @Serializable
-    data object Config : AppGraph
-
-    @Serializable
-    data object Device : AppGraph
 
     @Serializable
     data object Stats : AppGraph
