@@ -7,7 +7,9 @@ description: >
 
 inputs:
   version-name:
-    description: versionName del APK (p. ej. 1.2.0). Vacío = 1.0.<run_number>.
+    description: >
+      versionName del APK (p. ej. 1.2.0 o 1.2.0-dev.42). Las dos vías de distribución lo pasan
+      siempre; vacío solo si se llama a esta acción desde otro lado (fallback: 1.0.<run_number>).
     required: false
     default: ""
   extra-secrets:

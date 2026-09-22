@@ -8,10 +8,16 @@ Hay **dos vías**, independientes, que comparten el mismo build firmado
 | Workflow | `.github/workflows/distribute.yml` | `.github/workflows/release-apk.yml` |
 | Disparador | push a `master` / manual | tag `vX.Y.Z` / manual (con versión) |
 | Resultado | Release en Firebase, aviso a los testers del grupo | GitHub Release con el APK, su `.sha256` y notas generadas |
-| `versionName` | `1.0.<run_number>` | la versión del tag |
+| `versionName` | `<último tag>-dev.<run_number>` | la versión del tag |
 | `versionCode` | `<run_number>` | `<run_number>` |
 | Secretos extra | `FIREBASE_SERVICE_ACCOUNT_JSON` | ninguno |
 | Cuándo usarla | Builds continuos para testers | Versiones nombradas y descargables |
+
+Las dos vías comparten la misma nomenclatura de versión (la del tag más reciente `vX.Y.Z`): un
+build de Firebase entre releases se ve, por ejemplo, como `1.1.1-dev.7` — mismo `1.1.1` que la
+última GitHub Release, más un sufijo que marca que es un build continuo sin tag propio. Antes
+`distribute.yml` ponía `1.0.<run_number>`, un número que no salía de ningún lado del proyecto y no
+coincidía con lo que mostraba GitHub Releases para el mismo commit.
 
 ## Base común: secretos en Doppler
 
