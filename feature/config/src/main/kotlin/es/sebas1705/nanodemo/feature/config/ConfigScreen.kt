@@ -45,11 +45,6 @@ fun ConfigScreen(viewModel: ConfigViewModel = hiltViewModel()) {
         verticalArrangement = Arrangement.spacedBy(16.dp),
     ) {
         Text(
-            text = "PARÁMETROS",
-            style = MaterialTheme.typography.headlineSmall,
-            color = DemoColors.Ink,
-        )
-        Text(
             "Los controles reflejan lo que soporta el tier activo en Chat " +
                 "(${activeTier.label()}). En Comparar, cada tier aplica solo lo suyo.",
             style = MaterialTheme.typography.bodySmall,

@@ -9,14 +9,18 @@ import androidx.compose.material.icons.filled.Science
 import androidx.compose.material.icons.filled.Tune
 import androidx.compose.ui.graphics.vector.ImageVector
 
-/** Las 6 pestañas del nav bar/rail. `icon` es lo único que necesita la barra — el resto lo resuelve `AppGraph`. */
+/**
+ * Las 6 pestañas del nav bar/rail. `label` es también el título que muestra la barra superior
+ * compartida (`ChannelTopBar` en `AppNav.kt`) para esa pantalla, en mayúscula — una sola fuente
+ * para los dos, en vez de que cada pantalla repita su propio título.
+ */
 enum class Destination(val label: String, val icon: ImageVector) {
     Chat("Chat", Icons.Filled.Chat),
-    Compare("Tests", Icons.Filled.Science),
-    Config("Params", Icons.Filled.Tune),
-    Device("Devices", Icons.Filled.Devices),
+    Compare("Comparar", Icons.Filled.Science),
+    Config("Parámetros", Icons.Filled.Tune),
+    Device("Dispositivo", Icons.Filled.Devices),
     History("Historial", Icons.Filled.History),
-    Stats("Stats", Icons.Filled.BarChart),
+    Stats("Estadísticas", Icons.Filled.BarChart),
 }
 
 fun Destination.toRoute(): AppGraph = when (this) {

@@ -1,10 +1,13 @@
 package es.sebas1705.nanodemo.feature.main
 
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.size
 import androidx.compose.material3.Icon
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.NavigationBar
 import androidx.compose.material3.NavigationBarItem
 import androidx.compose.material3.NavigationRail
@@ -13,6 +16,9 @@ import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.getValue
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
@@ -24,9 +30,15 @@ import androidx.navigation3.runtime.rememberSaveableStateHolderNavEntryDecorator
 import androidx.navigation3.ui.NavDisplay
 import es.sebas1705.nanodemo.core.common.pushAndFree
 import es.sebas1705.nanodemo.core.designsystem.ScreenSizeClass
+import es.sebas1705.nanodemo.core.designsystem.StatusIndicator
+import es.sebas1705.nanodemo.core.designsystem.channelLetter
 import es.sebas1705.nanodemo.core.designsystem.rememberIsCompactHeight
 import es.sebas1705.nanodemo.core.designsystem.rememberScreenSizeClass
+import es.sebas1705.nanodemo.core.designsystem.signalColor
 import es.sebas1705.nanodemo.core.ui.DemoColors
+import es.sebas1705.nanodemo.core.ui.readoutStyle
+import es.sebas1705.nanodemo.domain.models.InferenceTier
+import es.sebas1705.nanodemo.domain.models.TierAvailability
 import es.sebas1705.nanodemo.feature.chat.ChatScreen
 import es.sebas1705.nanodemo.feature.compare.CompareScreen
 import es.sebas1705.nanodemo.feature.config.ConfigScreen
@@ -38,7 +50,8 @@ import es.sebas1705.nanodemo.feature.stats.StatsScreen
  * Shell de navegación adaptativo: `NavigationBar` abajo en teléfono,
  * `NavigationRail` al costado en tablet/plegable/landscape ancho — mismo
  * breakpoint (`ScreenSizeClass`) que ya usaba la versión de un solo módulo,
- * reescrito sobre Navigation 3 en vez de Navigation Compose 2.x.
+ * reescrito sobre Navigation 3 en vez de Navigation Compose 2.x. Las dos ramas
+ * comparten `ChannelTopBar` arriba (título de la pantalla + tier activo).
  */
 @Composable
 fun AppNav(initialSharedText: String? = null, mainViewModel: MainViewModel = hiltViewModel()) {
@@ -46,6 +59,8 @@ fun AppNav(initialSharedText: String? = null, mainViewModel: MainViewModel = hil
     val isCompactHeight = rememberIsCompactHeight()
     val backStack = rememberNavBackStack(AppGraph.Chat(sharedText = initialSharedText))
     val currentDestination = (backStack.lastOrNull() as? AppGraph)?.toDestination()
+    val activeTier by mainViewModel.activeTier.collectAsState()
+    val availability by mainViewModel.availability.collectAsState()
 
     // Una vista de pantalla por cambio de pestaña. Abrir una conversación desde el historial no cambia
     // de destino (sigue siendo Chat), así que no cuenta como pantalla nueva.
@@ -58,6 +73,13 @@ fun AppNav(initialSharedText: String? = null, mainViewModel: MainViewModel = hil
     // con la barra inferior aunque el ancho diga "tablet".
     if (sizeClass == ScreenSizeClass.COMPACT || isCompactHeight) {
         Scaffold(
+            topBar = {
+                ChannelTopBar(
+                    title = currentDestination?.label ?: "",
+                    activeTier = activeTier,
+                    availability = availability[activeTier] ?: TierAvailability.UNKNOWN,
+                )
+            },
             bottomBar = {
                 NavigationBar(containerColor = DemoColors.Panel) {
                     Destination.entries.forEach { destination ->
@@ -69,10 +91,12 @@ fun AppNav(initialSharedText: String? = null, mainViewModel: MainViewModel = hil
                                     imageVector = destination.icon,
                                     contentDescription = destination.label,
                                     tint = tabColor(currentDestination, destination),
-                                    modifier = Modifier.size(16.dp),
                                 )
                             },
                             label = { Text(destination.label) },
+                            // Con 6 pestañas, un label fijo por ítem las aprieta — igual que ya
+                            // hace el NavigationRail de abajo, solo el ítem activo lo muestra.
+                            alwaysShowLabel = false,
                         )
                     }
                 }
@@ -103,11 +127,54 @@ fun AppNav(initialSharedText: String? = null, mainViewModel: MainViewModel = hil
                     )
                 }
             }
-            AppNavHost(
-                backStack = backStack,
-                sizeClass = sizeClass,
-                modifier = Modifier.weight(1f).fillMaxSize(),
+            Column(Modifier.weight(1f).fillMaxSize()) {
+                ChannelTopBar(
+                    title = currentDestination?.label ?: "",
+                    activeTier = activeTier,
+                    availability = availability[activeTier] ?: TierAvailability.UNKNOWN,
+                )
+                AppNavHost(
+                    backStack = backStack,
+                    sizeClass = sizeClass,
+                    modifier = Modifier.fillMaxSize(),
+                )
+            }
+        }
+    }
+}
+
+/**
+ * Barra superior compartida entre las 6 pantallas — antes cada una dibujaba su propio
+ * título (`Text(headlineSmall)`) suelto adentro de su `Column` scrolleable, y no había
+ * ningún lugar que mostrara qué tier está activo fuera de Chat. Deliberadamente NO es el
+ * `TopAppBar` de Material3 (con su elevación/scroll-behavior): un `Row` simple mantiene la
+ * estética plana de panel de instrumentos que ya tiene el resto de la app.
+ */
+@Composable
+private fun ChannelTopBar(
+    title: String,
+    activeTier: InferenceTier,
+    availability: TierAvailability,
+) {
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(horizontal = 16.dp, vertical = 12.dp),
+        horizontalArrangement = Arrangement.SpaceBetween,
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        Text(
+            text = title.uppercase(),
+            style = MaterialTheme.typography.headlineSmall,
+            color = DemoColors.Ink,
+        )
+        Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+            Text(
+                "[${activeTier.channelLetter()}]",
+                style = readoutStyle,
+                color = activeTier.signalColor,
             )
+            StatusIndicator(availability, activeTier.signalColor)
         }
     }
 }

@@ -70,12 +70,6 @@ fun HistoryScreen(
             .padding(16.dp),
         verticalArrangement = Arrangement.spacedBy(16.dp),
     ) {
-        Text(
-            text = "HISTORIAL",
-            style = MaterialTheme.typography.headlineSmall,
-            color = DemoColors.Ink,
-        )
-
         SemanticSearchBar(
             query = query,
             onQueryChange = { query = it },

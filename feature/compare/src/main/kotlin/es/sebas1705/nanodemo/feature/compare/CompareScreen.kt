@@ -16,7 +16,6 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.AssistChip
 import androidx.compose.material3.Button
-import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -57,12 +56,6 @@ fun CompareScreen(
             .verticalScroll(rememberScrollState()),
         verticalArrangement = Arrangement.spacedBy(16.dp),
     ) {
-        Text(
-            text = "COMPARAR",
-            style = MaterialTheme.typography.headlineSmall,
-            color = DemoColors.Ink,
-        )
-
         PromptBankRow(onPresetSelected = { promptText = it })
 
         val tierCount = InferenceTier.entries.size

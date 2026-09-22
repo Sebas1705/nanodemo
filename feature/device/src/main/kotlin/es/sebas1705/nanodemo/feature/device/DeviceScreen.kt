@@ -61,12 +61,6 @@ fun DeviceScreen(viewModel: DeviceViewModel = hiltViewModel()) {
             .verticalScroll(rememberScrollState()),
         verticalArrangement = Arrangement.spacedBy(16.dp),
     ) {
-        Text(
-            text = "DISPOSITIVO",
-            style = MaterialTheme.typography.headlineSmall,
-            color = DemoColors.Ink,
-        )
-
         Column(
             modifier = Modifier
                 .fillMaxWidth()

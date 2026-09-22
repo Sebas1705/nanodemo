@@ -92,12 +92,6 @@ fun ChatScreen(
             .verticalScroll(rememberScrollState()),
         verticalArrangement = Arrangement.spacedBy(16.dp),
     ) {
-        Text(
-            text = "CHAT",
-            style = MaterialTheme.typography.headlineSmall,
-            color = DemoColors.Ink,
-        )
-
         Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
             InferenceTier.entries.forEach { tier ->
                 TierChannelRow(

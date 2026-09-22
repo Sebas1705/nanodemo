@@ -64,17 +64,8 @@ fun StatsScreen(sizeClass: ScreenSizeClass, viewModel: StatsViewModel = hiltView
             .verticalScroll(rememberScrollState()),
         verticalArrangement = Arrangement.spacedBy(16.dp),
     ) {
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.SpaceBetween,
-            verticalAlignment = Alignment.CenterVertically,
-        ) {
-            Text(
-                text = "ESTADÍSTICAS",
-                style = MaterialTheme.typography.headlineSmall,
-                color = DemoColors.Ink,
-            )
-            if (metrics.isNotEmpty()) {
+        if (metrics.isNotEmpty()) {
+            Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.End) {
                 TextButton(onClick = { exportAndShare(viewModel, context) }) { Text("Exportar CSV") }
             }
         }
