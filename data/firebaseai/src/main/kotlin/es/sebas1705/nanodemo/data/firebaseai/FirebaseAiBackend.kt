@@ -62,6 +62,7 @@ class FirebaseAiBackend @Inject constructor(
         systemPrompt = true,
         multiTurn = true,
         images = true,
+        structuredOutput = true,
     )
 
     private var lastResponseTokens: Int? = null
@@ -89,6 +90,9 @@ class FirebaseAiBackend @Inject constructor(
             .setTopK(config.topK)
             .setTopP(config.topP)
             .setMaxOutputTokens(config.maxOutputTokens)
+            // setResponseMimeType/responseMimeType verificado contra el .aar real de firebase-ai
+            // 17.17.0 (GenerationConfig.Builder). `.apply` porque solo se llama condicionalmente.
+            .apply { if (config.jsonMode) setResponseMimeType("application/json") }
             .build()
         val model = Firebase.ai(backend = GenerativeBackend.googleAI()).generativeModel(
             modelName = CLOUD_MODEL,

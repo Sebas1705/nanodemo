@@ -87,6 +87,17 @@ Models framework de Apple).
 11. **Catálogo de modelos en el Tier B**: MediaPipe no está atado a un solo
     `.task` — hay un selector (chips) para elegir entre Gemma 3 1B y
     Gemma 2 2B, cada uno con su propia descarga/progreso.
+12. **Modo JSON** (Parámetros): pide salida estructurada (`responseMimeType`) —
+    solo Cloud y Firebase AI lo garantizan; en Chat se marca si la respuesta
+    terminó siendo JSON válido o no, para comparar qué tiers lo cumplen.
+13. **Pegar un link**: adjuntás una URL en Chat y su contenido (texto, sin
+    scripts/estilos) se manda de contexto al generar — funciona en los 5
+    tiers, a diferencia de la búsqueda con grounding (pendiente, solo nube).
+14. **Compartir desde otras apps**: el selector "Compartir" de Android abre
+    la app en Chat con el prompt precargado.
+15. **Costo estimado** (Estadísticas): en los tiers de nube, el costo
+    aproximado en USD según el precio público de Gemini Flash — los
+    on-device siempre cuestan \$0.
 
 ## Arquitectura (multi-módulo, clean architecture)
 
@@ -141,6 +152,7 @@ La app está dividida en módulos Gradle por capa (convention plugins en
 | multi-turno | ✅ | ✅ (sesión con estado propio) | ✅ |
 | imágenes | ✅ | ❌ (el modelo hosteado no tiene encoder de visión) | ✅ |
 | tokens reales en stats | ❌ (aproximado) | ✅ (`sizeInTokens()`) | ✅ (`usageMetadata`) |
+| Modo JSON (salida estructurada) | ❌ | ❌ | ✅ (`responseMimeType`) |
 
 Ver qué soporta cada tier es en sí mismo parte del estudio — por eso la UI
 deshabilita en vez de ocultar los controles no soportados. La tabla cubre los

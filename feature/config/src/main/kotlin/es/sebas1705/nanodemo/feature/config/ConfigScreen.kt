@@ -11,7 +11,9 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Slider
+import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
+import androidx.compose.ui.Alignment
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
@@ -109,6 +111,32 @@ fun ConfigScreen(viewModel: ConfigViewModel = hiltViewModel()) {
             Text(
                 "Instrucción que se le da al modelo antes de cada prompt, para fijar su rol " +
                     "o estilo de respuesta (ej. \"Respondé siempre en 2 oraciones\").",
+                style = MaterialTheme.typography.bodySmall,
+                color = DemoColors.Muted,
+            )
+        }
+
+        Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                Text(
+                    if (capabilities.structuredOutput) "Modo JSON" else "Modo JSON (no soportado en este tier)",
+                    style = readoutStyle,
+                    color = if (capabilities.structuredOutput) DemoColors.Ink else DemoColors.Muted,
+                )
+                Switch(
+                    checked = config.jsonMode,
+                    onCheckedChange = { viewModel.updateConfig(config.copy(jsonMode = it)) },
+                    enabled = capabilities.structuredOutput,
+                )
+            }
+            Text(
+                "Le pide al modelo que devuelva JSON en vez de texto libre. Solo Cloud y Firebase AI " +
+                    "lo garantizan (responseMimeType del API); en Chat se marca si la respuesta terminó " +
+                    "siendo JSON válido o no.",
                 style = MaterialTheme.typography.bodySmall,
                 color = DemoColors.Muted,
             )

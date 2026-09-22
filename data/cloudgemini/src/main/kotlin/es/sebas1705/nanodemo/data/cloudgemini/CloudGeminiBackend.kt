@@ -66,6 +66,7 @@ class CloudGeminiBackend @Inject constructor(
         systemPrompt = true,
         multiTurn = true,
         images = true,
+        structuredOutput = true,
     )
 
     private val apiKey: String = BuildConfig.GEMINI_API_KEY
@@ -143,6 +144,7 @@ class CloudGeminiBackend @Inject constructor(
         config.topK?.let { generationConfig.put("topK", it) }
         config.topP?.let { generationConfig.put("topP", it) }
         config.maxOutputTokens?.let { generationConfig.put("maxOutputTokens", it) }
+        if (config.jsonMode) generationConfig.put("responseMimeType", "application/json")
         if (generationConfig.length() > 0) body.put("generationConfig", generationConfig)
 
         config.systemPrompt?.let { systemPrompt ->

@@ -26,6 +26,12 @@ data class GenerationConfig(
     val topP: Float? = 0.95f,
     val maxOutputTokens: Int? = 512,
     val systemPrompt: String? = null,
+    /**
+     * Pide al modelo que devuelva JSON en vez de texto libre (`responseMimeType` en el REST API y
+     * en Firebase AI Logic). Solo lo garantizan los tiers con `TierCapabilities.structuredOutput`
+     * — en el resto, la UI directamente no ofrece el control en vez de mandarlo y que se ignore.
+     */
+    val jsonMode: Boolean = false,
 )
 
 /**
@@ -41,4 +47,6 @@ data class TierCapabilities(
     val systemPrompt: Boolean,
     val multiTurn: Boolean,
     val images: Boolean,
+    /** `responseMimeType: application/json` — solo los tiers en la nube lo garantizan hoy. */
+    val structuredOutput: Boolean = false,
 )

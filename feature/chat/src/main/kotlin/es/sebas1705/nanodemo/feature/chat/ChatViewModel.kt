@@ -4,6 +4,7 @@ import android.net.Uri
 import androidx.lifecycle.ViewModel
 import es.sebas1705.nanodemo.domain.models.ChatMessage
 import es.sebas1705.nanodemo.domain.models.DemoState
+import es.sebas1705.nanodemo.domain.models.GenerationConfig
 import es.sebas1705.nanodemo.domain.models.InferenceTier
 import es.sebas1705.nanodemo.domain.models.MediaPipeModelOption
 import es.sebas1705.nanodemo.domain.models.TierAvailability
@@ -15,6 +16,7 @@ import es.sebas1705.nanodemo.domain.usescases.inference.LoadConversationUseCase
 import es.sebas1705.nanodemo.domain.usescases.inference.ObserveActiveTierUseCase
 import es.sebas1705.nanodemo.domain.usescases.inference.ObserveAttachedUrlUseCase
 import es.sebas1705.nanodemo.domain.usescases.inference.ObserveAvailabilityUseCase
+import es.sebas1705.nanodemo.domain.usescases.inference.ObserveConfigUseCase
 import es.sebas1705.nanodemo.domain.usescases.inference.ObserveConversationUseCase
 import es.sebas1705.nanodemo.domain.usescases.inference.ObservePendingImageUseCase
 import es.sebas1705.nanodemo.domain.usescases.inference.ObserveSelectedMediaPipeModelUseCase
@@ -38,6 +40,7 @@ import javax.inject.Inject
 @HiltViewModel
 class ChatViewModel @Inject constructor(
     observeConversation: ObserveConversationUseCase,
+    observeConfig: ObserveConfigUseCase,
     observeState: ObserveStateUseCase,
     observeActiveTier: ObserveActiveTierUseCase,
     observeAvailability: ObserveAvailabilityUseCase,
@@ -57,6 +60,7 @@ class ChatViewModel @Inject constructor(
 ) : ViewModel() {
 
     val conversation: StateFlow<List<ChatMessage>> = observeConversation()
+    val config: StateFlow<GenerationConfig> = observeConfig()
     val state: StateFlow<DemoState> = observeState()
     val activeTier: StateFlow<InferenceTier> = observeActiveTier()
     val availability: StateFlow<Map<InferenceTier, TierAvailability>> = observeAvailability()

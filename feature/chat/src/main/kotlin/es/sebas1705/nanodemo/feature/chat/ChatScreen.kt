@@ -54,6 +54,7 @@ import es.sebas1705.nanodemo.domain.models.ChatMessage
 import es.sebas1705.nanodemo.domain.models.DemoState
 import es.sebas1705.nanodemo.domain.models.InferenceTier
 import es.sebas1705.nanodemo.domain.models.MediaPipeModelOption
+import es.sebas1705.nanodemo.domain.models.Role
 import es.sebas1705.nanodemo.domain.models.TierAvailability
 import es.sebas1705.nanodemo.domain.models.TierCapabilities
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
@@ -70,6 +71,7 @@ fun ChatScreen(
     }
 
     val state by viewModel.state.collectAsState()
+    val config by viewModel.config.collectAsState()
     val activeTier by viewModel.activeTier.collectAsState()
     val availability by viewModel.availability.collectAsState()
     val conversation by viewModel.conversation.collectAsState()
@@ -119,6 +121,7 @@ fun ChatScreen(
             state = state,
             activeTier = activeTier,
             capabilities = viewModel.capabilitiesOf(activeTier),
+            jsonModeOn = config.jsonMode,
             conversation = conversation,
             pendingImageUri = pendingImage,
             attachedUrl = attachedUrl,
@@ -159,6 +162,7 @@ private fun ActivePanel(
     state: DemoState,
     activeTier: InferenceTier,
     capabilities: TierCapabilities,
+    jsonModeOn: Boolean,
     conversation: List<ChatMessage>,
     pendingImageUri: Uri?,
     attachedUrl: String?,
@@ -221,6 +225,12 @@ private fun ActivePanel(
                             Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
                                 conversation.forEach { message -> MessageBubble(message, activeTier.signalColor) }
                             }
+                            // Solo compara lo que pidió ESTE turno con jsonMode activo — un turno viejo de
+                            // antes de prenderlo no se marca como "inválido" retroactivamente.
+                            if (jsonModeOn) {
+                                conversation.lastOrNull { it.role == Role.MODEL }
+                                    ?.let { lastModelMessage -> JsonValidityBadge(lastModelMessage.text) }
+                            }
                             TextButton(onClick = onResetConversation) { Text("Nueva conversación") }
                         }
 
@@ -273,6 +283,25 @@ private fun ActivePanel(
             }
         }
     }
+}
+
+/**
+ * Con "Modo JSON" activo, muestra si la última respuesta del modelo terminó siendo JSON válido —
+ * el punto del control es justamente comparar qué tiers lo garantizan (Cloud/Firebase, vía
+ * `responseMimeType`) y cuáles no lo soportan (el resto, ver `TierCapabilities.structuredOutput`).
+ * Parseo simple con `org.json` (ya en el SDK de Android, sin dependencias nuevas): alcanza para
+ * distinguir "es JSON" de "no lo es", no valida un schema.
+ */
+@Composable
+private fun JsonValidityBadge(responseText: String) {
+    val isValidJson = remember(responseText) {
+        runCatching { org.json.JSONTokener(responseText.trim()).nextValue() }.isSuccess
+    }
+    Text(
+        if (isValidJson) "✓ JSON válido" else "✗ no es JSON válido",
+        style = readoutStyle,
+        color = if (isValidJson) DemoColors.TierA else DemoColors.Danger,
+    )
 }
 
 /**
