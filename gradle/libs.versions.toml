@@ -12,6 +12,9 @@ detekt = "1.23.8"
 # Tier A/B/C: librerías de inferencia (ya usadas y confirmadas en nanodemo)
 mlkitGenaiPrompt = "1.0.0-beta4"
 mediapipeTasksGenai = "0.10.35"
+# tasks-text (búsqueda semántica local, TextEmbedder): paquete separado de tasks-genai, ya en 1.0.0
+# estable (no en la serie 0.10.x alpha que sigue tasks-genai) — verificado en Maven directo.
+mediapipeTasksText = "1.0.0"
 
 # AndroidX core
 coreKtx = "1.17.0"
@@ -77,6 +80,7 @@ firebase-crashlytics = { group = "com.google.firebase", name = "firebase-crashly
 firebase-analytics = { group = "com.google.firebase", name = "firebase-analytics", version.ref = "firebaseAnalytics" }
 mlkit-genai-prompt ={ group = "com.google.mlkit", name = "genai-prompt", version.ref = "mlkitGenaiPrompt" }
 mediapipe-tasks-genai = { group = "com.google.mediapipe", name = "tasks-genai", version.ref = "mediapipeTasksGenai" }
+mediapipe-tasks-text = { group = "com.google.mediapipe", name = "tasks-text", version.ref = "mediapipeTasksText" }
 
 # Core AndroidX
 androidx-core-ktx = { group = "androidx.core", name = "core-ktx", version.ref = "coreKtx" }

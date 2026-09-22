@@ -47,6 +47,7 @@ include(":data:crashlytics")
 include(":data:analytics")
 include(":data:repositories")
 include(":data:history")
+include(":data:embeddings")
 
 include(":feature:chat")
 include(":feature:compare")

@@ -6,13 +6,19 @@ import androidx.room.migration.Migration
 import androidx.sqlite.db.SupportSQLiteDatabase
 
 @Database(
-    entities = [ConversationEntity::class, MessageEntity::class, MetricEntity::class],
-    version = 2,
+    entities = [
+        ConversationEntity::class,
+        MessageEntity::class,
+        MetricEntity::class,
+        ConversationEmbeddingEntity::class,
+    ],
+    version = 3,
     exportSchema = false,
 )
 abstract class NanoDemoDatabase : RoomDatabase() {
     abstract fun conversationDao(): ConversationDao
     abstract fun metricDao(): MetricDao
+    abstract fun embeddingDao(): EmbeddingDao
 }
 
 /**
@@ -37,5 +43,21 @@ val MIGRATION_1_2 = object : Migration(1, 2) {
                 "`memoryDeltaBytes` INTEGER NOT NULL)"
         )
         db.execSQL("CREATE INDEX IF NOT EXISTS `index_metrics_startedAtMs` ON `metrics` (`startedAtMs`)")
+    }
+}
+
+/**
+ * v2 -> v3: agrega `conversation_embeddings` (búsqueda semántica local, ver
+ * [ConversationEmbeddingEntity]). `FOREIGN KEY` con `ON DELETE CASCADE` para que borrar una
+ * conversación limpie su embedding solo, igual que ya pasa con `messages`.
+ */
+val MIGRATION_2_3 = object : Migration(2, 3) {
+    override fun migrate(db: SupportSQLiteDatabase) {
+        db.execSQL(
+            "CREATE TABLE IF NOT EXISTS `conversation_embeddings` (" +
+                "`conversationId` INTEGER NOT NULL PRIMARY KEY, " +
+                "`vector` BLOB NOT NULL, " +
+                "FOREIGN KEY(`conversationId`) REFERENCES `conversations`(`id`) ON UPDATE NO ACTION ON DELETE CASCADE)"
+        )
     }
 }

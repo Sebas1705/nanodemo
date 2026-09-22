@@ -106,6 +106,11 @@ Models framework de Apple).
     fuera de su corte de entrenamiento. Solo Cloud y Firebase AI; en Chat se
     ven las consultas hechas y cuántas fuentes citó. Distinto de "Pegar un
     link" (#13): acá el modelo elige cuándo y qué buscar, no vos.
+18. **Búsqueda semántica del historial** (Historial): buscá conversaciones
+    pasadas por significado ("¿qué le pregunté sobre X?"), no por texto
+    exacto — 100% on-device (MediaPipe TextEmbedder, un modelo aparte de
+    ~6MB, nada sale del teléfono). Funciona sobre los 5 tiers por igual: es
+    sobre el historial guardado, no sobre la generación.
 
 ## Arquitectura (multi-módulo, clean architecture)
 
@@ -135,8 +140,12 @@ La app está dividida en módulos Gradle por capa (convention plugins en
   `InferenceOrchestratorViewModel`), orquesta fallback automático,
   `generate()`/`generateCompare()`/`runBenchmark()`, `exportMetricsCsv()`, y
   persiste cada turno vía `data:history`.
-- **`data:history`** — base de datos Room (`conversations`/`messages`) detrás
-  de `IHistoryRepository`.
+- **`data:history`** — base de datos Room (`conversations`/`messages`/
+  `conversation_embeddings`) detrás de `IHistoryRepository`, que también
+  indexa cada conversación para la búsqueda semántica (ver `data:embeddings`).
+- **`data:embeddings`** — `LocalEmbeddingService`: convierte texto en un
+  vector on-device (MediaPipe TextEmbedder) para la búsqueda por significado
+  del historial. Sin relación con los 5 tiers de chat.
 - **`data:firebasecore`** / **`data:analytics`** / **`data:crashlytics`** —
   arranque común de Firebase (inicialización manual, sin `google-services`) y
   los proveedores de Analytics y Crashlytics, detrás de los contratos
