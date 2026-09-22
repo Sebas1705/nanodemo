@@ -111,17 +111,26 @@ idempotente. La comparten Firebase AI y Crashlytics. Dependencia: `firebase-comm
 (la misma que arrastran `firebase-ai` y `firebase-crashlytics`). Secretos: los tres
 `FIREBASE_*`; si falta alguno no se inicializa nada y los consumidores se desactivan solos.
 
+### `data:analytics` — eventos de uso (Firebase Analytics)
+
+`FirebaseAnalyticsTracker` implementa `AnalyticsTracker` (`core:common`) y `AnalyticsModule` lo
+enlaza con Hilt. Dependencia: `firebase-analytics:23.2.0`. Secreto opcional `ANALYTICS_ENABLED`.
+**Requiere la resource `google_app_id`** (no lee `FirebaseOptions`): la genera `:app` con `resValue`.
+Esquema de eventos, contexto y privacidad: [TELEMETRY.md](TELEMETRY.md).
+
 ### `data:crashlytics` — reporte de errores (Firebase Crashlytics)
 
-- **Contrato**: `ErrorReporter` en `core:common` (`initialize`, `log`, `setKey`,
-  `recordNonFatal`); cualquier capa lo inyecta sin conocer Firebase. `CrashlyticsErrorReporter`
-  lo implementa y `CrashlyticsModule` lo enlaza con Hilt.
+- **Contrato**: `ErrorReporter` en `core:common` (`initialize`, `log`, `setKey(s)`, `setUserId`,
+  `recordNonFatal`); se usa a través de la fachada `Telemetry`, que lo combina con
+  `AnalyticsTracker`. `CrashlyticsErrorReporter` lo implementa y `CrashlyticsModule` lo enlaza
+  con Hilt.
 - **Dependencia**: `com.google.firebase:firebase-crashlytics:20.1.1` (sin `-ktx`, que ya no
   existe desde el BoM 32).
 - **Secretos**: `CRASHLYTICS_ENABLED` opcional (por defecto `true`; `false` apaga la
   recolección).
-- **Arranque**: `NanoDemoApplication.onCreate()` llama a `errorReporter.initialize()`. El SDK
-  solo captura crashes desde que existe la `FirebaseApp`.
+- **Arranque**: `NanoDemoApplication.onCreate()` llama a `telemetry.initialize()`. El SDK solo
+  captura crashes desde que existe la `FirebaseApp`; con las resources `google_app_id` /
+  `google_api_key` / `project_id` que genera `:app`, `FirebaseInitProvider` la crea antes.
 - **Sin plugin de Gradle de Crashlytics**: el SDK necesita un *build id* que solo genera ese
   plugin; sin él lanza `IllegalStateException` y se queda apagado. Se evita con la resource
   `com.google.firebase.crashlytics.RequireBuildId=false` (`app/src/main/res/values/crashlytics.xml`).
@@ -133,9 +142,10 @@ idempotente. La comparten Firebase AI y Crashlytics. Dependencia: `firebase-comm
   `active_tier` y `mediapipe_model` y migas de pan por turno. **Nunca** prompts ni respuestas.
 - **Límites**: sin `firebase-crashlytics-ndk`, los crashes nativos (MediaPipe y LiteRT-LM son
   C++) no se capturan; si el sistema mata la app por falta de RAM tampoco hay reporte.
-- **Al portarlo**: copiar `data:firebasecore` + `data:crashlytics`, la resource de `:app`, la
-  llamada `initialize()` en la `Application`, y `implementation(projects.data.crashlytics)` en
-  `:app`. El template ya usa `firebase-crashlytics` con el plugin y `google-services`: allí basta
+- **Al portarlo**: copiar los archivos de telemetría de `core:common`, `data:firebasecore`,
+  `data:analytics` y `data:crashlytics`, la resource de `:app`, la llamada `telemetry.initialize()`
+  en la `Application`, y las dependencias de ambos módulos en `:app` (detalle en
+  [TELEMETRY.md](TELEMETRY.md#al-llevarlo-al-template)). El template ya usa `firebase-crashlytics` con el plugin y `google-services`: allí basta
   con enlazar `ErrorReporter` a esa dependencia y omitir la resource.
 
 ### `data:history` — historial local (opcional)
