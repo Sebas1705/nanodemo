@@ -6,6 +6,7 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.NavigationBar
@@ -148,7 +149,10 @@ fun AppNav(initialSharedText: String? = null, mainViewModel: MainViewModel = hil
  * título (`Text(headlineSmall)`) suelto adentro de su `Column` scrolleable, y no había
  * ningún lugar que mostrara qué tier está activo fuera de Chat. Deliberadamente NO es el
  * `TopAppBar` de Material3 (con su elevación/scroll-behavior): un `Row` simple mantiene la
- * estética plana de panel de instrumentos que ya tiene el resto de la app.
+ * estética plana de panel de instrumentos que ya tiene el resto de la app — pero al ser
+ * custom, a diferencia de un `TopAppBar` real, no reserva sola el espacio de la barra de
+ * estado: `statusBarsPadding()` hace ese trabajo a mano (si no, con `targetSdk` 36 la barra
+ * de estado del sistema dibuja encima del título).
  */
 @Composable
 private fun ChannelTopBar(
@@ -159,6 +163,7 @@ private fun ChannelTopBar(
     Row(
         modifier = Modifier
             .fillMaxWidth()
+            .statusBarsPadding()
             .padding(horizontal = 16.dp, vertical = 12.dp),
         horizontalArrangement = Arrangement.SpaceBetween,
         verticalAlignment = Alignment.CenterVertically,

@@ -7,6 +7,7 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
@@ -67,7 +68,11 @@ fun HistoryScreen(
     Column(
         modifier = Modifier
             .fillMaxSize()
-            .padding(16.dp),
+            // Sin padding INFERIOR acá a propósito: al ser un LazyColumn (no un Column con
+            // verticalScroll, que ya se arregla en ChatScreen.kt y afines) el margen de abajo va
+            // como su propio `contentPadding` más abajo — así viaja con el scroll en vez de ser un
+            // hueco fijo que no da respiro al último ítem cuando se llega al final de la lista.
+            .padding(start = 16.dp, end = 16.dp, top = 16.dp),
         verticalArrangement = Arrangement.spacedBy(16.dp),
     ) {
         SemanticSearchBar(
@@ -99,7 +104,11 @@ fun HistoryScreen(
             return@Column
         }
 
-        LazyColumn(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+        LazyColumn(
+            modifier = Modifier.weight(1f),
+            contentPadding = PaddingValues(bottom = 16.dp),
+            verticalArrangement = Arrangement.spacedBy(10.dp),
+        ) {
             items(shownConversations, key = { it.id }) { conversation ->
                 ConversationRow(
                     conversation = conversation,

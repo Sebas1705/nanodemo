@@ -40,8 +40,9 @@ fun ConfigScreen(viewModel: ConfigViewModel = hiltViewModel()) {
     Column(
         modifier = Modifier
             .fillMaxSize()
-            .padding(16.dp)
-            .verticalScroll(rememberScrollState()),
+            // Padding después del scroll, no antes — ver la nota en ChatScreen.kt.
+            .verticalScroll(rememberScrollState())
+            .padding(16.dp),
         verticalArrangement = Arrangement.spacedBy(16.dp),
     ) {
         Text(

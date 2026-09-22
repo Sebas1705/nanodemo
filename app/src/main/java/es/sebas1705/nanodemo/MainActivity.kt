@@ -4,6 +4,7 @@ import android.content.Intent
 import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
+import androidx.activity.enableEdgeToEdge
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.material3.Surface
 import androidx.compose.ui.Modifier
@@ -27,6 +28,16 @@ class MainActivity : ComponentActivity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        // Explícito, no solo por quedar prolijo: con targetSdk 36 el sistema ya dibuja edge-to-edge
+        // sin pedirlo (desde Android 15), así que sin esto el contenido igual queda por detrás de
+        // las barras del sistema, pero sin el manejo automático de color de sus iconos que da esta
+        // llamada. Los insets de cada barra propia (ChannelTopBar, NavigationBar) se manejan aparte
+        // — ver AppNav.kt.
+        enableEdgeToEdge()
+        // Sin esto, el sistema le pone un scrim translúcido a la barra de navegación por debajo
+        // de nuestra `NavigationBar` (opaca, con su propio `DemoColors.Panel`) — minSdk 31 ya
+        // cubre de sobra el API 29+ que pide esta propiedad.
+        window.isNavigationBarContrastEnforced = false
         setContent {
             DemoTheme {
                 Surface(modifier = Modifier.fillMaxSize()) {

@@ -88,8 +88,12 @@ fun ChatScreen(
     Column(
         modifier = Modifier
             .fillMaxSize()
-            .padding(16.dp)
-            .verticalScroll(rememberScrollState()),
+            // El padding va DESPUÉS del scroll (no antes): así viaja con el contenido en vez de
+            // recortar el viewport una vez fijo — con `.padding().verticalScroll()` el margen de
+            // abajo era un hueco fijo siempre presente, no algo que aparece recién al llegar al
+            // final del scroll (ver AppNav.kt/ChannelTopBar para la nota de edge-to-edge).
+            .verticalScroll(rememberScrollState())
+            .padding(16.dp),
         verticalArrangement = Arrangement.spacedBy(16.dp),
     ) {
         Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
