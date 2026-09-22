@@ -32,6 +32,12 @@ data class GenerationConfig(
      * — en el resto, la UI directamente no ofrece el control en vez de mandarlo y que se ignore.
      */
     val jsonMode: Boolean = false,
+    /**
+     * Habilita la única herramienta de demo (hora actual, ver `core:common.DemoTools`). Solo la
+     * garantizan los tiers con `TierCapabilities.functionCalling` — igual que `jsonMode`, la UI
+     * directamente no ofrece el control en los tiers que no la soportan.
+     */
+    val functionCalling: Boolean = false,
 )
 
 /**
@@ -49,4 +55,6 @@ data class TierCapabilities(
     val images: Boolean,
     /** `responseMimeType: application/json` — solo los tiers en la nube lo garantizan hoy. */
     val structuredOutput: Boolean = false,
+    /** Puede pedir una función (`DemoTools`) y recibir su resultado antes de responder. */
+    val functionCalling: Boolean = false,
 )

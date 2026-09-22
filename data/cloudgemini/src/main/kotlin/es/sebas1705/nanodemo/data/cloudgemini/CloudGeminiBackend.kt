@@ -4,6 +4,7 @@ import android.content.Context
 import android.net.Uri
 import android.util.Base64
 import android.util.Log
+import es.sebas1705.nanodemo.core.common.DemoTools
 import es.sebas1705.nanodemo.core.common.hasInternetConnection
 import es.sebas1705.nanodemo.domain.models.ChatMessage
 import es.sebas1705.nanodemo.domain.models.GenerationConfig
@@ -67,6 +68,7 @@ class CloudGeminiBackend @Inject constructor(
         multiTurn = true,
         images = true,
         structuredOutput = true,
+        functionCalling = true,
     )
 
     private val apiKey: String = BuildConfig.GEMINI_API_KEY
@@ -79,8 +81,59 @@ class CloudGeminiBackend @Inject constructor(
         return if (hasKey && hasInternet) TierAvailability.AVAILABLE else TierAvailability.UNAVAILABLE
     }
 
+    /**
+     * `functionCalling`: hasta 2 idas y vueltas HTTP por turno. La primera pasada manda la
+     * herramienta declarada; si el modelo la pide (`functionCall` en vez de texto), se ejecuta
+     * localmente (`DemoTools`, sin red) y se hace una segunda pasada con el resultado agregado al
+     * historial — ahí sí llega la respuesta final en texto. Si el modelo responde directo (el caso
+     * común), es solo la primera pasada, igual que antes de esta feature.
+     */
     override fun generateContentStream(history: List<ChatMessage>, config: GenerationConfig): Flow<String> = flow {
         lastResponseTokens = null
+        val functionCall = streamRequest(history, config, extraTurns = emptyList()) { text -> emit(text) }
+        if (functionCall != null) {
+            Log.d(TAG, "generateContentStream: pidió la función ${functionCall.name}")
+            emit("🔧 usando \"${functionCall.name}\"…\n\n")
+            val result = DemoTools.executeCurrentTime(functionCall.args.optString(DemoTools.PARAM_TIMEZONE, null))
+            val resultJson = JSONObject().apply { result.forEach { (k, v) -> put(k, v) } }
+            val extraTurns = listOf(
+                JSONObject().put("role", "model").put(
+                    "parts",
+                    JSONArray().put(
+                        JSONObject().put(
+                            "functionCall",
+                            JSONObject().put("name", functionCall.name).put("args", functionCall.args),
+                        )
+                    ),
+                ),
+                JSONObject().put("role", "user").put(
+                    "parts",
+                    JSONArray().put(
+                        JSONObject().put(
+                            "functionResponse",
+                            JSONObject().put("name", functionCall.name).put("response", resultJson),
+                        )
+                    ),
+                ),
+            )
+            streamRequest(history, config, extraTurns) { text -> emit(text) }
+        }
+    }.flowOn(Dispatchers.IO)
+
+    private data class FunctionCallInfo(val name: String, val args: JSONObject)
+
+    /**
+     * POST a `streamGenerateContent` y consume el SSE. Manda cada chunk de texto a [onText]. Si el
+     * modelo pide la función en vez de responder texto, la captura y la devuelve (sin llamar a
+     * [onText] para ese chunk) — el llamador decide qué hacer. Solo soporta UN pedido de función
+     * por turno (alcanza para demostrar el mecanismo; el API real permite encadenar varias).
+     */
+    private suspend fun streamRequest(
+        history: List<ChatMessage>,
+        config: GenerationConfig,
+        extraTurns: List<JSONObject>,
+        onText: suspend (String) -> Unit,
+    ): FunctionCallInfo? {
         val url = URL(
             "$API_BASE/$CLOUD_MODEL:streamGenerateContent" +
                 "?alt=sse&key=${URLEncoder.encode(apiKey, "UTF-8")}"
@@ -92,9 +145,9 @@ class CloudGeminiBackend @Inject constructor(
             readTimeout = 30_000
             setRequestProperty("Content-Type", "application/json")
         }
-        Log.d(TAG, "generateContentStream: POST a $CLOUD_MODEL:streamGenerateContent")
+        Log.d(TAG, "streamRequest: POST a $CLOUD_MODEL:streamGenerateContent (extraTurns=${extraTurns.size})")
         try {
-            val body = buildRequestBody(history, config)
+            val body = buildRequestBody(history, config, extraTurns)
             connection.outputStream.use { it.write(body.toString().toByteArray(Charsets.UTF_8)) }
 
             if (connection.responseCode !in 200..299) {
@@ -102,6 +155,7 @@ class CloudGeminiBackend @Inject constructor(
                 error("HTTP ${connection.responseCode}: $errorBody")
             }
 
+            var functionCall: FunctionCallInfo? = null
             // La respuesta es Server-Sent Events: cada evento es una línea
             // "data: {...}" con un chunk de GenerateContentResponse en JSON.
             connection.inputStream.bufferedReader().use { reader ->
@@ -114,19 +168,39 @@ class CloudGeminiBackend @Inject constructor(
                     chunk.optJSONObject("usageMetadata")?.let { usage ->
                         lastResponseTokens = usage.optInt("candidatesTokenCount", -1).takeIf { it >= 0 }
                     }
+                    extractFunctionCall(chunk)?.let { functionCall = it }
                     val text = extractText(chunk)
                     if (text.isNotEmpty()) {
                         Log.v(TAG, "chunk: \"$text\"")
-                        emit(text)
+                        onText(text)
                     }
                 }
             }
+            return functionCall
         } finally {
             connection.disconnect()
         }
-    }.flowOn(Dispatchers.IO)
+    }
 
-    private fun buildRequestBody(history: List<ChatMessage>, config: GenerationConfig): JSONObject {
+    private fun extractFunctionCall(chunk: JSONObject): FunctionCallInfo? {
+        val parts = chunk.optJSONArray("candidates")
+            ?.takeIf { it.length() > 0 }
+            ?.getJSONObject(0)
+            ?.optJSONObject("content")
+            ?.optJSONArray("parts")
+            ?: return null
+        for (i in 0 until parts.length()) {
+            val call = parts.getJSONObject(i).optJSONObject("functionCall") ?: continue
+            return FunctionCallInfo(call.optString("name"), call.optJSONObject("args") ?: JSONObject())
+        }
+        return null
+    }
+
+    private fun buildRequestBody(
+        history: List<ChatMessage>,
+        config: GenerationConfig,
+        extraTurns: List<JSONObject> = emptyList(),
+    ): JSONObject {
         val contents = JSONArray()
         history.forEach { message ->
             val parts = JSONArray().put(JSONObject().put("text", message.text))
@@ -137,6 +211,7 @@ class CloudGeminiBackend @Inject constructor(
                     .put("parts", parts)
             )
         }
+        extraTurns.forEach { contents.put(it) }
         val body = JSONObject().put("contents", contents)
 
         val generationConfig = JSONObject()
@@ -146,6 +221,37 @@ class CloudGeminiBackend @Inject constructor(
         config.maxOutputTokens?.let { generationConfig.put("maxOutputTokens", it) }
         if (config.jsonMode) generationConfig.put("responseMimeType", "application/json")
         if (generationConfig.length() > 0) body.put("generationConfig", generationConfig)
+
+        if (config.functionCalling) {
+            body.put(
+                "tools",
+                JSONArray().put(
+                    JSONObject().put(
+                        "functionDeclarations",
+                        JSONArray().put(
+                            JSONObject()
+                                .put("name", DemoTools.GET_CURRENT_TIME)
+                                .put("description", DemoTools.CURRENT_TIME_DESCRIPTION)
+                                .put(
+                                    "parameters",
+                                    JSONObject()
+                                        .put("type", "object")
+                                        .put(
+                                            "properties",
+                                            JSONObject().put(
+                                                DemoTools.PARAM_TIMEZONE,
+                                                JSONObject()
+                                                    .put("type", "string")
+                                                    .put("description", DemoTools.TIMEZONE_PARAM_DESCRIPTION),
+                                            ),
+                                        )
+                                        .put("required", JSONArray().put(DemoTools.PARAM_TIMEZONE)),
+                                )
+                        )
+                    )
+                ),
+            )
+        }
 
         config.systemPrompt?.let { systemPrompt ->
             body.put(

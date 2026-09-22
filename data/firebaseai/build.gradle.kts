@@ -13,4 +13,9 @@ dependencies {
     // Tier E: Firebase AI Logic (Gemini vía Firebase). `firebase-common` (FirebaseApp/
     // FirebaseOptions) llega transitivo como dependencia de compilación de firebase-ai.
     implementation(libs.firebase.ai)
+
+    // FunctionResponsePart.response es un kotlinx.serialization.json.JsonObject: firebase-ai lo usa
+    // internamente pero no lo expone como dependencia transitiva (implementation, no api, en su
+    // propio POM) — sin esto, JsonObject/JsonPrimitive no resuelven acá.
+    implementation(libs.kotlinx.serialization.json)
 }

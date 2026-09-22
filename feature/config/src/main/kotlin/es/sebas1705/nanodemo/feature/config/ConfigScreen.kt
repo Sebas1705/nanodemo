@@ -141,6 +141,32 @@ fun ConfigScreen(viewModel: ConfigViewModel = hiltViewModel()) {
                 color = DemoColors.Muted,
             )
         }
+
+        Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                Text(
+                    if (capabilities.functionCalling) "Herramientas" else "Herramientas (no soportado en este tier)",
+                    style = readoutStyle,
+                    color = if (capabilities.functionCalling) DemoColors.Ink else DemoColors.Muted,
+                )
+                Switch(
+                    checked = config.functionCalling,
+                    onCheckedChange = { viewModel.updateConfig(config.copy(functionCalling = it)) },
+                    enabled = capabilities.functionCalling,
+                )
+            }
+            Text(
+                "Deja que el modelo pida la hora actual en una zona horaria en vez de inventarla — " +
+                    "no tiene reloj propio. Solo Cloud y Firebase AI pueden pedir herramientas; en Chat " +
+                    "se ve cuándo la usó.",
+                style = MaterialTheme.typography.bodySmall,
+                color = DemoColors.Muted,
+            )
+        }
     }
 }
 

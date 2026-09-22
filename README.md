@@ -98,6 +98,9 @@ Models framework de Apple).
 15. **Costo estimado** (Estadísticas): en los tiers de nube, el costo
     aproximado en USD según el precio público de Gemini Flash — los
     on-device siempre cuestan \$0.
+16. **Herramientas (function calling)**: toggle en Parámetros — el modelo
+    puede pedir la hora actual en vez de inventarla, algo que genuinamente no
+    sabe por su cuenta. Solo Cloud y Firebase AI; en Chat se ve cuándo la usó.
 
 ## Arquitectura (multi-módulo, clean architecture)
 
@@ -153,6 +156,7 @@ La app está dividida en módulos Gradle por capa (convention plugins en
 | imágenes | ✅ | ❌ (el modelo hosteado no tiene encoder de visión) | ✅ |
 | tokens reales en stats | ❌ (aproximado) | ✅ (`sizeInTokens()`) | ✅ (`usageMetadata`) |
 | Modo JSON (salida estructurada) | ❌ | ❌ | ✅ (`responseMimeType`) |
+| Herramientas (function calling) | ❌ | ❌ | ✅ (`DemoTools`, ver Parámetros) |
 
 Ver qué soporta cada tier es en sí mismo parte del estudio — por eso la UI
 deshabilita en vez de ocultar los controles no soportados. La tabla cubre los
