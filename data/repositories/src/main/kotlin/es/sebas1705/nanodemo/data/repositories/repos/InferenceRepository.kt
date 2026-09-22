@@ -160,7 +160,7 @@ class InferenceRepository @Inject constructor(
             InferenceParams.TIER to tier.name,
             InferenceParams.REASON to "manual",
         )
-        residentEngineTiers.filter { it != tier }.forEach { backends.getValue(it).close() }
+        residentEngineTiers.filter { it != tier }.forEach { closeBackendSafely(it) }
         _activeTier.update { tier }
         scope.launch {
             applyAvailabilityToState(checkTier(tier))
@@ -253,7 +253,7 @@ class InferenceRepository @Inject constructor(
     override fun resetConversation() {
         Log.d(TAG, "resetConversation: tier=${_activeTier.value}")
         telemetry.feature(InferenceFeatures.CONVERSATION_RESET, InferenceParams.TIER to _activeTier.value.name)
-        backends.getValue(_activeTier.value).resetConversation()
+        resetBackendSafely(_activeTier.value)
         currentConversationId = null
         _conversation.update { emptyList() }
         _pendingImage.update { null }
@@ -286,7 +286,7 @@ class InferenceRepository @Inject constructor(
                 InferenceParams.TIER to conv.tier.name,
                 InferenceParams.TURNS to messages.size,
             )
-            backends.getValue(_activeTier.value).resetConversation()
+            resetBackendSafely(_activeTier.value)
             currentConversationId = conversationId
             _activeTier.update { conv.tier }
             _conversation.update { messages }
@@ -306,11 +306,22 @@ class InferenceRepository @Inject constructor(
                 val modelMessage = ChatMessage(Role.MODEL, response)
                 _conversation.update { it + userMessage + modelMessage }
                 _pendingImage.update { null }
-                currentConversationId = historyRepository.appendMessages(
-                    currentConversationId,
-                    tier,
-                    listOf(userMessage, modelMessage),
-                )
+                try {
+                    currentConversationId = historyRepository.appendMessages(
+                        currentConversationId,
+                        tier,
+                        listOf(userMessage, modelMessage),
+                    )
+                } catch (e: Exception) {
+                    // No debería pasar ya que deleteConversation() limpia currentConversationId al borrar la
+                    // activa, pero si algo más lo deja apuntando a una fila inválida (u otro fallo de Room),
+                    // no tiene que tirar abajo la app: el turno ya está en pantalla, solo se pierde su
+                    // persistencia en el historial. Se limpia el id para que el próximo turno cree una
+                    // conversación nueva en vez de repetir el mismo error.
+                    Log.e(TAG, "generate($tier): no se pudo guardar el turno en el historial", e)
+                    telemetry.failure(InferenceOperations.PERSIST_TURN, e, null, InferenceParams.TIER to tier.name)
+                    currentConversationId = null
+                }
             }
         }
     }
@@ -478,4 +489,52 @@ class InferenceRepository @Inject constructor(
 
     private fun usedMemoryBytes(): Long =
         Runtime.getRuntime().let { it.totalMemory() - it.freeMemory() }
+
+    /**
+     * `close()`/`resetConversation()` de un `InferenceBackend` no deberían lanzar (ver la nota de
+     * `MediaPipeBackend`, que es la que tenía el bug real: cerraba la sesión mientras seguía procesando
+     * una respuesta y tiraba `IllegalStateException`, visto en Crashlytics — ya corregido ahí cancelando
+     * en vez de cerrar a ciegas). Estas dos envolturas quedan igual como red de seguridad: si algún
+     * backend futuro repite el error, un fallo puntual no debe tirar abajo toda la app.
+     */
+    private fun closeBackendSafely(tier: InferenceTier) {
+        try {
+            backends.getValue(tier).close()
+        } catch (e: Exception) {
+            Log.e(TAG, "closeBackendSafely($tier): close() falló", e)
+            telemetry.failure(InferenceOperations.CLOSE_BACKEND, e, null, InferenceParams.TIER to tier.name)
+        }
+    }
+
+    private fun resetBackendSafely(tier: InferenceTier) {
+        try {
+            backends.getValue(tier).resetConversation()
+        } catch (e: Exception) {
+            Log.e(TAG, "resetBackendSafely($tier): resetConversation() falló", e)
+            telemetry.failure(InferenceOperations.RESET_BACKEND, e, null, InferenceParams.TIER to tier.name)
+        }
+    }
+
+    override fun deleteConversation(conversationId: Long) {
+        Log.d(TAG, "deleteConversation: id=$conversationId")
+        telemetry.feature(InferenceFeatures.CONVERSATION_DELETE)
+        scope.launch {
+            try {
+                historyRepository.deleteConversation(conversationId)
+            } catch (e: Exception) {
+                Log.e(TAG, "deleteConversation($conversationId): falló", e)
+                telemetry.failure(InferenceOperations.DELETE_CONVERSATION, e)
+                return@launch
+            }
+            // La fila borrada podía ser la que Chat sigue mostrando (currentConversationId desactualizado)
+            // — si no se limpia acá, el próximo turno intentaría persistir mensajes contra una conversación
+            // que ya no existe (FOREIGN KEY constraint failed, visto en Crashlytics). El motor del backend
+            // no se toca: su sesión en RAM sigue viva, solo se desengancha de la fila borrada.
+            if (currentConversationId == conversationId) {
+                currentConversationId = null
+                _conversation.update { emptyList() }
+                _pendingImage.update { null }
+            }
+        }
+    }
 }

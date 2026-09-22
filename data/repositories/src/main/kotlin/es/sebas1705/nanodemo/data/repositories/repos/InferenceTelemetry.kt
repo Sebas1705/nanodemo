@@ -17,12 +17,21 @@ internal object InferenceOperations {
     const val DOWNLOAD = "download"
     const val GENERATE = "generate"
     const val EXPORT_CSV = "export_csv"
+    const val DELETE_CONVERSATION = "delete_conversation"
+
+    /** Guardar un turno en el historial local, después de que `generate` ya tuvo éxito. */
+    const val PERSIST_TURN = "persist_turn"
+
+    /** `InferenceBackend.close()` / `resetConversation()`: no deberían fallar, pero si lo hacen no tiran la app. */
+    const val CLOSE_BACKEND = "close_backend"
+    const val RESET_BACKEND = "reset_backend"
 }
 
 /** Valores del parámetro `feature` de `feature_used`. */
 internal object InferenceFeatures {
     const val CONVERSATION_RESET = "conversation_reset"
     const val CONVERSATION_OPEN = "conversation_open"
+    const val CONVERSATION_DELETE = "conversation_delete"
     const val MEDIAPIPE_MODEL_SELECT = "mediapipe_model_select"
     const val COMPARE_RUN = "compare_run"
     const val BENCHMARK_RUN = "benchmark_run"

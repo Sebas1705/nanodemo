@@ -100,6 +100,18 @@ class MediaPipeBackend @Inject constructor(
     private var lastResponseText: String = ""
     private val modelToken: String = BuildConfig.MEDIAPIPE_MODEL_TOKEN
 
+    // `LlmInferenceSession` solo permite una `generateResponseAsync` en curso a la vez: cerrarla (o abrir
+    // otra) mientras la anterior no llamó a su callback con done=true lanza IllegalStateException
+    // ("Previous invocation still processing") — visto en Crashlytics al cambiar de tier a mitad de
+    // respuesta (selectTier -> close()), verificado leyendo LlmInferenceSession.validateState() en el AAR
+    // real. `cancelGenerateResponseAsync()` (misma clase) es la forma soportada de interrumpirla; su
+    // callback sigue llamándose con done=true, así que el cierre real se difiere hasta ese momento.
+    @Volatile
+    private var isGenerating = false
+
+    @Volatile
+    private var deferredCleanup: (() -> Unit)? = null
+
     /** Cambia el modelo activo. Cierra el motor/sesión cargados (si había) — se recrean con el modelo nuevo al generar. */
     fun selectModel(option: MediaPipeModelOption) {
         if (_selectedModel.value == option) return
@@ -221,11 +233,20 @@ class MediaPipeBackend @Inject constructor(
         val activeSession = getOrCreateSession(config)
         Log.d(TAG, "generateContentStream: enviando turno")
         activeSession.addQueryChunk(lastUserMessage.text)
+        isGenerating = true
         activeSession.generateResponseAsync { partialResult, done ->
             Log.v(TAG, "chunk (done=$done): \"$partialResult\"")
             lastResponseText += partialResult
             trySend(partialResult)
-            if (done) close()
+            if (done) {
+                isGenerating = false
+                deferredCleanup?.let { cleanup ->
+                    deferredCleanup = null
+                    Log.d(TAG, "generateContentStream: ejecutando el cierre que quedó pendiente")
+                    cleanup()
+                }
+                close() // ProducerScope.close(): termina este Flow (no es MediaPipeBackend.close()).
+            }
         }
         awaitClose { }
     }
@@ -266,17 +287,47 @@ class MediaPipeBackend @Inject constructor(
 
     override fun resetConversation() {
         Log.d(TAG, "resetConversation: cerrando sesión")
-        session?.close()
-        session = null
+        runOrDefer {
+            runCatching { session?.close() }
+                .onFailure { Log.e(TAG, "resetConversation: fallo cerrando la sesión", it) }
+            session = null
+        }
     }
 
     override fun lastResponseTokens(): Int? =
         lastResponseText.takeIf { it.isNotEmpty() }?.let { llmInference?.sizeInTokens(it) }
 
     override fun close() {
-        session?.close()
-        session = null
-        llmInference?.close()
-        llmInference = null
+        runOrDefer {
+            runCatching { session?.close() }
+                .onFailure { Log.e(TAG, "close: fallo cerrando la sesión", it) }
+            session = null
+            runCatching { llmInference?.close() }
+                .onFailure { Log.e(TAG, "close: fallo cerrando el motor", it) }
+            llmInference = null
+        }
+    }
+
+    /**
+     * Si hay una respuesta en curso, pide cancelarla y deja `cleanup` para cuando su callback confirme
+     * done=true (ver `generateContentStream`); ejecutarlo ahora tiraría la misma IllegalStateException que
+     * se ve en Crashlytics. Si no hay nada en curso, se ejecuta al toque.
+     */
+    private fun runOrDefer(cleanup: () -> Unit) {
+        if (!isGenerating) {
+            cleanup()
+            return
+        }
+        Log.w(TAG, "runOrDefer: hay una generación en curso, se cancela y el cierre queda pendiente")
+        // Si ya había un cierre pendiente (p.ej. resetConversation() seguido de close() antes de que
+        // termine la cancelación), se encadenan en vez de perder el primero — ambos son idempotentes.
+        val previous = deferredCleanup
+        deferredCleanup = if (previous != null) {
+            { previous(); cleanup() }
+        } else {
+            cleanup
+        }
+        runCatching { session?.cancelGenerateResponseAsync() }
+            .onFailure { Log.e(TAG, "runOrDefer: no se pudo cancelar la generación en curso", it) }
     }
 }
