@@ -14,7 +14,6 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
-import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
@@ -23,9 +22,12 @@ import androidx.compose.ui.unit.sp
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import es.sebas1705.nanodemo.core.common.hasInternetConnection
 import es.sebas1705.nanodemo.core.common.totalRamGb
+import es.sebas1705.nanodemo.core.designsystem.AdaptiveGrid
 import es.sebas1705.nanodemo.core.designsystem.channelLetter
 import es.sebas1705.nanodemo.core.designsystem.label
+import es.sebas1705.nanodemo.core.designsystem.rememberScreenSizeClass
 import es.sebas1705.nanodemo.core.designsystem.signalColor
+import es.sebas1705.nanodemo.core.designsystem.tierColumns
 import es.sebas1705.nanodemo.core.ui.DemoColors
 import es.sebas1705.nanodemo.core.ui.readoutStyle
 import es.sebas1705.nanodemo.domain.models.InferenceTier
@@ -152,35 +154,36 @@ private fun InfoRow(label: String, value: String) {
     }
 }
 
+/**
+ * Antes era una sola tabla de 6 columnas (label + 5 tiers) — apretadísima en un ancho de
+ * teléfono, sobre todo dentro de la hoja "Ajustes" (ya no una pantalla completa). Ahora es
+ * una tarjeta por tier (label a la izquierda, ✓/✗ a la derecha, sin competir por ancho con
+ * las otras 4), en una grilla que usa 1 columna en teléfono y 2-3 en tablet/pantalla ancha
+ * (mismo `AdaptiveGrid`/`tierColumns` que ya usan Comparar y Estadísticas).
+ */
 @Composable
 private fun CapabilitiesTable(viewModel: DeviceViewModel) {
-    Column(
-        modifier = Modifier
-            .fillMaxWidth()
-            .background(DemoColors.Panel, RoundedCornerShape(8.dp))
-            .padding(12.dp),
-        verticalArrangement = Arrangement.spacedBy(10.dp),
-    ) {
-        Row(modifier = Modifier.fillMaxWidth()) {
-            Text("", modifier = Modifier.weight(1.6f))
-            InferenceTier.entries.forEach { tier ->
-                Text(
-                    "[${tier.channelLetter()}]",
-                    modifier = Modifier.weight(1f),
-                    style = readoutStyle,
-                    color = tier.signalColor,
-                    fontWeight = FontWeight.Bold,
-                )
-            }
-        }
-        CAPABILITY_ROWS.forEach { (label, supports) ->
-            Row(modifier = Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
-                Text(label, modifier = Modifier.weight(1.6f), style = readoutStyle, color = DemoColors.Ink)
-                InferenceTier.entries.forEach { tier ->
-                    val supported = supports(viewModel.capabilitiesOf(tier))
+    val sizeClass = rememberScreenSizeClass()
+    AdaptiveGrid(items = InferenceTier.entries, columns = sizeClass.tierColumns) { tier, cardModifier ->
+        Column(
+            modifier = cardModifier
+                .background(DemoColors.Panel, RoundedCornerShape(8.dp))
+                .padding(12.dp),
+            verticalArrangement = Arrangement.spacedBy(8.dp),
+        ) {
+            Text(
+                "[${tier.channelLetter()}] ${tier.label()}",
+                style = readoutStyle,
+                color = tier.signalColor,
+                fontWeight = FontWeight.Bold,
+            )
+            val capabilities = viewModel.capabilitiesOf(tier)
+            CAPABILITY_ROWS.forEach { (label, supports) ->
+                val supported = supports(capabilities)
+                Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
+                    Text(label, style = readoutStyle, color = DemoColors.Ink)
                     Text(
                         if (supported) "✓" else "✗",
-                        modifier = Modifier.weight(1f),
                         style = readoutStyle,
                         color = if (supported) tier.signalColor else DemoColors.Muted,
                     )
