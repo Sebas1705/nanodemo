@@ -43,6 +43,10 @@ class ObservePendingImageUseCase @Inject constructor(private val repository: IIn
     operator fun invoke(): StateFlow<Uri?> = repository.pendingImage
 }
 
+class ObserveAttachedUrlUseCase @Inject constructor(private val repository: IInferenceRepository) {
+    operator fun invoke(): StateFlow<String?> = repository.attachedUrl
+}
+
 class ObserveCompareStatesUseCase @Inject constructor(private val repository: IInferenceRepository) {
     operator fun invoke(): StateFlow<Map<InferenceTier, DemoState>> = repository.compareStates
 }

@@ -26,6 +26,9 @@ interface IInferenceRepository {
     val conversation: StateFlow<List<ChatMessage>>
     val config: StateFlow<GenerationConfig>
     val pendingImage: StateFlow<Uri?>
+
+    /** URL adjunta al próximo turno de Chat ("pegar un link y preguntar") — se limpia tras usarla. */
+    val attachedUrl: StateFlow<String?>
     val compareStates: StateFlow<Map<InferenceTier, DemoState>>
     val metrics: StateFlow<List<GenerationMetric>>
 
@@ -38,6 +41,7 @@ interface IInferenceRepository {
     fun downloadModel()
     fun updateConfig(newConfig: GenerationConfig)
     fun setPendingImage(uri: Uri?)
+    fun setAttachedUrl(url: String?)
     fun resetConversation()
     fun generate(prompt: String)
     fun generateCompare(prompt: String)

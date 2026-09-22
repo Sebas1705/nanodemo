@@ -6,6 +6,7 @@ import android.util.Log
 import androidx.core.content.FileProvider
 import es.sebas1705.nanodemo.core.common.Telemetry
 import es.sebas1705.nanodemo.core.common.TelemetryResult
+import es.sebas1705.nanodemo.core.common.fetchUrlText
 import es.sebas1705.nanodemo.data.cloudgemini.CloudGeminiBackend
 import es.sebas1705.nanodemo.data.firebaseai.FirebaseAiBackend
 import es.sebas1705.nanodemo.data.history.IHistoryRepository
@@ -110,6 +111,9 @@ class InferenceRepository @Inject constructor(
 
     private val _pendingImage = MutableStateFlow<Uri?>(null)
     override val pendingImage: StateFlow<Uri?> = _pendingImage.asStateFlow()
+
+    private val _attachedUrl = MutableStateFlow<String?>(null)
+    override val attachedUrl: StateFlow<String?> = _attachedUrl.asStateFlow()
 
     private val _compareStates = MutableStateFlow<Map<InferenceTier, DemoState>>(emptyMap())
     override val compareStates: StateFlow<Map<InferenceTier, DemoState>> = _compareStates.asStateFlow()
@@ -266,6 +270,10 @@ class InferenceRepository @Inject constructor(
         _pendingImage.update { uri }
     }
 
+    override fun setAttachedUrl(url: String?) {
+        _attachedUrl.update { url?.trim()?.takeIf { it.isNotBlank() } }
+    }
+
     override fun resetConversation() {
         Log.d(TAG, "resetConversation: tier=${_activeTier.value}")
         telemetry.feature(InferenceFeatures.CONVERSATION_RESET, InferenceParams.TIER to _activeTier.value.name)
@@ -314,14 +322,33 @@ class InferenceRepository @Inject constructor(
     override fun generate(prompt: String) {
         if (prompt.isBlank()) return
         val tier = _activeTier.value
+        val url = _attachedUrl.value
+        // Lo que se ve en el transcript y se persiste: el prompt corto tal cual lo escribió el
+        // usuario. El contenido del link (si hay) solo se agrega al turno que ve el modelo — si se
+        // guardara ahí, el próximo turno volvería a mandar toda la página de contexto sin motivo.
         val userMessage = ChatMessage(Role.USER, prompt, _pendingImage.value)
-        val history = _conversation.value + userMessage
         scope.launch {
+            val generationMessage = if (url != null) {
+                try {
+                    val pageText = fetchUrlText(url)
+                    telemetry.feature(InferenceFeatures.URL_ATTACH, InferenceParams.TIER to tier.name)
+                    userMessage.copy(text = "Contenido de $url:\n\n$pageText\n\nPregunta del usuario: $prompt")
+                } catch (e: Exception) {
+                    Log.e(TAG, "generate($tier): no se pudo descargar $url", e)
+                    telemetry.failure(InferenceOperations.FETCH_URL, e, null, InferenceParams.TIER to tier.name)
+                    _state.update { DemoState.Error("No se pudo descargar el link: ${e.message ?: "error de red"}") }
+                    return@launch
+                }
+            } else {
+                userMessage
+            }
+            val history = _conversation.value + generationMessage
             val result = runGeneration(tier, history, GenerationMode.CHAT) { newState -> _state.update { newState } }
             result.onSuccess { response ->
                 val modelMessage = ChatMessage(Role.MODEL, response)
                 _conversation.update { it + userMessage + modelMessage }
                 _pendingImage.update { null }
+                _attachedUrl.update { null }
                 try {
                     currentConversationId = historyRepository.appendMessages(
                         currentConversationId,

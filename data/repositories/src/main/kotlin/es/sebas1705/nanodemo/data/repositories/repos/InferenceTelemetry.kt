@@ -29,6 +29,9 @@ internal object InferenceOperations {
     /** `InferenceBackend.close()` / `resetConversation()`: no deberían fallar, pero si lo hacen no tiran la app. */
     const val CLOSE_BACKEND = "close_backend"
     const val RESET_BACKEND = "reset_backend"
+
+    /** Descargar la página de "pegar un link y preguntar" (ver `core:common.fetchUrlText`). */
+    const val FETCH_URL = "fetch_url"
 }
 
 /** Valores del parámetro `feature` de `feature_used`. */
@@ -39,6 +42,7 @@ internal object InferenceFeatures {
     const val MEDIAPIPE_MODEL_SELECT = "mediapipe_model_select"
     const val COMPARE_RUN = "compare_run"
     const val BENCHMARK_RUN = "benchmark_run"
+    const val URL_ATTACH = "url_attach"
 }
 
 internal object InferenceParams {

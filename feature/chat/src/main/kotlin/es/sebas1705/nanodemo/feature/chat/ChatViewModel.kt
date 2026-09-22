@@ -13,6 +13,7 @@ import es.sebas1705.nanodemo.domain.usescases.inference.GenerateUseCase
 import es.sebas1705.nanodemo.domain.usescases.inference.GetMediaPipeModelsUseCase
 import es.sebas1705.nanodemo.domain.usescases.inference.LoadConversationUseCase
 import es.sebas1705.nanodemo.domain.usescases.inference.ObserveActiveTierUseCase
+import es.sebas1705.nanodemo.domain.usescases.inference.ObserveAttachedUrlUseCase
 import es.sebas1705.nanodemo.domain.usescases.inference.ObserveAvailabilityUseCase
 import es.sebas1705.nanodemo.domain.usescases.inference.ObserveConversationUseCase
 import es.sebas1705.nanodemo.domain.usescases.inference.ObservePendingImageUseCase
@@ -21,6 +22,7 @@ import es.sebas1705.nanodemo.domain.usescases.inference.ObserveStateUseCase
 import es.sebas1705.nanodemo.domain.usescases.inference.ResetConversationUseCase
 import es.sebas1705.nanodemo.domain.usescases.inference.SelectMediaPipeModelUseCase
 import es.sebas1705.nanodemo.domain.usescases.inference.SelectTierUseCase
+import es.sebas1705.nanodemo.domain.usescases.inference.SetAttachedUrlUseCase
 import es.sebas1705.nanodemo.domain.usescases.inference.SetPendingImageUseCase
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.StateFlow
@@ -40,6 +42,7 @@ class ChatViewModel @Inject constructor(
     observeActiveTier: ObserveActiveTierUseCase,
     observeAvailability: ObserveAvailabilityUseCase,
     observePendingImage: ObservePendingImageUseCase,
+    observeAttachedUrl: ObserveAttachedUrlUseCase,
     observeSelectedMediaPipeModel: ObserveSelectedMediaPipeModelUseCase,
     getMediaPipeModels: GetMediaPipeModelsUseCase,
     val capabilitiesOf: CapabilitiesOfUseCase,
@@ -47,6 +50,7 @@ class ChatViewModel @Inject constructor(
     val generate: GenerateUseCase,
     val downloadModel: DownloadModelUseCase,
     val setPendingImage: SetPendingImageUseCase,
+    val setAttachedUrl: SetAttachedUrlUseCase,
     val resetConversation: ResetConversationUseCase,
     val selectMediaPipeModel: SelectMediaPipeModelUseCase,
     private val loadConversation: LoadConversationUseCase,
@@ -57,6 +61,7 @@ class ChatViewModel @Inject constructor(
     val activeTier: StateFlow<InferenceTier> = observeActiveTier()
     val availability: StateFlow<Map<InferenceTier, TierAvailability>> = observeAvailability()
     val pendingImage: StateFlow<Uri?> = observePendingImage()
+    val attachedUrl: StateFlow<String?> = observeAttachedUrl()
     val selectedMediaPipeModel: StateFlow<MediaPipeModelOption> = observeSelectedMediaPipeModel()
     val mediaPipeModels: List<MediaPipeModelOption> = getMediaPipeModels()
 

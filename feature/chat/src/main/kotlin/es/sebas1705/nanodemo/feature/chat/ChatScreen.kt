@@ -10,6 +10,7 @@ import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
@@ -33,7 +34,9 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import es.sebas1705.nanodemo.core.designsystem.ImageAttachRow
 import es.sebas1705.nanodemo.core.designsystem.MessageBubble
@@ -46,6 +49,7 @@ import es.sebas1705.nanodemo.core.designsystem.phase
 import es.sebas1705.nanodemo.core.designsystem.signalColor
 import es.sebas1705.nanodemo.core.designsystem.unavailableMessage
 import es.sebas1705.nanodemo.core.ui.DemoColors
+import es.sebas1705.nanodemo.core.ui.readoutStyle
 import es.sebas1705.nanodemo.domain.models.ChatMessage
 import es.sebas1705.nanodemo.domain.models.DemoState
 import es.sebas1705.nanodemo.domain.models.InferenceTier
@@ -70,6 +74,7 @@ fun ChatScreen(
     val availability by viewModel.availability.collectAsState()
     val conversation by viewModel.conversation.collectAsState()
     val pendingImage by viewModel.pendingImage.collectAsState()
+    val attachedUrl by viewModel.attachedUrl.collectAsState()
     val selectedMediaPipeModel by viewModel.selectedMediaPipeModel.collectAsState()
     var promptText by remember {
         // Compartir desde otra app precarga el prompt (con una instrucción, no el texto pelado) en
@@ -116,11 +121,13 @@ fun ChatScreen(
             capabilities = viewModel.capabilitiesOf(activeTier),
             conversation = conversation,
             pendingImageUri = pendingImage,
+            attachedUrl = attachedUrl,
             promptText = promptText,
             onPromptChange = { promptText = it },
             onGenerate = { viewModel.generate(promptText) },
             onDownload = { viewModel.downloadModel() },
             onPickImage = { viewModel.setPendingImage(it) },
+            onAttachUrl = { viewModel.setAttachedUrl(it) },
             onResetConversation = { viewModel.resetConversation() },
         )
     }
@@ -154,11 +161,13 @@ private fun ActivePanel(
     capabilities: TierCapabilities,
     conversation: List<ChatMessage>,
     pendingImageUri: Uri?,
+    attachedUrl: String?,
     promptText: String,
     onPromptChange: (String) -> Unit,
     onGenerate: () -> Unit,
     onDownload: () -> Unit,
     onPickImage: (Uri?) -> Unit,
+    onAttachUrl: (String?) -> Unit,
     onResetConversation: () -> Unit,
 ) {
     val imagePickerLauncher = rememberLauncherForActivityResult(
@@ -229,6 +238,10 @@ private fun ActivePanel(
                             )
                         }
 
+                        // A diferencia de imágenes, no depende de TierCapabilities: el contenido de la
+                        // página se manda como texto de más, así que funciona en los 5 tiers por igual.
+                        UrlAttachRow(attachedUrl = attachedUrl, onAttach = onAttachUrl, onClear = { onAttachUrl(null) })
+
                         OutlinedTextField(
                             value = promptText,
                             onValueChange = onPromptChange,
@@ -257,6 +270,52 @@ private fun ActivePanel(
                         }
                     }
                 }
+            }
+        }
+    }
+}
+
+/**
+ * "Pegar un link y preguntar": la app descarga la página y la manda de contexto al generar (ver
+ * `InferenceRepository.generate()`) — funciona igual en los 5 tiers, no como las imágenes (solo
+ * Nano/Cloud/LiteRT-LM/Firebase AI tienen encoder de visión).
+ */
+@Composable
+private fun UrlAttachRow(attachedUrl: String?, onAttach: (String) -> Unit, onClear: () -> Unit) {
+    var urlInput by remember { mutableStateOf("") }
+    Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
+        Text("LINK (OPCIONAL)", style = MaterialTheme.typography.labelSmall, color = DemoColors.Muted)
+        if (attachedUrl != null) {
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(8.dp),
+            ) {
+                Text(
+                    attachedUrl,
+                    style = readoutStyle,
+                    color = DemoColors.Ink,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
+                    modifier = Modifier.weight(1f),
+                )
+                TextButton(onClick = onClear) { Text("Quitar") }
+            }
+        } else {
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(8.dp),
+            ) {
+                OutlinedTextField(
+                    value = urlInput,
+                    onValueChange = { urlInput = it },
+                    label = { Text("https://…") },
+                    singleLine = true,
+                    modifier = Modifier.weight(1f),
+                )
+                TextButton(
+                    onClick = { if (urlInput.isNotBlank()) { onAttach(urlInput.trim()); urlInput = "" } },
+                    enabled = urlInput.isNotBlank(),
+                ) { Text("Adjuntar") }
             }
         }
     }

@@ -28,6 +28,10 @@ class SetPendingImageUseCase @Inject constructor(private val repository: IInfere
     operator fun invoke(uri: Uri?) = repository.setPendingImage(uri)
 }
 
+class SetAttachedUrlUseCase @Inject constructor(private val repository: IInferenceRepository) {
+    operator fun invoke(url: String?) = repository.setAttachedUrl(url)
+}
+
 class ResetConversationUseCase @Inject constructor(private val repository: IInferenceRepository) {
     operator fun invoke() = repository.resetConversation()
 }
