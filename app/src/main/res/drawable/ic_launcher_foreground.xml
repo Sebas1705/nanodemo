@@ -1,0 +1,34 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Cinco barras de señal, una por tier (A..E), con los colores de DemoColors. Todo dentro de la
+     zona segura del icono adaptable (círculo de 66dp centrado en 108dp). -->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="108dp"
+    android:height="108dp"
+    android:viewportWidth="108"
+    android:viewportHeight="108">
+    <path
+        android:strokeColor="#5CF29B"
+        android:strokeWidth="8"
+        android:strokeLineCap="round"
+        android:pathData="M28,47L28,61" />
+    <path
+        android:strokeColor="#F2B35C"
+        android:strokeWidth="8"
+        android:strokeLineCap="round"
+        android:pathData="M41,41L41,67" />
+    <path
+        android:strokeColor="#5CC7F2"
+        android:strokeWidth="8"
+        android:strokeLineCap="round"
+        android:pathData="M54,35L54,73" />
+    <path
+        android:strokeColor="#B08CF2"
+        android:strokeWidth="8"
+        android:strokeLineCap="round"
+        android:pathData="M67,41L67,67" />
+    <path
+        android:strokeColor="#F25CB6"
+        android:strokeWidth="8"
+        android:strokeLineCap="round"
+        android:pathData="M80,47L80,61" />
+</vector>
