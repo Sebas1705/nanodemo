@@ -101,6 +101,11 @@ Models framework de Apple).
 16. **Herramientas (function calling)**: toggle en Parámetros — el modelo
     puede pedir la hora actual en vez de inventarla, algo que genuinamente no
     sabe por su cuenta. Solo Cloud y Firebase AI; en Chat se ve cuándo la usó.
+17. **Búsqueda en internet** (grounding con Google Search): toggle en
+    Parámetros — el modelo busca antes de responder, para preguntas actuales
+    fuera de su corte de entrenamiento. Solo Cloud y Firebase AI; en Chat se
+    ven las consultas hechas y cuántas fuentes citó. Distinto de "Pegar un
+    link" (#13): acá el modelo elige cuándo y qué buscar, no vos.
 
 ## Arquitectura (multi-módulo, clean architecture)
 
@@ -157,6 +162,7 @@ La app está dividida en módulos Gradle por capa (convention plugins en
 | tokens reales en stats | ❌ (aproximado) | ✅ (`sizeInTokens()`) | ✅ (`usageMetadata`) |
 | Modo JSON (salida estructurada) | ❌ | ❌ | ✅ (`responseMimeType`) |
 | Herramientas (function calling) | ❌ | ❌ | ✅ (`DemoTools`, ver Parámetros) |
+| Búsqueda en internet (grounding) | ❌ | ❌ | ✅ (`google_search`, ver Parámetros) |
 
 Ver qué soporta cada tier es en sí mismo parte del estudio — por eso la UI
 deshabilita en vez de ocultar los controles no soportados. La tabla cubre los

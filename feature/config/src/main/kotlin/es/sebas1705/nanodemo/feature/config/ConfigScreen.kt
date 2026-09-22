@@ -167,6 +167,32 @@ fun ConfigScreen(viewModel: ConfigViewModel = hiltViewModel()) {
                 color = DemoColors.Muted,
             )
         }
+
+        Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                Text(
+                    if (capabilities.webSearch) "Búsqueda en internet" else "Búsqueda en internet (no soportado en este tier)",
+                    style = readoutStyle,
+                    color = if (capabilities.webSearch) DemoColors.Ink else DemoColors.Muted,
+                )
+                Switch(
+                    checked = config.webSearch,
+                    onCheckedChange = { viewModel.updateConfig(config.copy(webSearch = it)) },
+                    enabled = capabilities.webSearch,
+                )
+            }
+            Text(
+                "Grounding con Google Search: el modelo busca antes de responder, para preguntas " +
+                    "actuales que no puede saber por su corte de entrenamiento. Solo Cloud y Firebase " +
+                    "AI; si también prendiste Herramientas, esta gana (no se probaron juntas).",
+                style = MaterialTheme.typography.bodySmall,
+                color = DemoColors.Muted,
+            )
+        }
     }
 }
 

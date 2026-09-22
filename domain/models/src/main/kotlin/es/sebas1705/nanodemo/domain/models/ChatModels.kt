@@ -38,6 +38,12 @@ data class GenerationConfig(
      * directamente no ofrece el control en los tiers que no la soportan.
      */
     val functionCalling: Boolean = false,
+    /**
+     * Grounding con Google Search: el modelo puede buscar en internet antes de responder. Si
+     * ambas están activas a la vez, gana esta sobre `functionCalling` (no se probó combinar los
+     * dos tipos de herramienta en la misma llamada — ver `CloudGeminiBackend`/`FirebaseAiBackend`).
+     */
+    val webSearch: Boolean = false,
 )
 
 /**
@@ -57,4 +63,6 @@ data class TierCapabilities(
     val structuredOutput: Boolean = false,
     /** Puede pedir una función (`DemoTools`) y recibir su resultado antes de responder. */
     val functionCalling: Boolean = false,
+    /** Puede buscar en Google antes de responder (grounding) — solo los tiers en la nube. */
+    val webSearch: Boolean = false,
 )

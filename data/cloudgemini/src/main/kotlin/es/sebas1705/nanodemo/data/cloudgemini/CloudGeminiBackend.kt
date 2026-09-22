@@ -69,6 +69,7 @@ class CloudGeminiBackend @Inject constructor(
         images = true,
         structuredOutput = true,
         functionCalling = true,
+        webSearch = true,
     )
 
     private val apiKey: String = BuildConfig.GEMINI_API_KEY
@@ -87,53 +88,61 @@ class CloudGeminiBackend @Inject constructor(
      * localmente (`DemoTools`, sin red) y se hace una segunda pasada con el resultado agregado al
      * historial — ahí sí llega la respuesta final en texto. Si el modelo responde directo (el caso
      * común), es solo la primera pasada, igual que antes de esta feature.
+     *
+     * `webSearch`: una sola pasada — el grounding lo resuelve Google del otro lado, no hay nada
+     * que ejecutar local. Al terminar, si hubo búsqueda, se agrega una línea con las consultas y
+     * la cantidad de fuentes (`groundingMetadata`, ver `extractGrounding`) — no se listan las URLs
+     * completas para no alargar demasiado la respuesta.
      */
     override fun generateContentStream(history: List<ChatMessage>, config: GenerationConfig): Flow<String> = flow {
         lastResponseTokens = null
-        val functionCall = streamRequest(history, config, extraTurns = emptyList()) { text -> emit(text) }
-        if (functionCall != null) {
-            Log.d(TAG, "generateContentStream: pidió la función ${functionCall.name}")
-            emit("🔧 usando \"${functionCall.name}\"…\n\n")
-            val result = DemoTools.executeCurrentTime(functionCall.args.optString(DemoTools.PARAM_TIMEZONE, null))
-            val resultJson = JSONObject().apply { result.forEach { (k, v) -> put(k, v) } }
+        var result = streamRequest(history, config, extraTurns = emptyList()) { text -> emit(text) }
+        val call = result.functionCall
+        if (call != null) {
+            Log.d(TAG, "generateContentStream: pidió la función ${call.name}")
+            emit("🔧 usando \"${call.name}\"…\n\n")
+            val toolResult = DemoTools.executeCurrentTime(call.args.optString(DemoTools.PARAM_TIMEZONE, null))
+            val resultJson = JSONObject().apply { toolResult.forEach { (k, v) -> put(k, v) } }
             val extraTurns = listOf(
                 JSONObject().put("role", "model").put(
                     "parts",
                     JSONArray().put(
-                        JSONObject().put(
-                            "functionCall",
-                            JSONObject().put("name", functionCall.name).put("args", functionCall.args),
-                        )
+                        JSONObject().put("functionCall", JSONObject().put("name", call.name).put("args", call.args)),
                     ),
                 ),
                 JSONObject().put("role", "user").put(
                     "parts",
                     JSONArray().put(
-                        JSONObject().put(
-                            "functionResponse",
-                            JSONObject().put("name", functionCall.name).put("response", resultJson),
-                        )
+                        JSONObject().put("functionResponse", JSONObject().put("name", call.name).put("response", resultJson)),
                     ),
                 ),
             )
-            streamRequest(history, config, extraTurns) { text -> emit(text) }
+            result = streamRequest(history, config, extraTurns) { text -> emit(text) }
+        }
+        result.grounding?.let { grounding ->
+            Log.d(TAG, "generateContentStream: grounding con ${grounding.sourceCount} fuente(s)")
+            val queries = grounding.queries.joinToString { "\"$it\"" }
+            emit("\n\n🔎 Grounded con Google Search ($queries) — ${grounding.sourceCount} fuente(s)")
         }
     }.flowOn(Dispatchers.IO)
 
     private data class FunctionCallInfo(val name: String, val args: JSONObject)
+    private data class GroundingInfo(val queries: List<String>, val sourceCount: Int)
+    private data class StreamResult(val functionCall: FunctionCallInfo?, val grounding: GroundingInfo?)
 
     /**
      * POST a `streamGenerateContent` y consume el SSE. Manda cada chunk de texto a [onText]. Si el
-     * modelo pide la función en vez de responder texto, la captura y la devuelve (sin llamar a
-     * [onText] para ese chunk) — el llamador decide qué hacer. Solo soporta UN pedido de función
-     * por turno (alcanza para demostrar el mecanismo; el API real permite encadenar varias).
+     * modelo pide la función en vez de responder texto, o si hubo grounding con Google Search, lo
+     * captura en el resultado (sin llamar a [onText] para el chunk del functionCall) — el llamador
+     * decide qué hacer. Solo soporta UN pedido de función por turno (alcanza para demostrar el
+     * mecanismo; el API real permite encadenar varias).
      */
     private suspend fun streamRequest(
         history: List<ChatMessage>,
         config: GenerationConfig,
         extraTurns: List<JSONObject>,
         onText: suspend (String) -> Unit,
-    ): FunctionCallInfo? {
+    ): StreamResult {
         val url = URL(
             "$API_BASE/$CLOUD_MODEL:streamGenerateContent" +
                 "?alt=sse&key=${URLEncoder.encode(apiKey, "UTF-8")}"
@@ -156,6 +165,7 @@ class CloudGeminiBackend @Inject constructor(
             }
 
             var functionCall: FunctionCallInfo? = null
+            var grounding: GroundingInfo? = null
             // La respuesta es Server-Sent Events: cada evento es una línea
             // "data: {...}" con un chunk de GenerateContentResponse en JSON.
             connection.inputStream.bufferedReader().use { reader ->
@@ -169,6 +179,7 @@ class CloudGeminiBackend @Inject constructor(
                         lastResponseTokens = usage.optInt("candidatesTokenCount", -1).takeIf { it >= 0 }
                     }
                     extractFunctionCall(chunk)?.let { functionCall = it }
+                    extractGrounding(chunk)?.let { grounding = it }
                     val text = extractText(chunk)
                     if (text.isNotEmpty()) {
                         Log.v(TAG, "chunk: \"$text\"")
@@ -176,24 +187,32 @@ class CloudGeminiBackend @Inject constructor(
                     }
                 }
             }
-            return functionCall
+            return StreamResult(functionCall, grounding)
         } finally {
             connection.disconnect()
         }
     }
 
+    private fun firstCandidate(chunk: JSONObject): JSONObject? =
+        chunk.optJSONArray("candidates")?.takeIf { it.length() > 0 }?.getJSONObject(0)
+
     private fun extractFunctionCall(chunk: JSONObject): FunctionCallInfo? {
-        val parts = chunk.optJSONArray("candidates")
-            ?.takeIf { it.length() > 0 }
-            ?.getJSONObject(0)
-            ?.optJSONObject("content")
-            ?.optJSONArray("parts")
-            ?: return null
+        val parts = firstCandidate(chunk)?.optJSONObject("content")?.optJSONArray("parts") ?: return null
         for (i in 0 until parts.length()) {
             val call = parts.getJSONObject(i).optJSONObject("functionCall") ?: continue
             return FunctionCallInfo(call.optString("name"), call.optJSONObject("args") ?: JSONObject())
         }
         return null
+    }
+
+    /** `groundingMetadata` — verificado contra ai.google.dev/gemini-api/docs/generate-content/google-search. */
+    private fun extractGrounding(chunk: JSONObject): GroundingInfo? {
+        val metadata = firstCandidate(chunk)?.optJSONObject("groundingMetadata") ?: return null
+        val queriesJson = metadata.optJSONArray("webSearchQueries") ?: JSONArray()
+        val queries = (0 until queriesJson.length()).map { queriesJson.getString(it) }
+        val sourceCount = metadata.optJSONArray("groundingChunks")?.length() ?: 0
+        if (queries.isEmpty() && sourceCount == 0) return null
+        return GroundingInfo(queries, sourceCount)
     }
 
     private fun buildRequestBody(
@@ -222,7 +241,12 @@ class CloudGeminiBackend @Inject constructor(
         if (config.jsonMode) generationConfig.put("responseMimeType", "application/json")
         if (generationConfig.length() > 0) body.put("generationConfig", generationConfig)
 
-        if (config.functionCalling) {
+        // "google_search" verificado con un ejemplo real (curl) de ai.google.dev — no probado
+        // combinado con functionDeclarations en la misma llamada, por eso son mutuamente
+        // excluyentes acá (gana webSearch; ver el comentario en GenerationConfig.webSearch).
+        if (config.webSearch) {
+            body.put("tools", JSONArray().put(JSONObject().put("google_search", JSONObject())))
+        } else if (config.functionCalling) {
             body.put(
                 "tools",
                 JSONArray().put(

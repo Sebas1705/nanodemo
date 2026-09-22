@@ -76,6 +76,7 @@ class FirebaseAiBackend @Inject constructor(
         images = true,
         structuredOutput = true,
         functionCalling = true,
+        webSearch = true,
     )
 
     private var lastResponseTokens: Int? = null
@@ -109,13 +110,14 @@ class FirebaseAiBackend @Inject constructor(
         val contents = history.map { it.toFirebaseContent() }
 
         Log.d(TAG, "generateContentStream: $CLOUD_MODEL, ${contents.size} turnos")
-        val functionCall = streamRequest(model, contents) { text -> emit(text) }
+        var result = streamRequest(model, contents) { text -> emit(text) }
+        val functionCall = result.functionCall
         if (functionCall != null) {
             Log.d(TAG, "generateContentStream: pidió la función ${functionCall.name}")
             emit("🔧 usando \"${functionCall.name}\"…\n\n")
             // Sin parámetros en esta declaración (ver currentTimeDeclaration): siempre la zona del
             // dispositivo, no la que elija el modelo.
-            val result = DemoTools.executeCurrentTime(java.time.ZoneId.systemDefault().id)
+            val toolResult = DemoTools.executeCurrentTime(java.time.ZoneId.systemDefault().id)
             val extraTurns = listOf(
                 Content(role = "model", parts = listOf(functionCall)),
                 // "user" (no "function"): así lo documenta ai.google.dev/api/generate-content para
@@ -126,12 +128,17 @@ class FirebaseAiBackend @Inject constructor(
                     parts = listOf(
                         FunctionResponsePart(
                             name = functionCall.name,
-                            response = JsonObject(result.mapValues { (_, v) -> JsonPrimitive(v) }),
+                            response = JsonObject(toolResult.mapValues { (_, v) -> JsonPrimitive(v) }),
                         )
                     ),
                 ),
             )
-            streamRequest(model, contents + extraTurns) { text -> emit(text) }
+            result = streamRequest(model, contents + extraTurns) { text -> emit(text) }
+        }
+        result.grounding?.let { grounding ->
+            Log.d(TAG, "generateContentStream: grounding con ${grounding.sourceCount} fuente(s)")
+            val queries = grounding.queries.joinToString { "\"$it\"" }
+            emit("\n\n🔎 Grounded con Google Search ($queries) — ${grounding.sourceCount} fuente(s)")
         }
     }.flowOn(Dispatchers.IO)
 
@@ -145,11 +152,18 @@ class FirebaseAiBackend @Inject constructor(
             // 17.17.0 (GenerationConfig.Builder). `.apply` porque solo se llama condicionalmente.
             .apply { if (config.jsonMode) setResponseMimeType("application/json") }
             .build()
+        // webSearch y functionCalling son mutuamente excluyentes acá — mismo motivo que en el
+        // Tier C (no probado combinar Tool.googleSearch() con Tool.functionDeclarations() a la vez).
+        val tools = when {
+            config.webSearch -> listOf(Tool.googleSearch())
+            config.functionCalling -> listOf(Tool.functionDeclarations(listOf(currentTimeDeclaration())))
+            else -> null
+        }
         return Firebase.ai(backend = GenerativeBackend.googleAI()).generativeModel(
             modelName = CLOUD_MODEL,
             generationConfig = generationConfig,
             systemInstruction = config.systemPrompt?.let { prompt -> content { text(prompt) } },
-            tools = if (config.functionCalling) listOf(Tool.functionDeclarations(listOf(currentTimeDeclaration()))) else null,
+            tools = tools,
         )
     }
 
@@ -174,25 +188,37 @@ class FirebaseAiBackend @Inject constructor(
         }
     }
 
+    private data class GroundingInfo(val queries: List<String>, val sourceCount: Int)
+    private data class StreamResult(val functionCall: FunctionCallPart?, val grounding: GroundingInfo?)
+
     /**
      * Manda [contents] al modelo y consume el stream, emitiendo cada chunk de texto a [onText]. Si
-     * el modelo pide la función en vez de responder texto, la devuelve sin llamar a [onText] para
-     * ese chunk — el llamador decide qué hacer. Solo soporta UN pedido de función por turno.
+     * el modelo pide la función en vez de responder texto, o si hubo grounding con Google Search,
+     * lo captura en el resultado (sin llamar a [onText] para el chunk del functionCall) — el
+     * llamador decide qué hacer. Solo soporta UN pedido de función por turno.
      */
     private suspend fun streamRequest(
         model: com.google.firebase.ai.GenerativeModel,
         contents: List<Content>,
         onText: suspend (String) -> Unit,
-    ): FunctionCallPart? {
+    ): StreamResult {
         var functionCall: FunctionCallPart? = null
+        var grounding: GroundingInfo? = null
         model.generateContentStream(contents).collect { response ->
             response.usageMetadata?.candidatesTokenCount?.let { lastResponseTokens = it }
             response.functionCalls.firstOrNull()?.let { functionCall = it }
+            // `Candidate.groundingMetadata` verificado contra el .aar real de firebase-ai 17.17.0.
+            response.candidates.firstOrNull()?.groundingMetadata?.let { metadata ->
+                val sourceCount = metadata.groundingChunks.size
+                if (metadata.webSearchQueries.isNotEmpty() || sourceCount > 0) {
+                    grounding = GroundingInfo(metadata.webSearchQueries, sourceCount)
+                }
+            }
             val text = response.text
             Log.v(TAG, "chunk: \"$text\"")
             if (!text.isNullOrEmpty()) onText(text)
         }
-        return functionCall
+        return StreamResult(functionCall, grounding)
     }
 
     private fun readImage(uri: android.net.Uri): Pair<ByteArray, String>? = try {
