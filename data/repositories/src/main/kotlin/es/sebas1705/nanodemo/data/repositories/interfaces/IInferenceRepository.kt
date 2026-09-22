@@ -24,7 +24,9 @@ interface IInferenceRepository {
     val activeTier: StateFlow<InferenceTier>
     val state: StateFlow<DemoState>
     val conversation: StateFlow<List<ChatMessage>>
-    val config: StateFlow<GenerationConfig>
+
+    /** Cada tier guarda su propia configuración — cambiar de tier no pisa la de los demás. */
+    val configs: StateFlow<Map<InferenceTier, GenerationConfig>>
     val pendingImage: StateFlow<Uri?>
 
     /** URL adjunta al próximo turno de Chat ("pegar un link y preguntar") — se limpia tras usarla. */
@@ -39,7 +41,7 @@ interface IInferenceRepository {
     fun capabilitiesOf(tier: InferenceTier): TierCapabilities
     fun selectTier(tier: InferenceTier)
     fun downloadModel()
-    fun updateConfig(newConfig: GenerationConfig)
+    fun updateConfig(tier: InferenceTier, newConfig: GenerationConfig)
     fun setPendingImage(uri: Uri?)
     fun setAttachedUrl(url: String?)
     fun resetConversation()

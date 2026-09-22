@@ -2,6 +2,7 @@ package es.sebas1705.nanodemo.feature.chat
 
 import android.net.Uri
 import androidx.lifecycle.ViewModel
+import androidx.lifecycle.viewModelScope
 import es.sebas1705.nanodemo.domain.models.ChatMessage
 import es.sebas1705.nanodemo.domain.models.DemoState
 import es.sebas1705.nanodemo.domain.models.GenerationConfig
@@ -16,7 +17,7 @@ import es.sebas1705.nanodemo.domain.usescases.inference.LoadConversationUseCase
 import es.sebas1705.nanodemo.domain.usescases.inference.ObserveActiveTierUseCase
 import es.sebas1705.nanodemo.domain.usescases.inference.ObserveAttachedUrlUseCase
 import es.sebas1705.nanodemo.domain.usescases.inference.ObserveAvailabilityUseCase
-import es.sebas1705.nanodemo.domain.usescases.inference.ObserveConfigUseCase
+import es.sebas1705.nanodemo.domain.usescases.inference.ObserveConfigsUseCase
 import es.sebas1705.nanodemo.domain.usescases.inference.ObserveConversationUseCase
 import es.sebas1705.nanodemo.domain.usescases.inference.ObservePendingImageUseCase
 import es.sebas1705.nanodemo.domain.usescases.inference.ObserveSelectedMediaPipeModelUseCase
@@ -27,7 +28,10 @@ import es.sebas1705.nanodemo.domain.usescases.inference.SelectTierUseCase
 import es.sebas1705.nanodemo.domain.usescases.inference.SetAttachedUrlUseCase
 import es.sebas1705.nanodemo.domain.usescases.inference.SetPendingImageUseCase
 import dagger.hilt.android.lifecycle.HiltViewModel
+import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.stateIn
 import javax.inject.Inject
 
 /**
@@ -40,7 +44,7 @@ import javax.inject.Inject
 @HiltViewModel
 class ChatViewModel @Inject constructor(
     observeConversation: ObserveConversationUseCase,
-    observeConfig: ObserveConfigUseCase,
+    observeConfigs: ObserveConfigsUseCase,
     observeState: ObserveStateUseCase,
     observeActiveTier: ObserveActiveTierUseCase,
     observeAvailability: ObserveAvailabilityUseCase,
@@ -60,9 +64,14 @@ class ChatViewModel @Inject constructor(
 ) : ViewModel() {
 
     val conversation: StateFlow<List<ChatMessage>> = observeConversation()
-    val config: StateFlow<GenerationConfig> = observeConfig()
     val state: StateFlow<DemoState> = observeState()
     val activeTier: StateFlow<InferenceTier> = observeActiveTier()
+
+    /** Cada tier tiene su propio `GenerationConfig` — acá se resuelve el del tier activo de Chat. */
+    private val configs: StateFlow<Map<InferenceTier, GenerationConfig>> = observeConfigs()
+    val config: StateFlow<GenerationConfig> = combine(configs, activeTier) { byTier, tier ->
+        byTier[tier] ?: GenerationConfig()
+    }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), configs.value[activeTier.value] ?: GenerationConfig())
     val availability: StateFlow<Map<InferenceTier, TierAvailability>> = observeAvailability()
     val pendingImage: StateFlow<Uri?> = observePendingImage()
     val attachedUrl: StateFlow<String?> = observeAttachedUrl()

@@ -106,8 +106,8 @@ class InferenceRepository @Inject constructor(
     private val _conversation = MutableStateFlow<List<ChatMessage>>(emptyList())
     override val conversation: StateFlow<List<ChatMessage>> = _conversation.asStateFlow()
 
-    private val _config = MutableStateFlow(GenerationConfig())
-    override val config: StateFlow<GenerationConfig> = _config.asStateFlow()
+    private val _configs = MutableStateFlow(InferenceTier.entries.associateWith { GenerationConfig() })
+    override val configs: StateFlow<Map<InferenceTier, GenerationConfig>> = _configs.asStateFlow()
 
     private val _pendingImage = MutableStateFlow<Uri?>(null)
     override val pendingImage: StateFlow<Uri?> = _pendingImage.asStateFlow()
@@ -262,8 +262,8 @@ class InferenceRepository @Inject constructor(
         }
     }
 
-    override fun updateConfig(newConfig: GenerationConfig) {
-        _config.update { newConfig }
+    override fun updateConfig(tier: InferenceTier, newConfig: GenerationConfig) {
+        _configs.update { it + (tier to newConfig) }
     }
 
     override fun setPendingImage(uri: Uri?) {
@@ -453,7 +453,8 @@ class InferenceRepository @Inject constructor(
         val memoryBeforeBytes = usedMemoryBytes()
         onStateChange(DemoState.Generating(""))
         return try {
-            backends.getValue(tier).generateContentStream(history, _config.value).collect { chunkText ->
+            val config = _configs.value[tier] ?: GenerationConfig()
+            backends.getValue(tier).generateContentStream(history, config).collect { chunkText ->
                 if (firstChunkLatencyMs == null) {
                     firstChunkLatencyMs = System.currentTimeMillis() - startedAtMs
                 }

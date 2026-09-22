@@ -21,7 +21,7 @@ class DownloadModelUseCase @Inject constructor(private val repository: IInferenc
 }
 
 class UpdateConfigUseCase @Inject constructor(private val repository: IInferenceRepository) {
-    operator fun invoke(config: GenerationConfig) = repository.updateConfig(config)
+    operator fun invoke(tier: InferenceTier, config: GenerationConfig) = repository.updateConfig(tier, config)
 }
 
 class SetPendingImageUseCase @Inject constructor(private val repository: IInferenceRepository) {

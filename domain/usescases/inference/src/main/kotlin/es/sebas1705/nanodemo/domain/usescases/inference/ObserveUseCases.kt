@@ -35,8 +35,8 @@ class ObserveConversationUseCase @Inject constructor(private val repository: IIn
     operator fun invoke(): StateFlow<List<ChatMessage>> = repository.conversation
 }
 
-class ObserveConfigUseCase @Inject constructor(private val repository: IInferenceRepository) {
-    operator fun invoke(): StateFlow<GenerationConfig> = repository.config
+class ObserveConfigsUseCase @Inject constructor(private val repository: IInferenceRepository) {
+    operator fun invoke(): StateFlow<Map<InferenceTier, GenerationConfig>> = repository.configs
 }
 
 class ObservePendingImageUseCase @Inject constructor(private val repository: IInferenceRepository) {
