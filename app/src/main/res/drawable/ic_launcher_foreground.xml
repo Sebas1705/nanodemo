@@ -1,34 +1,55 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!-- Cinco barras de señal, una por tier (A..E), con los colores de DemoColors. Todo dentro de la
-     zona segura del icono adaptable (círculo de 66dp centrado en 108dp). -->
+<!--
+    Firma del icono: 5 nodos en escalera (uno por tier, A→E, colores de DemoColors) conectados por
+    un camino en cascada — no son barras de ecualizador (v1, genérico). El trazo en escalera
+    representa el mecanismo real de la app: si un tier no está disponible, cae automáticamente al
+    siguiente (ver README, "cayendo automáticamente al siguiente..."), que es lo único que distingue
+    a esta app de cualquier otro cliente de IA. Cada nodo es un trazo de largo cero con
+    strokeLineCap="round" (mismo truco que las barras de v1: un punto con esa terminación se
+    renderiza como un círculo relleno de diámetro = strokeWidth).
+
+    Todo dentro de la zona segura del icono adaptable (círculo de 66dp centrado en 108,108,
+    radio 33 desde 54,54): el nodo más lejano del centro (A y E) queda a ~27dp, con margen.
+-->
 <vector xmlns:android="http://schemas.android.com/apk/res/android"
     android:width="108dp"
     android:height="108dp"
     android:viewportWidth="108"
     android:viewportHeight="108">
+    <!-- Camino, dibujado antes que los nodos para que estos lo tapen en cada empalme. -->
+    <path
+        android:strokeColor="#2A322D"
+        android:strokeWidth="2.2"
+        android:strokeLineJoin="round"
+        android:pathData="M32,38 L43,38 L43,46 L54,46 L54,54 L65,54 L65,62 L76,62 L76,70" />
+    <!-- Nodo A — Tier A (ML Kit Nano). -->
     <path
         android:strokeColor="#5CF29B"
-        android:strokeWidth="8"
+        android:strokeWidth="11"
         android:strokeLineCap="round"
-        android:pathData="M28,47L28,61" />
+        android:pathData="M32,38 L32,38" />
+    <!-- Nodo B — Tier B (MediaPipe). -->
     <path
         android:strokeColor="#F2B35C"
-        android:strokeWidth="8"
+        android:strokeWidth="11"
         android:strokeLineCap="round"
-        android:pathData="M41,41L41,67" />
+        android:pathData="M43,46 L43,46" />
+    <!-- Nodo C — Tier C (Cloud Gemini). -->
     <path
         android:strokeColor="#5CC7F2"
-        android:strokeWidth="8"
+        android:strokeWidth="11"
         android:strokeLineCap="round"
-        android:pathData="M54,35L54,73" />
+        android:pathData="M54,54 L54,54" />
+    <!-- Nodo D — Tier D (LiteRT-LM). -->
     <path
         android:strokeColor="#B08CF2"
-        android:strokeWidth="8"
+        android:strokeWidth="11"
         android:strokeLineCap="round"
-        android:pathData="M67,41L67,67" />
+        android:pathData="M65,62 L65,62" />
+    <!-- Nodo E — Tier E (Firebase AI Logic). -->
     <path
         android:strokeColor="#F25CB6"
-        android:strokeWidth="8"
+        android:strokeWidth="11"
         android:strokeLineCap="round"
-        android:pathData="M80,47L80,61" />
+        android:pathData="M76,70 L76,70" />
 </vector>

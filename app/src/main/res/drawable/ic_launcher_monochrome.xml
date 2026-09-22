@@ -1,5 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!-- Capa monocroma para los iconos temáticos de Android 13+: el sistema la tiñe con el color del tema. -->
+<!-- Capa monocroma para los iconos temáticos de Android 13+: el sistema la tiñe con el color del
+     tema. Misma geometría en escalera que ic_launcher_foreground.xml, en un solo color (el sistema
+     ignora el color real y aplica el suyo). -->
 <vector xmlns:android="http://schemas.android.com/apk/res/android"
     android:width="108dp"
     android:height="108dp"
@@ -7,7 +9,12 @@
     android:viewportHeight="108">
     <path
         android:strokeColor="#000000"
-        android:strokeWidth="8"
+        android:strokeWidth="2.2"
+        android:strokeLineJoin="round"
+        android:pathData="M32,38 L43,38 L43,46 L54,46 L54,54 L65,54 L65,62 L76,62 L76,70" />
+    <path
+        android:strokeColor="#000000"
+        android:strokeWidth="11"
         android:strokeLineCap="round"
-        android:pathData="M28,47L28,61M41,41L41,67M54,35L54,73M67,41L67,67M80,47L80,61" />
+        android:pathData="M32,38 L32,38M43,46 L43,46M54,54 L54,54M65,62 L65,62M76,70 L76,70" />
 </vector>
