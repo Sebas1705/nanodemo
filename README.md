@@ -389,18 +389,19 @@ memoria como pista.
 
 ## Distribución
 
-Dos vías, independientes, que comparten el mismo build firmado (acción compuesta
-`.github/actions/build-release-apk`, secretos desde Doppler — en GitHub solo hace falta
-`DOPPLER_TOKEN`):
+Una sola vía (build firmado por la acción compuesta `.github/actions/build-release-apk`,
+secretos desde Doppler — en GitHub solo hace falta `DOPPLER_TOKEN`):
 
-| Vía | Workflow | Cuándo corre | Resultado |
-|---|---|---|---|
-| Firebase App Distribution | `.github/workflows/distribute.yml` | push a `master` / manual | Release en Firebase + aviso al grupo `testers` |
-| GitHub Release | `.github/workflows/release-apk.yml` | tag `vX.Y.Z` / manual con versión | Release con `AIMobiDemo-vX.Y.Z.apk`, su `.sha256` y notas generadas — y ese mismo APK también a Firebase App Distribution, con `versionName` sin sufijo `-dev` |
+| Workflow | Cuándo corre | Resultado |
+|---|---|---|
+| `.github/workflows/release-apk.yml` | tag `vX.Y.Z` / manual con versión | GitHub Release con `AIMobiDemo-vX.Y.Z.apk`, su `.sha256` y notas generadas — y ese mismo APK también a Firebase App Distribution, con `versionName` sin sufijo |
 
 ```bash
-git tag v1.2.0 && git push origin v1.2.0   # publica una GitHub Release del APK
+git tag v1.2.0 && git push origin v1.2.0   # publica la GitHub Release y la sube a Firebase App Distribution
 ```
+
+Solo lo que se marca con un tag llega a los testers — no hay build continuo sin versión en
+cada push a `master` (ver `docs/DISTRIBUTION.md`).
 
 `versionCode` sale del número de run de GitHub (`VERSION_CODE`), así cada build puede
 instalarse encima del anterior; en local sigue en 1. La preparación de una sola vez
