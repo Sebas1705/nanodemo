@@ -12,6 +12,10 @@ val ciVersionCode: Int? = System.getenv("VERSION_CODE")?.toIntOrNull()
 val ciVersionName: String? = System.getenv("VERSION_NAME")?.takeIf { it.isNotBlank() }
 val ciKeystorePath: String? = System.getenv("SIGNING_KEYSTORE_PATH")
 
+// Config de Firebase (Doppler o local.properties — ver `secret` en el build.gradle.kts raíz).
+@Suppress("UNCHECKED_CAST")
+val secret = rootProject.extra["secret"] as (String, String) -> String
+
 android {
     namespace = "es.sebas1705.nanodemo"
 
@@ -19,6 +23,22 @@ android {
         applicationId = "es.sebas1705.nanodemo"
         versionCode = ciVersionCode ?: 1
         versionName = ciVersionName ?: if (ciVersionCode != null) "1.0.$ciVersionCode" else "1.0"
+
+        // Lo mismo que generaría el plugin com.google.gms.google-services a partir del JSON, pero desde
+        // los secretos del build. Firebase Analytics lo exige: lee `google_app_id` de las resources y
+        // NO de FirebaseOptions (verificado en el bytecode de play-services-measurement), así que la
+        // inicialización manual de data:firebasecore por sí sola no le basta. Además, con estas tres
+        // resources FirebaseInitProvider crea la FirebaseApp antes de Application.onCreate(), y
+        // Crashlytics captura también los crashes del arranque. Si falta la config quedan vacías y
+        // Firebase simplemente no se inicializa.
+        resValue("string", "google_app_id", secret("FIREBASE_APP_ID", ""))
+        resValue("string", "google_api_key", secret("FIREBASE_API_KEY", ""))
+        resValue("string", "project_id", secret("FIREBASE_PROJECT_ID", ""))
+    }
+
+    // Desde AGP 8 las resources generadas con resValue vienen desactivadas por defecto.
+    buildFeatures {
+        resValues = true
     }
 
     signingConfigs {
@@ -45,9 +65,10 @@ dependencies {
     implementation(projects.core.ui)
     implementation(projects.core.common)
     implementation(projects.feature.main)
-    // Proveedor de ErrorReporter (Crashlytics): :app lo enlaza al grafo de Hilt. Para cambiar de
-    // proveedor basta con sustituir este módulo por otro que enlace ErrorReporter.
+    // Proveedores de ErrorReporter (Crashlytics) y AnalyticsTracker (Firebase Analytics): :app los
+    // enlaza al grafo de Hilt. Para cambiar de proveedor basta con sustituir el módulo.
     implementation(projects.data.crashlytics)
+    implementation(projects.data.analytics)
 
     implementation(libs.androidx.activity.compose)
 }

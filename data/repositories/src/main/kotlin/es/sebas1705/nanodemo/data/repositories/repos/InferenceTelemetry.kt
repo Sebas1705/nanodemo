@@ -1,0 +1,52 @@
+package es.sebas1705.nanodemo.data.repositories.repos
+
+/**
+ * Nombres de eventos, operaciones y parámetros **propios de nanodemo**. Los genéricos
+ * (`feature_used`, `operation_result`, `duration_ms`, `error_type`...) están en `core:common`
+ * (`TelemetryEvents` / `TelemetryParams`) y son los mismos en todas las apps del template.
+ * Todos cumplen los límites de Firebase (snake_case, ≤ 40 caracteres); ver `docs/TELEMETRY.md`.
+ */
+internal object InferenceEvents {
+    const val TIER_SELECTED = "tier_selected"
+    const val TIER_AVAILABILITY = "tier_availability"
+}
+
+/** Valores del parámetro `operation` de `operation_result`. */
+internal object InferenceOperations {
+    const val CHECK_AVAILABILITY = "check_availability"
+    const val DOWNLOAD = "download"
+    const val GENERATE = "generate"
+    const val EXPORT_CSV = "export_csv"
+}
+
+/** Valores del parámetro `feature` de `feature_used`. */
+internal object InferenceFeatures {
+    const val CONVERSATION_RESET = "conversation_reset"
+    const val CONVERSATION_OPEN = "conversation_open"
+    const val MEDIAPIPE_MODEL_SELECT = "mediapipe_model_select"
+    const val COMPARE_RUN = "compare_run"
+    const val BENCHMARK_RUN = "benchmark_run"
+}
+
+internal object InferenceParams {
+    const val TIER = "tier"
+    const val MODEL = "model"
+    const val REASON = "reason"
+    const val AVAILABILITY = "availability"
+    const val MODE = "mode"
+    const val TURNS = "turns"
+    const val HAS_IMAGE = "has_image"
+    const val FIRST_CHUNK_MS = "first_chunk_ms"
+    const val PROMPT_CHARS = "prompt_chars"
+    const val RESPONSE_CHARS = "response_chars"
+    const val RESPONSE_TOKENS = "response_tokens"
+    const val TOKENS_EXACT = "tokens_exact"
+    const val MEMORY_DELTA_KB = "memory_delta_kb"
+}
+
+/** Valores del parámetro `mode` de la generación. */
+internal object GenerationMode {
+    const val CHAT = "chat"
+    const val COMPARE = "compare"
+    const val BENCHMARK = "benchmark"
+}

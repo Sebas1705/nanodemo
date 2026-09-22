@@ -4,7 +4,8 @@ import android.content.Context
 import android.net.Uri
 import android.util.Log
 import androidx.core.content.FileProvider
-import es.sebas1705.nanodemo.core.common.ErrorReporter
+import es.sebas1705.nanodemo.core.common.Telemetry
+import es.sebas1705.nanodemo.core.common.TelemetryResult
 import es.sebas1705.nanodemo.data.cloudgemini.CloudGeminiBackend
 import es.sebas1705.nanodemo.data.firebaseai.FirebaseAiBackend
 import es.sebas1705.nanodemo.data.history.IHistoryRepository
@@ -41,6 +42,8 @@ import javax.inject.Singleton
 import kotlinx.coroutines.Dispatchers
 
 private const val TAG = "NanoDemo"
+private const val DOWNLOAD_MILESTONE_STEP = 25
+private const val BYTES_PER_KB = 1024L
 
 /**
  * Implementación única — antes era `InferenceOrchestratorViewModel`, movida
@@ -57,7 +60,7 @@ class InferenceRepository @Inject constructor(
     liteRtLmBackend: LiteRtLmBackend,
     firebaseAiBackend: FirebaseAiBackend,
     private val historyRepository: IHistoryRepository,
-    private val errorReporter: ErrorReporter,
+    private val telemetry: Telemetry,
 ) : IInferenceRepository {
 
     private val scope = CoroutineScope(SupervisorJob() + Dispatchers.Main.immediate)
@@ -111,10 +114,14 @@ class InferenceRepository @Inject constructor(
 
     init {
         // Contexto técnico que acompaña a cualquier crash o error no fatal (sin contenido del usuario).
-        scope.launch { _activeTier.collect { errorReporter.setKey("active_tier", it.name) } }
-        scope.launch { mediaPipeBackend.selectedModel.collect { errorReporter.setKey("mediapipe_model", it.name) } }
+        scope.launch { _activeTier.collect { telemetry.setContext("active_tier", it.name) } }
+        scope.launch { mediaPipeBackend.selectedModel.collect { telemetry.setContext("mediapipe_model", it.name) } }
         autoSelectTier()
     }
+
+    /** Modelo concreto de un tier cuando hay catálogo (solo MediaPipe hoy); `null` en el resto. */
+    private fun modelOf(tier: InferenceTier): String? =
+        if (tier == InferenceTier.MEDIAPIPE_LOCAL) mediaPipeBackend.selectedModel.value.name else null
 
     override fun capabilitiesOf(tier: InferenceTier): TierCapabilities = backends.getValue(tier).capabilities
 
@@ -125,12 +132,22 @@ class InferenceRepository @Inject constructor(
                 val result = checkTier(tier)
                 if (result != TierAvailability.UNAVAILABLE) {
                     Log.i(TAG, "autoSelectTier: usando $tier (resultado=$result)")
+                    telemetry.event(
+                        InferenceEvents.TIER_SELECTED,
+                        InferenceParams.TIER to tier.name,
+                        InferenceParams.REASON to "auto",
+                    )
                     _activeTier.update { tier }
                     applyAvailabilityToState(result)
                     return@launch
                 }
             }
             Log.w(TAG, "autoSelectTier: ningún tier disponible")
+            telemetry.event(
+                InferenceEvents.TIER_SELECTED,
+                InferenceParams.TIER to InferenceTier.CLOUD_GEMINI.name,
+                InferenceParams.REASON to "none_available",
+            )
             _activeTier.update { InferenceTier.CLOUD_GEMINI }
             _state.update { DemoState.Unavailable }
         }
@@ -138,6 +155,11 @@ class InferenceRepository @Inject constructor(
 
     override fun selectTier(tier: InferenceTier) {
         Log.d(TAG, "selectTier: override manual a $tier")
+        telemetry.event(
+            InferenceEvents.TIER_SELECTED,
+            InferenceParams.TIER to tier.name,
+            InferenceParams.REASON to "manual",
+        )
         residentEngineTiers.filter { it != tier }.forEach { backends.getValue(it).close() }
         _activeTier.update { tier }
         scope.launch {
@@ -151,10 +173,16 @@ class InferenceRepository @Inject constructor(
             backends.getValue(tier).checkAvailability()
         } catch (e: Exception) {
             Log.e(TAG, "checkTier($tier): excepción comprobando disponibilidad", e)
-            report(e, "checkAvailability($tier)")
+            telemetry.failure(InferenceOperations.CHECK_AVAILABILITY, e, null, InferenceParams.TIER to tier.name)
             TierAvailability.UNAVAILABLE
         }
         Log.d(TAG, "checkTier($tier): $result")
+        telemetry.event(
+            InferenceEvents.TIER_AVAILABILITY,
+            InferenceParams.TIER to tier.name,
+            InferenceParams.MODEL to modelOf(tier),
+            InferenceParams.AVAILABILITY to result.name,
+        )
         _availability.update { it + (tier to result) }
         return result
     }
@@ -172,19 +200,43 @@ class InferenceRepository @Inject constructor(
     override fun downloadModel() {
         val tier = _activeTier.value
         Log.d(TAG, "downloadModel: iniciando para $tier")
-        errorReporter.log("download($tier): inicio")
+        val model = modelOf(tier)
+        telemetry.snapshotMemory()
+        telemetry.breadcrumb("descarga($tier${model?.let { "/$it" } ?: ""}): inicio")
         scope.launch {
+            val startedAtMs = System.currentTimeMillis()
+            var lastMilestone = -1
             _state.update { DemoState.Downloading() }
             try {
                 backends.getValue(tier).download().collect { percent ->
                     _state.update { DemoState.Downloading(percent) }
+                    // Migas de pan cada 25 %: una por cada punto llenaría el registro de Crashlytics.
+                    val milestone = percent / DOWNLOAD_MILESTONE_STEP
+                    if (milestone > lastMilestone) {
+                        lastMilestone = milestone
+                        telemetry.breadcrumb("descarga($tier): ${milestone * DOWNLOAD_MILESTONE_STEP}%")
+                    }
                 }
             } catch (e: Exception) {
                 Log.e(TAG, "downloadModel($tier): falló", e)
-                report(e, "download($tier)")
+                val duration = System.currentTimeMillis() - startedAtMs
+                if (e is CancellationException) {
+                    telemetry.operation(InferenceOperations.DOWNLOAD, TelemetryResult.CANCELLED, duration, InferenceParams.TIER to tier.name)
+                } else {
+                    telemetry.failure(
+                        InferenceOperations.DOWNLOAD, e, duration,
+                        InferenceParams.TIER to tier.name,
+                        InferenceParams.MODEL to model,
+                    )
+                }
                 _state.update { DemoState.Error(e.message ?: "Error preparando el modelo") }
                 return@launch
             }
+            telemetry.operation(
+                InferenceOperations.DOWNLOAD, TelemetryResult.SUCCESS, System.currentTimeMillis() - startedAtMs,
+                InferenceParams.TIER to tier.name,
+                InferenceParams.MODEL to model,
+            )
             Log.d(TAG, "downloadModel: terminado para $tier, recomprobando")
             applyAvailabilityToState(checkTier(tier))
         }
@@ -200,6 +252,7 @@ class InferenceRepository @Inject constructor(
 
     override fun resetConversation() {
         Log.d(TAG, "resetConversation: tier=${_activeTier.value}")
+        telemetry.feature(InferenceFeatures.CONVERSATION_RESET, InferenceParams.TIER to _activeTier.value.name)
         backends.getValue(_activeTier.value).resetConversation()
         currentConversationId = null
         _conversation.update { emptyList() }
@@ -209,6 +262,7 @@ class InferenceRepository @Inject constructor(
 
     override fun selectMediaPipeModel(option: MediaPipeModelOption) {
         Log.d(TAG, "selectMediaPipeModel: $option")
+        telemetry.feature(InferenceFeatures.MEDIAPIPE_MODEL_SELECT, InferenceParams.MODEL to option.name)
         val wasActive = _activeTier.value == InferenceTier.MEDIAPIPE_LOCAL
         mediaPipeBackend.selectModel(option)
         if (wasActive) {
@@ -227,6 +281,11 @@ class InferenceRepository @Inject constructor(
         scope.launch {
             val conv = historyRepository.getConversation(conversationId) ?: return@launch
             val messages = historyRepository.getMessages(conversationId)
+            telemetry.feature(
+                InferenceFeatures.CONVERSATION_OPEN,
+                InferenceParams.TIER to conv.tier.name,
+                InferenceParams.TURNS to messages.size,
+            )
             backends.getValue(_activeTier.value).resetConversation()
             currentConversationId = conversationId
             _activeTier.update { conv.tier }
@@ -242,7 +301,7 @@ class InferenceRepository @Inject constructor(
         val userMessage = ChatMessage(Role.USER, prompt, _pendingImage.value)
         val history = _conversation.value + userMessage
         scope.launch {
-            val result = runGeneration(tier, history) { newState -> _state.update { newState } }
+            val result = runGeneration(tier, history, GenerationMode.CHAT) { newState -> _state.update { newState } }
             result.onSuccess { response ->
                 val modelMessage = ChatMessage(Role.MODEL, response)
                 _conversation.update { it + userMessage + modelMessage }
@@ -258,13 +317,14 @@ class InferenceRepository @Inject constructor(
 
     override fun generateCompare(prompt: String) {
         if (prompt.isBlank()) return
+        telemetry.feature(InferenceFeatures.COMPARE_RUN, InferenceParams.TURNS to InferenceTier.entries.size)
         InferenceTier.entries.forEach { tier ->
             scope.launch {
                 if (_availability.value[tier] != TierAvailability.AVAILABLE) {
                     _compareStates.update { it + (tier to DemoState.Unavailable) }
                     return@launch
                 }
-                runGeneration(tier, listOf(ChatMessage(Role.USER, prompt))) { newState ->
+                runGeneration(tier, listOf(ChatMessage(Role.USER, prompt)), GenerationMode.COMPARE) { newState ->
                     _compareStates.update { it + (tier to newState) }
                 }
             }
@@ -272,6 +332,7 @@ class InferenceRepository @Inject constructor(
     }
 
     override fun runBenchmark() {
+        telemetry.feature(InferenceFeatures.BENCHMARK_RUN, InferenceParams.TURNS to PROMPT_BANK.size)
         scope.launch {
             for (preset in PROMPT_BANK) {
                 Log.i(TAG, "runBenchmark: preset=${preset.name}")
@@ -282,7 +343,7 @@ class InferenceRepository @Inject constructor(
                                 _compareStates.update { it + (tier to DemoState.Unavailable) }
                                 return@async
                             }
-                            runGeneration(tier, listOf(ChatMessage(Role.USER, preset.text))) { newState ->
+                            runGeneration(tier, listOf(ChatMessage(Role.USER, preset.text)), GenerationMode.BENCHMARK) { newState ->
                                 _compareStates.update { it + (tier to newState) }
                             }
                             Unit
@@ -310,10 +371,12 @@ class InferenceRepository @Inject constructor(
         return try {
             val file = File(context.cacheDir, "nanodemo-metrics.csv")
             file.writeText(csv)
-            FileProvider.getUriForFile(context, "${context.packageName}.fileprovider", file)
+            FileProvider.getUriForFile(context, "${context.packageName}.fileprovider", file).also {
+                telemetry.operation(InferenceOperations.EXPORT_CSV, TelemetryResult.SUCCESS, null, InferenceParams.TURNS to runs.size)
+            }
         } catch (e: Exception) {
             Log.e(TAG, "exportMetricsCsv: falló", e)
-            report(e, "exportMetricsCsv")
+            telemetry.failure(InferenceOperations.EXPORT_CSV, e)
             null
         }
     }
@@ -321,10 +384,15 @@ class InferenceRepository @Inject constructor(
     private suspend fun runGeneration(
         tier: InferenceTier,
         history: List<ChatMessage>,
+        mode: String,
         onStateChange: (DemoState) -> Unit,
     ): Result<String> {
         Log.d(TAG, "runGeneration($tier): history de ${history.size} turnos")
-        errorReporter.log("generate($tier): ${history.size} turnos, imagen=${history.last().imageUri != null}")
+        val model = modelOf(tier)
+        val hasImage = history.last().imageUri != null
+        // Estado de memoria justo antes de generar: sin él, un cierre por falta de RAM no deja rastro.
+        telemetry.snapshotMemory()
+        telemetry.breadcrumb("generar($tier${model?.let { "/$it" } ?: ""}, modo=$mode): ${history.size} turnos, imagen=$hasImage")
         val startedAtMs = System.currentTimeMillis()
         var firstChunkLatencyMs: Long? = null
         var fullResponse = ""
@@ -341,19 +409,45 @@ class InferenceRepository @Inject constructor(
             Log.d(TAG, "runGeneration($tier): completado (${fullResponse.length} chars)")
             onStateChange(DemoState.Result(fullResponse))
             recordMetric(tier, history.last().text, fullResponse, startedAtMs, firstChunkLatencyMs, memoryBeforeBytes, success = true)
+            val metric = _metrics.value.last()
+            telemetry.operation(
+                InferenceOperations.GENERATE, TelemetryResult.SUCCESS, metric.totalDurationMs,
+                InferenceParams.TIER to tier.name,
+                InferenceParams.MODEL to model,
+                InferenceParams.MODE to mode,
+                InferenceParams.TURNS to history.size,
+                InferenceParams.HAS_IMAGE to hasImage,
+                InferenceParams.FIRST_CHUNK_MS to metric.firstChunkLatencyMs,
+                InferenceParams.PROMPT_CHARS to metric.promptChars,
+                InferenceParams.RESPONSE_CHARS to metric.responseChars,
+                InferenceParams.RESPONSE_TOKENS to metric.responseTokens,
+                InferenceParams.TOKENS_EXACT to metric.responseTokensExact,
+                InferenceParams.MEMORY_DELTA_KB to metric.memoryDeltaBytes / BYTES_PER_KB,
+            )
             Result.success(fullResponse)
         } catch (e: Exception) {
             Log.e(TAG, "runGeneration($tier): falló", e)
-            report(e, "generate($tier)")
+            val duration = System.currentTimeMillis() - startedAtMs
+            if (e is CancellationException) {
+                telemetry.operation(
+                    InferenceOperations.GENERATE, TelemetryResult.CANCELLED, duration,
+                    InferenceParams.TIER to tier.name,
+                    InferenceParams.MODE to mode,
+                )
+            } else {
+                telemetry.failure(
+                    InferenceOperations.GENERATE, e, duration,
+                    InferenceParams.TIER to tier.name,
+                    InferenceParams.MODEL to model,
+                    InferenceParams.MODE to mode,
+                    InferenceParams.TURNS to history.size,
+                    InferenceParams.HAS_IMAGE to hasImage,
+                )
+            }
             onStateChange(DemoState.Error(e.message ?: "Error generando contenido"))
             recordMetric(tier, history.last().text, fullResponse, startedAtMs, firstChunkLatencyMs, memoryBeforeBytes, success = false)
             Result.failure(e)
         }
-    }
-
-    /** Errores manejados que la app convierte en estado de UI: se mandan como no fatales, salvo cancelaciones. */
-    private fun report(e: Exception, context: String) {
-        if (e !is CancellationException) errorReporter.recordNonFatal(e, context)
     }
 
     private fun recordMetric(

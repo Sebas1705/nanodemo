@@ -44,6 +44,7 @@ include(":data:litertlm")
 include(":data:firebaseai")
 include(":data:firebasecore")
 include(":data:crashlytics")
+include(":data:analytics")
 include(":data:repositories")
 include(":data:history")
 

@@ -1,5 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
-<manifest xmlns:android="http://schemas.android.com/apk/res/android">
+<manifest xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools">
 
     <!-- Necesario: la primera vez, Android Ai Core descarga el modelo Gemini Nano
          a través de Google Play Services. Una vez descargado, la inferencia
@@ -10,11 +11,20 @@
          antes de intentar la llamada y fallar rápido con un mensaje claro. -->
     <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
 
+    <!-- Firebase Analytics añade este permiso (ID de publicidad) por defecto. Esta app no hace
+         publicidad, así que se quita: no se recoge ni se declara. -->
+    <uses-permission android:name="com.google.android.gms.permission.AD_ID" tools:node="remove" />
+
     <application
         android:name=".NanoDemoApplication"
         android:allowBackup="true"
         android:label="@string/app_name"
         android:theme="@android:style/Theme.Material.Light.NoActionBar">
+
+        <!-- Analytics sin identificadores de dispositivo: ni ID de publicidad ni SSAID. Los eventos
+             se asocian solo al id de instalación anónimo (ver docs/TELEMETRY.md). -->
+        <meta-data android:name="google_analytics_adid_collection_enabled" android:value="false" />
+        <meta-data android:name="google_analytics_ssaid_collection_enabled" android:value="false" />
 
         <activity
             android:name=".MainActivity"

@@ -58,9 +58,23 @@ class CrashlyticsErrorReporter @Inject constructor(
         crashlytics?.setCustomKey(key, value)
     }
 
-    override fun recordNonFatal(throwable: Throwable, context: String?) {
+    override fun setKeys(keys: Map<String, String>) {
         val reporter = crashlytics ?: return
-        if (context != null) reporter.log("error en $context")
+        keys.forEach { (key, value) -> reporter.setCustomKey(key, value) }
+    }
+
+    override fun setUserId(id: String) {
+        crashlytics?.setUserId(id)
+    }
+
+    override fun recordNonFatal(throwable: Throwable, context: String?, attributes: Map<String, String>) {
+        val reporter = crashlytics ?: return
+        // Los atributos van al registro (no como claves): una clave persistiría en reportes posteriores
+        // que nada tienen que ver con este error. `last_error` sí es una clave, para filtrar en la consola.
+        if (context != null) {
+            reporter.setCustomKey("last_error", context)
+            reporter.log("error en $context ${attributes.entries.joinToString(" ") { "${it.key}=${it.value}" }}".trim())
+        }
         reporter.recordException(throwable)
     }
 }

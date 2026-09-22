@@ -12,9 +12,11 @@ import androidx.compose.material3.NavigationRailItem
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
+import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.viewmodel.navigation3.rememberViewModelStoreNavEntryDecorator
 import androidx.navigation3.runtime.entryProvider
 import androidx.navigation3.runtime.rememberNavBackStack
@@ -39,11 +41,17 @@ import es.sebas1705.nanodemo.feature.stats.StatsScreen
  * reescrito sobre Navigation 3 en vez de Navigation Compose 2.x.
  */
 @Composable
-fun AppNav() {
+fun AppNav(mainViewModel: MainViewModel = hiltViewModel()) {
     val sizeClass = rememberScreenSizeClass()
     val isCompactHeight = rememberIsCompactHeight()
     val backStack = rememberNavBackStack(AppGraph.Chat())
     val currentDestination = (backStack.lastOrNull() as? AppGraph)?.toDestination()
+
+    // Una vista de pantalla por cambio de pestaña. Abrir una conversación desde el historial no cambia
+    // de destino (sigue siendo Chat), así que no cuenta como pantalla nueva.
+    LaunchedEffect(currentDestination) {
+        currentDestination?.let { mainViewModel.onScreenShown(it.name.lowercase()) }
+    }
 
     // Un teléfono en landscape entra en medium/expanded por ancho, pero no
     // tiene alto suficiente para un rail de 6 ítems — en ese caso se queda

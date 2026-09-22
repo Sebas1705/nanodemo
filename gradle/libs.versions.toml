@@ -63,6 +63,10 @@ firebaseAi = "17.17.0"
 # FirebaseApp/FirebaseOptions directamente. Sin el plugin de Gradle de Crashlytics (ver data:crashlytics).
 firebaseCrashlytics = "20.1.1"
 firebaseCommon = "22.0.1"
+# Analytics 23.2.0 = la del BoM 34.19.0. Necesita la resource `google_app_id` (la genera el build de :app
+# desde FIREBASE_APP_ID, ver app/build.gradle.kts): NO lee FirebaseOptions, así que la inicialización
+# manual de FirebaseApp por sí sola no le basta (verificado en el bytecode de play-services-measurement).
+firebaseAnalytics = "23.2.0"
 
 [libraries]
 # Tiers de inferencia
@@ -70,6 +74,7 @@ litertlm-android = { group = "com.google.ai.edge.litertlm", name = "litertlm-and
 firebase-ai = { group = "com.google.firebase", name = "firebase-ai", version.ref = "firebaseAi" }
 firebase-common = { group = "com.google.firebase", name = "firebase-common", version.ref = "firebaseCommon" }
 firebase-crashlytics = { group = "com.google.firebase", name = "firebase-crashlytics", version.ref = "firebaseCrashlytics" }
+firebase-analytics = { group = "com.google.firebase", name = "firebase-analytics", version.ref = "firebaseAnalytics" }
 mlkit-genai-prompt ={ group = "com.google.mlkit", name = "genai-prompt", version.ref = "mlkitGenaiPrompt" }
 mediapipe-tasks-genai = { group = "com.google.mediapipe", name = "tasks-genai", version.ref = "mediapipeTasksGenai" }
 

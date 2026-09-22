@@ -120,7 +120,7 @@ fun DeviceScreen(viewModel: DeviceViewModel = hiltViewModel()) {
         CapabilitiesTable(viewModel)
 
         Text(
-            "DIAGNÓSTICO (CRASHLYTICS)",
+            "DIAGNÓSTICO (CRASHLYTICS Y ANALYTICS)",
             style = MaterialTheme.typography.labelSmall,
             color = DemoColors.Muted,
             letterSpacing = 1.5.sp,
@@ -133,11 +133,14 @@ fun DeviceScreen(viewModel: DeviceViewModel = hiltViewModel()) {
             verticalArrangement = Arrangement.spacedBy(8.dp),
         ) {
             Text(
-                "Para comprobar que los errores llegan a la consola de Firebase. El crash real se " +
-                    "envía la próxima vez que abras la app.",
+                "Para comprobar que los eventos y errores llegan a la consola de Firebase. El crash " +
+                    "real se envía la próxima vez que abras la app.",
                 style = readoutStyle,
                 color = DemoColors.Muted,
             )
+            OutlinedButton(onClick = viewModel::sendTestEvent, modifier = Modifier.fillMaxWidth()) {
+                Text("Enviar evento de analytics de prueba")
+            }
             OutlinedButton(onClick = viewModel::sendTestNonFatal, modifier = Modifier.fillMaxWidth()) {
                 Text("Enviar error no fatal de prueba")
             }
