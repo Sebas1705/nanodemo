@@ -2,8 +2,40 @@ package es.sebas1705.nanodemo.data.history
 
 import androidx.room.Database
 import androidx.room.RoomDatabase
+import androidx.room.migration.Migration
+import androidx.sqlite.db.SupportSQLiteDatabase
 
-@Database(entities = [ConversationEntity::class, MessageEntity::class], version = 1, exportSchema = false)
+@Database(
+    entities = [ConversationEntity::class, MessageEntity::class, MetricEntity::class],
+    version = 2,
+    exportSchema = false,
+)
 abstract class NanoDemoDatabase : RoomDatabase() {
     abstract fun conversationDao(): ConversationDao
+    abstract fun metricDao(): MetricDao
+}
+
+/**
+ * v1 -> v2: agrega `metrics` (antes vivía solo en memoria — ver [MetricEntity]). No toca
+ * `conversations`/`messages`: sin esta migración explícita, Room tira el historial de
+ * conversaciones ya guardado de cualquiera que tenga una versión anterior instalada.
+ */
+val MIGRATION_1_2 = object : Migration(1, 2) {
+    override fun migrate(db: SupportSQLiteDatabase) {
+        db.execSQL(
+            "CREATE TABLE IF NOT EXISTS `metrics` (" +
+                "`id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, " +
+                "`tier` TEXT NOT NULL, " +
+                "`startedAtMs` INTEGER NOT NULL, " +
+                "`firstChunkLatencyMs` INTEGER, " +
+                "`totalDurationMs` INTEGER NOT NULL, " +
+                "`promptChars` INTEGER NOT NULL, " +
+                "`responseChars` INTEGER NOT NULL, " +
+                "`success` INTEGER NOT NULL, " +
+                "`responseTokens` INTEGER NOT NULL, " +
+                "`responseTokensExact` INTEGER NOT NULL, " +
+                "`memoryDeltaBytes` INTEGER NOT NULL)"
+        )
+        db.execSQL("CREATE INDEX IF NOT EXISTS `index_metrics_startedAtMs` ON `metrics` (`startedAtMs`)")
+    }
 }

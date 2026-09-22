@@ -22,6 +22,10 @@ internal object InferenceOperations {
     /** Guardar un turno en el historial local, después de que `generate` ya tuvo éxito. */
     const val PERSIST_TURN = "persist_turn"
 
+    /** Persistencia local de métricas (`data:history` / tabla `metrics`), separada de `persist_turn`. */
+    const val PERSIST_METRIC = "persist_metric"
+    const val LOAD_METRICS = "load_metrics"
+
     /** `InferenceBackend.close()` / `resetConversation()`: no deberían fallar, pero si lo hacen no tiran la app. */
     const val CLOSE_BACKEND = "close_backend"
     const val RESET_BACKEND = "reset_backend"

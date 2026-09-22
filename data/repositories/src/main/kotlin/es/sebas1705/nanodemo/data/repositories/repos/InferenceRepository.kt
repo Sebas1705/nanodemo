@@ -9,6 +9,7 @@ import es.sebas1705.nanodemo.core.common.TelemetryResult
 import es.sebas1705.nanodemo.data.cloudgemini.CloudGeminiBackend
 import es.sebas1705.nanodemo.data.firebaseai.FirebaseAiBackend
 import es.sebas1705.nanodemo.data.history.IHistoryRepository
+import es.sebas1705.nanodemo.data.history.IMetricsRepository
 import es.sebas1705.nanodemo.data.litertlm.LiteRtLmBackend
 import es.sebas1705.nanodemo.data.mediapipe.MediaPipeBackend
 import es.sebas1705.nanodemo.data.mlkitnano.MlKitNanoBackend
@@ -60,6 +61,7 @@ class InferenceRepository @Inject constructor(
     liteRtLmBackend: LiteRtLmBackend,
     firebaseAiBackend: FirebaseAiBackend,
     private val historyRepository: IHistoryRepository,
+    private val metricsRepository: IMetricsRepository,
     private val telemetry: Telemetry,
 ) : IInferenceRepository {
 
@@ -116,6 +118,20 @@ class InferenceRepository @Inject constructor(
         // Contexto técnico que acompaña a cualquier crash o error no fatal (sin contenido del usuario).
         scope.launch { _activeTier.collect { telemetry.setContext("active_tier", it.name) } }
         scope.launch { mediaPipeBackend.selectedModel.collect { telemetry.setContext("mediapipe_model", it.name) } }
+        // Antes las corridas de generate() solo vivían en `_metrics` (memoria, se perdían al matar el
+        // proceso). Se recuperan las persistidas una vez al arrancar; `recordMetric()` sigue actualizando
+        // este StateFlow al toque en cada turno (la UI no espera al disco) y las persiste en paralelo.
+        scope.launch {
+            try {
+                val persisted = metricsRepository.loadAll()
+                // Por si un generate() ya completó (y agregó a _metrics) antes de que termine esta carga:
+                // no pisar lo nuevo con una foto del disco que todavía no lo tiene.
+                _metrics.update { current -> if (current.isEmpty()) persisted else current }
+            } catch (e: Exception) {
+                Log.e(TAG, "init: no se pudieron cargar las métricas guardadas", e)
+                telemetry.failure(InferenceOperations.LOAD_METRICS, e)
+            }
+        }
         autoSelectTier()
     }
 
@@ -484,7 +500,15 @@ class InferenceRepository @Inject constructor(
             responseTokensExact = exactTokens != null,
             memoryDeltaBytes = usedMemoryBytes() - memoryBeforeBytes,
         )
-        _metrics.update { it + metric }
+        _metrics.update { it + metric } // la UI ve la corrida nueva al toque, sin esperar al disco.
+        scope.launch {
+            try {
+                metricsRepository.record(metric)
+            } catch (e: Exception) {
+                Log.e(TAG, "recordMetric($tier): no se pudo persistir", e)
+                telemetry.failure(InferenceOperations.PERSIST_METRIC, e, null, InferenceParams.TIER to tier.name)
+            }
+        }
     }
 
     private fun usedMemoryBytes(): Long =

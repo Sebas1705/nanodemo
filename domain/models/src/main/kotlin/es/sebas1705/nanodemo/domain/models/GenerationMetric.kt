@@ -1,9 +1,9 @@
 package es.sebas1705.nanodemo.domain.models
 
 /**
- * Una corrida de `generate()` en un tier, para el panel de estadísticas.
- * Vive solo en memoria (se pierde al cerrar la app) — no hace falta
- * persistencia para comparar tiers durante una sesión de demo.
+ * Una corrida de `generate()` en un tier, para el panel de estadísticas. Se persiste en SQLite vía
+ * Room (`data:history`, tabla `metrics`) además de mantenerse en memoria — sobrevive a que el
+ * sistema mate el proceso, no solo a la sesión actual.
  */
 data class GenerationMetric(
     val tier: InferenceTier,
