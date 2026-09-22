@@ -8,6 +8,7 @@ package es.sebas1705.nanodemo.data.mediapipe
 
 import android.content.Context
 import android.util.Log
+import es.sebas1705.nanodemo.core.common.DemoTools
 import es.sebas1705.nanodemo.core.common.hasEnoughRamForMediaPipe
 import es.sebas1705.nanodemo.domain.models.ChatMessage
 import es.sebas1705.nanodemo.domain.models.GenerationConfig
@@ -88,6 +89,11 @@ class MediaPipeBackend @Inject constructor(
         // Ninguno de los modelos del catálogo tiene encoder de visión —
         // habilitar esto requeriría hostear un .task multimodal aparte.
         images = false,
+        // Emulado por prompt (ver DemoTools) -- LlmInferenceSession no tiene tool-calling nativo.
+        // Como el resto de los parámetros de sesión, activarlo/desactivarlo a mitad de charla no
+        // tiene efecto: se agrega a la sesión al crearla (getOrCreateSession), así que hace falta
+        // "Nueva conversación" para que el cambio se aplique.
+        functionCalling = true,
     )
 
     val availableModels: List<MediaPipeModelOption> = MediaPipeModelOption.entries
@@ -226,6 +232,15 @@ class MediaPipeBackend @Inject constructor(
         }
     }.flowOn(Dispatchers.IO)
 
+    /**
+     * Sin tool-calling: un solo `generateResponseAsync`, transmite chunk a chunk (comportamiento sin
+     * cambios). Con tool-calling (emulado por prompt, ver DemoTools y la instrucción agregada en
+     * `getOrCreateSession`): el primer pase se bufferea completo (nada se emite todavía) porque recién
+     * al llegar `done=true` se puede decidir si el texto ENTERO fue el pedido de herramienta o una
+     * respuesta normal. `isGenerating` se mantiene `true` durante los dos pases -- es una sola
+     * generación desde la perspectiva de `close()`/`resetConversation()`, así que el cierre diferido
+     * (ver `runOrDefer`) solo se resuelve una vez, al terminar el pase que de verdad sea el último.
+     */
     override fun generateContentStream(history: List<ChatMessage>, config: GenerationConfig): Flow<String> = callbackFlow {
         lastResponseText = ""
         val lastUserMessage = history.lastOrNull { it.role == Role.USER }
@@ -234,18 +249,51 @@ class MediaPipeBackend @Inject constructor(
         Log.d(TAG, "generateContentStream: enviando turno")
         activeSession.addQueryChunk(lastUserMessage.text)
         isGenerating = true
-        activeSession.generateResponseAsync { partialResult, done ->
-            Log.v(TAG, "chunk (done=$done): \"$partialResult\"")
-            lastResponseText += partialResult
-            trySend(partialResult)
-            if (done) {
-                isGenerating = false
-                deferredCleanup?.let { cleanup ->
-                    deferredCleanup = null
-                    Log.d(TAG, "generateContentStream: ejecutando el cierre que quedó pendiente")
-                    cleanup()
+
+        fun finishGeneration() {
+            isGenerating = false
+            deferredCleanup?.let { cleanup ->
+                deferredCleanup = null
+                Log.d(TAG, "generateContentStream: ejecutando el cierre que quedó pendiente")
+                cleanup()
+            }
+            close() // ProducerScope.close(): termina este Flow (no es MediaPipeBackend.close()).
+        }
+
+        if (!config.functionCalling) {
+            activeSession.generateResponseAsync { partialResult, done ->
+                Log.v(TAG, "chunk (done=$done): \"$partialResult\"")
+                lastResponseText += partialResult
+                trySend(partialResult)
+                if (done) finishGeneration()
+            }
+        } else {
+            val firstPassBuffer = StringBuilder()
+            activeSession.generateResponseAsync { partialResult, done ->
+                firstPassBuffer.append(partialResult)
+                if (!done) return@generateResponseAsync
+                val firstPassText = firstPassBuffer.toString()
+                val timezone = DemoTools.matchReactCall(firstPassText)
+                if (timezone == null) {
+                    lastResponseText += firstPassText
+                    trySend(firstPassText)
+                    finishGeneration()
+                    return@generateResponseAsync
                 }
-                close() // ProducerScope.close(): termina este Flow (no es MediaPipeBackend.close()).
+                Log.d(TAG, "generateContentStream: pidió get_current_time($timezone)")
+                val marker = "🔧 usando \"${DemoTools.GET_CURRENT_TIME}\"…\n\n"
+                lastResponseText += marker
+                trySend(marker)
+                val toolResult = DemoTools.executeCurrentTime(timezone.ifBlank { null })
+                activeSession.addQueryChunk(
+                    "Resultado de get_current_time: ${toolResult["legible"]} (${toolResult["iso8601"]})",
+                )
+                activeSession.generateResponseAsync { partialResult2, done2 ->
+                    Log.v(TAG, "chunk 2do pase (done=$done2): \"$partialResult2\"")
+                    lastResponseText += partialResult2
+                    trySend(partialResult2)
+                    if (done2) finishGeneration()
+                }
             }
         }
         awaitClose { }
@@ -281,6 +329,9 @@ class MediaPipeBackend @Inject constructor(
 
             val newSession = LlmInferenceSession.createFromOptions(inference, sessionOptionsBuilder.build())
             config.systemPrompt?.let { newSession.addQueryChunk("Instrucciones: $it\n\n") }
+            if (config.functionCalling) {
+                newSession.addQueryChunk("Instrucciones: ${DemoTools.reactInstruction()}\n\n")
+            }
             session = newSession
             newSession
         }

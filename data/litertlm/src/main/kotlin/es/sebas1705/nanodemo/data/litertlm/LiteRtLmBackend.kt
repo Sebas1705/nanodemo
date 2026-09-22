@@ -5,6 +5,7 @@ import android.graphics.Bitmap
 import android.graphics.BitmapFactory
 import android.net.Uri
 import android.util.Log
+import es.sebas1705.nanodemo.core.common.DemoTools
 import es.sebas1705.nanodemo.core.common.hasAtLeastRamBytes
 import es.sebas1705.nanodemo.domain.models.ChatMessage
 import es.sebas1705.nanodemo.domain.models.GenerationConfig
@@ -86,6 +87,10 @@ class LiteRtLmBackend @Inject constructor(
         systemPrompt = true,
         multiTurn = true,
         images = true,
+        // Emulado por prompt (ver DemoTools) -- este runtime no tiene tool-calling nativo. Como el
+        // resto de la config de la conversación, activarlo/desactivarlo a mitad de charla no tiene
+        // efecto hasta "Nueva conversación" (se agrega al systemInstruction al crearla).
+        functionCalling = true,
     )
 
     private var engine: Engine? = null
@@ -149,23 +154,57 @@ class LiteRtLmBackend @Inject constructor(
         }
     }.flowOn(Dispatchers.IO)
 
+    /**
+     * Sin tool-calling: un solo `sendMessageAsync`, transmite chunk a chunk (comportamiento sin
+     * cambios). Con tool-calling (emulado por prompt, ver DemoTools y la instrucción agregada en
+     * `getOrCreateConversation`): el primer pase se bufferea completo (nada se emite todavía) porque
+     * recién al terminar el flow se puede decidir si el texto ENTERO fue el pedido de herramienta o
+     * una respuesta normal — mismo trade-off que Cloud/Firebase (sin streaming visible durante el
+     * pase que decide). `Conversation` es de por sí persistente entre turnos, así que el segundo pase
+     * es solo otro `sendMessageAsync` con el resultado de la herramienta como mensaje nuevo.
+     */
     override fun generateContentStream(history: List<ChatMessage>, config: GenerationConfig): Flow<String> = flow {
         val lastUserMessage = history.lastOrNull { it.role == Role.USER }
             ?: error("No hay turno de usuario para enviar")
         val activeConversation = getOrCreateConversation(history, config)
         val contents = buildContents(lastUserMessage)
         Log.d(TAG, "generateContentStream: enviando turno")
-        activeConversation.sendMessageAsync(contents).collect { message ->
-            val text = message.contents.contents
-                .filterIsInstance<Content.Text>()
-                .joinToString("") { it.text }
-            Log.v(TAG, "chunk: \"$text\"")
+
+        if (!config.functionCalling) {
+            activeConversation.sendMessageAsync(contents).collect { message ->
+                val text = extractText(message)
+                Log.v(TAG, "chunk: \"$text\"")
+                if (text.isNotEmpty()) emit(text)
+            }
+            return@flow
+        }
+
+        val firstPassBuffer = StringBuilder()
+        activeConversation.sendMessageAsync(contents).collect { message -> firstPassBuffer.append(extractText(message)) }
+        val firstPassText = firstPassBuffer.toString()
+        val timezone = DemoTools.matchReactCall(firstPassText)
+        if (timezone == null) {
+            emit(firstPassText)
+            return@flow
+        }
+        Log.d(TAG, "generateContentStream: pidió get_current_time($timezone)")
+        emit("🔧 usando \"${DemoTools.GET_CURRENT_TIME}\"…\n\n")
+        val toolResult = DemoTools.executeCurrentTime(timezone.ifBlank { null })
+        val toolResultContents = Contents.of(
+            "Resultado de get_current_time: ${toolResult["legible"]} (${toolResult["iso8601"]})",
+        )
+        activeConversation.sendMessageAsync(toolResultContents).collect { message ->
+            val text = extractText(message)
+            Log.v(TAG, "chunk 2do pase: \"$text\"")
             if (text.isNotEmpty()) emit(text)
         }
     }.flowOn(Dispatchers.IO).onCompletion { cause ->
         // Si el llamador cancela a mitad de respuesta, se le avisa al motor para que deje de generar.
         if (cause != null) runCatching { conversation?.cancelProcess() }
     }
+
+    private fun extractText(message: Message): String =
+        message.contents.contents.filterIsInstance<Content.Text>().joinToString("") { it.text }
 
     private suspend fun buildContents(message: ChatMessage): Contents {
         val imageBytes = message.imageUri
@@ -202,8 +241,13 @@ class LiteRtLmBackend @Inject constructor(
                 maxOutputToken = config.maxOutputTokens,
             )
             val systemPrompt = config.systemPrompt
-            if (systemPrompt != null) {
-                conversationConfig = conversationConfig.copy(systemInstruction = Contents.of(systemPrompt))
+            val fullSystemPrompt = if (config.functionCalling) {
+                (systemPrompt?.let { "$it\n\n" } ?: "") + DemoTools.reactInstruction()
+            } else {
+                systemPrompt
+            }
+            if (fullSystemPrompt != null) {
+                conversationConfig = conversationConfig.copy(systemInstruction = Contents.of(fullSystemPrompt))
             }
 
             Log.d(TAG, "getOrCreateConversation: config=$config, turnos previos=${previousTurns.size}")

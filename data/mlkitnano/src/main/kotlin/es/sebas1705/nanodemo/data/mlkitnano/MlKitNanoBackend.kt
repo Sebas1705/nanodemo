@@ -5,9 +5,11 @@ import android.graphics.Bitmap
 import android.graphics.BitmapFactory
 import android.net.Uri
 import android.util.Log
+import es.sebas1705.nanodemo.core.common.DemoTools
 import es.sebas1705.nanodemo.domain.models.ChatMessage
 import es.sebas1705.nanodemo.domain.models.GenerationConfig
 import es.sebas1705.nanodemo.domain.models.InferenceBackend
+import es.sebas1705.nanodemo.domain.models.Role
 import es.sebas1705.nanodemo.domain.models.TierAvailability
 import es.sebas1705.nanodemo.domain.models.TierCapabilities
 import com.google.mlkit.genai.common.DownloadStatus
@@ -55,6 +57,10 @@ class MlKitNanoBackend @Inject constructor(
         systemPrompt = true, // requiere Gemini Nano V3+; se valida en runtime con isSystemPromptAvailable()
         multiTurn = true,
         images = true,
+        // Emulado por prompt (ver DemoTools) -- no hay tool-calling nativo en esta API. Depende del
+        // mismo isSystemPromptAvailable() que systemPrompt: si el dispositivo no lo soporta, la
+        // instrucción de la herramienta no llega y el modelo nunca la va a usar.
+        functionCalling = true,
     )
 
     override suspend fun checkAvailability(): TierAvailability {
@@ -79,10 +85,49 @@ class MlKitNanoBackend @Inject constructor(
             .first { it is DownloadStatus.DownloadCompleted || it is DownloadStatus.DownloadFailed }
     }
 
+    /**
+     * Sin tool-calling: transmite chunk a chunk tal cual llegan (comportamiento sin cambios).
+     * Con tool-calling (emulado por prompt, ver DemoTools): esta API es stateless, no hay forma de
+     * "seguir" una generación en curso — el primer pase se bufferea completo (nada se emite todavía)
+     * para poder decidir si el texto ENTERO fue el pedido de herramienta o una respuesta normal, y
+     * recién ahí se resuelve uno u otro camino. Mismo trade-off que Cloud/Firebase: sin streaming
+     * visible durante el pase que decide si hay o no pedido de herramienta.
+     */
     override fun generateContentStream(history: List<ChatMessage>, config: GenerationConfig): Flow<String> = flow {
-        // Stateless: se reconstruye toda la conversación en cada llamada, un
-        // Content por turno (el rol se infiere por la posición/alternancia,
-        // la API no expone un campo "role" explícito).
+        if (!config.functionCalling) {
+            runPass(history, config).collect { text ->
+                Log.v(TAG, "chunk: \"$text\"")
+                emit(text)
+            }
+            return@flow
+        }
+
+        val buffer = StringBuilder()
+        runPass(history, config).collect { buffer.append(it) }
+        val firstPassText = buffer.toString()
+        val timezone = DemoTools.matchReactCall(firstPassText)
+        if (timezone == null) {
+            emit(firstPassText)
+            return@flow
+        }
+
+        Log.d(TAG, "generateContentStream: pidió get_current_time($timezone)")
+        emit("🔧 usando \"${DemoTools.GET_CURRENT_TIME}\"…\n\n")
+        val toolResult = DemoTools.executeCurrentTime(timezone.ifBlank { null })
+        val extendedHistory = history + listOf(
+            ChatMessage(Role.MODEL, firstPassText),
+            ChatMessage(Role.USER, "Resultado de get_current_time: ${toolResult["legible"]} (${toolResult["iso8601"]})"),
+        )
+        runPass(extendedHistory, config).collect { text ->
+            Log.v(TAG, "chunk (2do pase): \"$text\"")
+            emit(text)
+        }
+    }
+
+    /** Un pase de generación: reconstruye toda la conversación (stateless) y transmite el texto crudo. */
+    private fun runPass(history: List<ChatMessage>, config: GenerationConfig): Flow<String> = flow {
+        // Un Content por turno (el rol se infiere por la posición/alternancia, la API no expone un
+        // campo "role" explícito).
         val contents = history.map { message ->
             val builder = Content.Builder().text(message.text)
             message.imageUri
@@ -98,14 +143,17 @@ class MlKitNanoBackend @Inject constructor(
         // Copia local: Kotlin no puede smart-cast `config.systemPrompt` de String? a
         // String acá porque GenerationConfig está declarada en otro módulo (domain:models).
         val systemPrompt = config.systemPrompt
-        if (systemPrompt != null && generativeModel.isSystemPromptAvailable()) {
-            requestBuilder.systemInstruction = SystemInstruction(systemPrompt)
+        val fullSystemPrompt = if (config.functionCalling) {
+            (systemPrompt?.let { "$it\n\n" } ?: "") + DemoTools.reactInstruction()
+        } else {
+            systemPrompt
+        }
+        if (fullSystemPrompt != null && generativeModel.isSystemPromptAvailable()) {
+            requestBuilder.systemInstruction = SystemInstruction(fullSystemPrompt)
         }
 
         generativeModel.generateContentStream(requestBuilder.build()).collect { chunk ->
-            val text = chunk.candidates.firstOrNull()?.text.orEmpty()
-            Log.v(TAG, "chunk: \"$text\"")
-            emit(text)
+            emit(chunk.candidates.firstOrNull()?.text.orEmpty())
         }
     }
 

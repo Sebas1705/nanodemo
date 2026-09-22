@@ -177,8 +177,9 @@ fun ConfigScreen(viewModel: ConfigViewModel = hiltViewModel()) {
             }
             Text(
                 "Deja que el modelo pida la hora actual en una zona horaria en vez de inventarla — " +
-                    "no tiene reloj propio. Solo Cloud y Firebase AI pueden pedir herramientas; en Chat " +
-                    "se ve cuándo la usó.",
+                    "no tiene reloj propio. Cloud y Firebase AI lo hacen nativo (la API tiene tool-calling " +
+                    "real); Nano/MediaPipe/LiteRT-LM lo emulan por prompt (menos confiable: depende de que " +
+                    "el modelo respete el formato pedido). En Chat se ve cuándo la usó.",
                 style = MaterialTheme.typography.bodySmall,
                 color = DemoColors.Muted,
             )

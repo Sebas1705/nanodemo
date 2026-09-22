@@ -100,7 +100,12 @@ Models framework de Apple).
     on-device siempre cuestan \$0.
 16. **Herramientas (function calling)**: toggle en Parámetros — el modelo
     puede pedir la hora actual en vez de inventarla, algo que genuinamente no
-    sabe por su cuenta. Solo Cloud y Firebase AI; en Chat se ve cuándo la usó.
+    sabe por su cuenta. Cloud y Firebase AI lo hacen nativo (`tools`/
+    `functionDeclarations` de sus propias APIs); Nano/MediaPipe/LiteRT-LM lo
+    emulan por prompt — una etiqueta de texto parseable en vez de una función
+    tipada, menos confiable porque depende de que el modelo respete el
+    formato pedido (ver `DemoTools.reactInstruction()`/`matchReactCall()`).
+    En Chat se ve cuándo la usó, en los 5 tiers.
 17. **Búsqueda en internet** (grounding con Google Search): toggle en
     Parámetros — el modelo busca antes de responder, para preguntas actuales
     fuera de su corte de entrenamiento. Solo Cloud y Firebase AI; en Chat se
@@ -170,7 +175,7 @@ La app está dividida en módulos Gradle por capa (convention plugins en
 | imágenes | ✅ | ❌ (el modelo hosteado no tiene encoder de visión) | ✅ |
 | tokens reales en stats | ❌ (aproximado) | ✅ (`sizeInTokens()`) | ✅ (`usageMetadata`) |
 | Modo JSON (salida estructurada) | ❌ | ❌ | ✅ (`responseMimeType`) |
-| Herramientas (function calling) | ❌ | ❌ | ✅ (`DemoTools`, ver Parámetros) |
+| Herramientas (function calling) | ✅ (emulado por prompt) | ✅ (emulado por prompt) | ✅ (nativo, `DemoTools`, ver Parámetros) |
 | Búsqueda en internet (grounding) | ❌ | ❌ | ✅ (`google_search`, ver Parámetros) |
 
 Ver qué soporta cada tier es en sí mismo parte del estudio — por eso la UI
