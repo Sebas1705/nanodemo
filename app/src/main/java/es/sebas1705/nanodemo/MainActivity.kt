@@ -1,5 +1,6 @@
 package es.sebas1705.nanodemo
 
+import android.content.Intent
 import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
@@ -29,9 +30,19 @@ class MainActivity : ComponentActivity() {
         setContent {
             DemoTheme {
                 Surface(modifier = Modifier.fillMaxSize()) {
-                    AppNav()
+                    AppNav(initialSharedText = sharedTextFrom(intent))
                 }
             }
         }
     }
+
+    /**
+     * `MainActivity` no fija `launchMode` (queda "standard"): compartir texto abre una instancia
+     * nueva de la Activity en vez de reusar una existente vía `onNewIntent` — para este demo es
+     * más simple y suficiente (ver AndroidManifest.xml, intent-filter ACTION_SEND).
+     */
+    private fun sharedTextFrom(intent: Intent?): String? =
+        intent?.takeIf { it.action == Intent.ACTION_SEND && it.type == "text/plain" }
+            ?.getStringExtra(Intent.EXTRA_TEXT)
+            ?.takeIf { it.isNotBlank() }
 }

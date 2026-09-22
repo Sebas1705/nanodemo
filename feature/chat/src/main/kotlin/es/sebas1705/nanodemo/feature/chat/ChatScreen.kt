@@ -58,6 +58,7 @@ import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 @Composable
 fun ChatScreen(
     conversationId: Long? = null,
+    sharedText: String? = null,
     viewModel: ChatViewModel = hiltViewModel(),
 ) {
     LaunchedEffect(conversationId) {
@@ -70,7 +71,12 @@ fun ChatScreen(
     val conversation by viewModel.conversation.collectAsState()
     val pendingImage by viewModel.pendingImage.collectAsState()
     val selectedMediaPipeModel by viewModel.selectedMediaPipeModel.collectAsState()
-    var promptText by remember { mutableStateOf("Explícame en una frase qué es un agente de IA.") }
+    var promptText by remember {
+        // Compartir desde otra app precarga el prompt (con una instrucción, no el texto pelado) en
+        // vez de mandarlo solo: el usuario lo revisa/edita antes de generar, nunca se envía sin que
+        // lo vea — ver el intent-filter ACTION_SEND en AndroidManifest.xml y MainActivity.
+        mutableStateOf(sharedText?.let { "Resume esto:\n\n$it" } ?: "Explícame en una frase qué es un agente de IA.")
+    }
 
     Column(
         modifier = Modifier

@@ -41,10 +41,10 @@ import es.sebas1705.nanodemo.feature.stats.StatsScreen
  * reescrito sobre Navigation 3 en vez de Navigation Compose 2.x.
  */
 @Composable
-fun AppNav(mainViewModel: MainViewModel = hiltViewModel()) {
+fun AppNav(initialSharedText: String? = null, mainViewModel: MainViewModel = hiltViewModel()) {
     val sizeClass = rememberScreenSizeClass()
     val isCompactHeight = rememberIsCompactHeight()
-    val backStack = rememberNavBackStack(AppGraph.Chat())
+    val backStack = rememberNavBackStack(AppGraph.Chat(sharedText = initialSharedText))
     val currentDestination = (backStack.lastOrNull() as? AppGraph)?.toDestination()
 
     // Una vista de pantalla por cambio de pestaña. Abrir una conversación desde el historial no cambia
@@ -129,7 +129,7 @@ private fun AppNavHost(
             rememberViewModelStoreNavEntryDecorator(),
         ),
         entryProvider = entryProvider {
-            entry<AppGraph.Chat> { route -> ChatScreen(conversationId = route.conversationId) }
+            entry<AppGraph.Chat> { route -> ChatScreen(conversationId = route.conversationId, sharedText = route.sharedText) }
             entry<AppGraph.Compare> { CompareScreen(sizeClass) }
             entry<AppGraph.Config> { ConfigScreen() }
             entry<AppGraph.Device> { DeviceScreen() }
