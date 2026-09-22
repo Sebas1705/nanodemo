@@ -150,9 +150,10 @@ fun ConfigScreen(viewModel: ConfigViewModel = hiltViewModel()) {
                 )
             }
             Text(
-                "Le pide al modelo que devuelva JSON en vez de texto libre. Solo Cloud y Firebase AI " +
-                    "lo garantizan (responseMimeType del API); en Chat se marca si la respuesta terminó " +
-                    "siendo JSON válido o no.",
+                "Le pide al modelo que devuelva JSON en vez de texto libre. Cloud y Firebase AI lo " +
+                    "garantizan (responseMimeType del API); Nano/MediaPipe/LiteRT-LM lo emulan por " +
+                    "prompt (sin garantía sintáctica, depende de que el modelo lo respete). En Chat se " +
+                    "marca si la respuesta terminó siendo JSON válido o no, en los 5 tiers.",
                 style = MaterialTheme.typography.bodySmall,
                 color = DemoColors.Muted,
             )

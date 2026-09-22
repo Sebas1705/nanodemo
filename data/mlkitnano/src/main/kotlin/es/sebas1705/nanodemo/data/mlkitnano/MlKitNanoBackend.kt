@@ -6,6 +6,7 @@ import android.graphics.BitmapFactory
 import android.net.Uri
 import android.util.Log
 import es.sebas1705.nanodemo.core.common.DemoTools
+import es.sebas1705.nanodemo.core.common.buildLocalSystemPrompt
 import es.sebas1705.nanodemo.domain.models.ChatMessage
 import es.sebas1705.nanodemo.domain.models.GenerationConfig
 import es.sebas1705.nanodemo.domain.models.InferenceBackend
@@ -57,9 +58,11 @@ class MlKitNanoBackend @Inject constructor(
         systemPrompt = true, // requiere Gemini Nano V3+; se valida en runtime con isSystemPromptAvailable()
         multiTurn = true,
         images = true,
-        // Emulado por prompt (ver DemoTools) -- no hay tool-calling nativo en esta API. Depende del
-        // mismo isSystemPromptAvailable() que systemPrompt: si el dispositivo no lo soporta, la
-        // instrucción de la herramienta no llega y el modelo nunca la va a usar.
+        // Ambas emuladas por prompt (ver core:common/LocalPromptEmulation.kt) -- no hay
+        // tool-calling ni responseMimeType nativos en esta API. Dependen del mismo
+        // isSystemPromptAvailable() que systemPrompt: si el dispositivo no lo soporta, la
+        // instrucción no llega y el modelo nunca la va a respetar.
+        structuredOutput = true,
         functionCalling = true,
     )
 
@@ -140,14 +143,7 @@ class MlKitNanoBackend @Inject constructor(
         config.temperature?.let { requestBuilder.temperature = it }
         config.topK?.let { requestBuilder.topK = it }
         config.maxOutputTokens?.let { requestBuilder.maxOutputTokens = it }
-        // Copia local: Kotlin no puede smart-cast `config.systemPrompt` de String? a
-        // String acá porque GenerationConfig está declarada en otro módulo (domain:models).
-        val systemPrompt = config.systemPrompt
-        val fullSystemPrompt = if (config.functionCalling) {
-            (systemPrompt?.let { "$it\n\n" } ?: "") + DemoTools.reactInstruction()
-        } else {
-            systemPrompt
-        }
+        val fullSystemPrompt = buildLocalSystemPrompt(config.systemPrompt, config.functionCalling, config.jsonMode)
         if (fullSystemPrompt != null && generativeModel.isSystemPromptAvailable()) {
             requestBuilder.systemInstruction = SystemInstruction(fullSystemPrompt)
         }

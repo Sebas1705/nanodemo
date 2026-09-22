@@ -9,6 +9,7 @@ package es.sebas1705.nanodemo.data.mediapipe
 import android.content.Context
 import android.util.Log
 import es.sebas1705.nanodemo.core.common.DemoTools
+import es.sebas1705.nanodemo.core.common.buildLocalSystemPrompt
 import es.sebas1705.nanodemo.core.common.hasEnoughRamForMediaPipe
 import es.sebas1705.nanodemo.domain.models.ChatMessage
 import es.sebas1705.nanodemo.domain.models.GenerationConfig
@@ -89,10 +90,11 @@ class MediaPipeBackend @Inject constructor(
         // Ninguno de los modelos del catálogo tiene encoder de visión —
         // habilitar esto requeriría hostear un .task multimodal aparte.
         images = false,
-        // Emulado por prompt (ver DemoTools) -- LlmInferenceSession no tiene tool-calling nativo.
-        // Como el resto de los parámetros de sesión, activarlo/desactivarlo a mitad de charla no
-        // tiene efecto: se agrega a la sesión al crearla (getOrCreateSession), así que hace falta
-        // "Nueva conversación" para que el cambio se aplique.
+        // Ambas emuladas por prompt (ver core:common/LocalPromptEmulation.kt) -- LlmInferenceSession
+        // no tiene tool-calling ni responseMimeType nativos. Como el resto de los parámetros de
+        // sesión, activar/desactivarlas a mitad de charla no tiene efecto: se agregan a la sesión al
+        // crearla (getOrCreateSession), así que hace falta "Nueva conversación" para que se apliquen.
+        structuredOutput = true,
         functionCalling = true,
     )
 
@@ -328,10 +330,8 @@ class MediaPipeBackend @Inject constructor(
             config.topP?.let { sessionOptionsBuilder.setTopP(it) }
 
             val newSession = LlmInferenceSession.createFromOptions(inference, sessionOptionsBuilder.build())
-            config.systemPrompt?.let { newSession.addQueryChunk("Instrucciones: $it\n\n") }
-            if (config.functionCalling) {
-                newSession.addQueryChunk("Instrucciones: ${DemoTools.reactInstruction()}\n\n")
-            }
+            val fullSystemPrompt = buildLocalSystemPrompt(config.systemPrompt, config.functionCalling, config.jsonMode)
+            fullSystemPrompt?.let { newSession.addQueryChunk("Instrucciones: $it\n\n") }
             session = newSession
             newSession
         }

@@ -6,6 +6,7 @@ import android.graphics.BitmapFactory
 import android.net.Uri
 import android.util.Log
 import es.sebas1705.nanodemo.core.common.DemoTools
+import es.sebas1705.nanodemo.core.common.buildLocalSystemPrompt
 import es.sebas1705.nanodemo.core.common.hasAtLeastRamBytes
 import es.sebas1705.nanodemo.domain.models.ChatMessage
 import es.sebas1705.nanodemo.domain.models.GenerationConfig
@@ -87,9 +88,11 @@ class LiteRtLmBackend @Inject constructor(
         systemPrompt = true,
         multiTurn = true,
         images = true,
-        // Emulado por prompt (ver DemoTools) -- este runtime no tiene tool-calling nativo. Como el
-        // resto de la config de la conversación, activarlo/desactivarlo a mitad de charla no tiene
-        // efecto hasta "Nueva conversación" (se agrega al systemInstruction al crearla).
+        // Ambas emuladas por prompt (ver core:common/LocalPromptEmulation.kt) -- este runtime no
+        // tiene tool-calling ni salida JSON nativos. Como el resto de la config de la conversación,
+        // activarlas/desactivarlas a mitad de charla no tiene efecto hasta "Nueva conversación" (se
+        // agregan al systemInstruction al crearla).
+        structuredOutput = true,
         functionCalling = true,
     )
 
@@ -240,12 +243,7 @@ class LiteRtLmBackend @Inject constructor(
                 samplerConfig = sampler,
                 maxOutputToken = config.maxOutputTokens,
             )
-            val systemPrompt = config.systemPrompt
-            val fullSystemPrompt = if (config.functionCalling) {
-                (systemPrompt?.let { "$it\n\n" } ?: "") + DemoTools.reactInstruction()
-            } else {
-                systemPrompt
-            }
+            val fullSystemPrompt = buildLocalSystemPrompt(config.systemPrompt, config.functionCalling, config.jsonMode)
             if (fullSystemPrompt != null) {
                 conversationConfig = conversationConfig.copy(systemInstruction = Contents.of(fullSystemPrompt))
             }
