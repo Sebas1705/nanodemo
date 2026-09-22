@@ -7,10 +7,10 @@ Hay **dos vías**, independientes, que comparten el mismo build firmado
 |---|---|---|
 | Workflow | `.github/workflows/distribute.yml` | `.github/workflows/release-apk.yml` |
 | Disparador | push a `master` / manual | tag `vX.Y.Z` / manual (con versión) |
-| Resultado | Release en Firebase, aviso a los testers del grupo | GitHub Release con el APK, su `.sha256` y notas generadas |
-| `versionName` | `<último tag>-dev.<run_number>` | la versión del tag |
+| Resultado | Release en Firebase, aviso a los testers del grupo | GitHub Release con el APK, su `.sha256` y notas generadas — **y la misma release en Firebase App Distribution** |
+| `versionName` | `<último tag>-dev.<run_number>` | la versión del tag, sin sufijo |
 | `versionCode` | `<run_number>` | `<run_number>` |
-| Secretos extra | `FIREBASE_SERVICE_ACCOUNT_JSON` | ninguno |
+| Secretos extra | `FIREBASE_SERVICE_ACCOUNT_JSON` | `FIREBASE_SERVICE_ACCOUNT_JSON` |
 | Cuándo usarla | Builds continuos para testers | Versiones nombradas y descargables |
 
 Las dos vías comparten la misma nomenclatura de versión (la del tag más reciente `vX.Y.Z`): un
@@ -18,6 +18,10 @@ build de Firebase entre releases se ve, por ejemplo, como `1.1.1-dev.7` — mism
 última GitHub Release, más un sufijo que marca que es un build continuo sin tag propio. Antes
 `distribute.yml` ponía `1.0.<run_number>`, un número que no salía de ningún lado del proyecto y no
 coincidía con lo que mostraba GitHub Releases para el mismo commit.
+
+Al publicar un tag, la vía 2 sube ese mismo APK también a Firebase App Distribution con el
+`versionName` limpio (sin `-dev`): así los testers ven ahí tanto los builds continuos
+(`1.2.0-dev.N`) como las versiones con tag (`1.2.0`), no solo estas últimas en GitHub.
 
 ## Base común: secretos en Doppler
 
@@ -28,7 +32,7 @@ En GitHub solo hace falta un secreto, `DOPPLER_TOKEN` (service token de solo lec
 |---|---|
 | `GEMINI_API_KEY`, `FIREBASE_API_KEY`, `FIREBASE_APP_ID`, `FIREBASE_PROJECT_ID`, `MEDIAPIPE_*` | Se compilan en `BuildConfig` (tiers B, C, E) |
 | `SIGNING_KEYSTORE_BASE64`, `SIGNING_STORE_PASSWORD`, `SIGNING_KEY_ALIAS`, `SIGNING_KEY_PASSWORD` | Firma del APK (las dos vías) |
-| `FIREBASE_SERVICE_ACCOUNT_JSON` | Solo vía 1 |
+| `FIREBASE_SERVICE_ACCOUNT_JSON` | Las dos vías (paso de Firebase App Distribution) |
 
 La acción compuesta comprueba antes de compilar que existan todos y falla con el nombre
 exacto del que falta.
@@ -70,9 +74,12 @@ git push origin v1.2.0
 o Actions → **Release APK** → *Run workflow* con `1.2.0` (crea el tag sobre el commit del
 run). Versiones con sufijo (`1.2.0-beta.1`) se publican como *pre-release*. El workflow
 valida el formato, rechaza una versión que ya tiene release y adjunta
-`AIMobiDemo-vX.Y.Z.apk` y `AIMobiDemo-vX.Y.Z.apk.sha256`.
+`AIMobiDemo-vX.Y.Z.apk` y `AIMobiDemo-vX.Y.Z.apk.sha256`. Además sube ese APK a Firebase App
+Distribution (mismo grupo de testers que la vía 1) con `versionName` = la versión del tag, sin
+sufijo `-dev`.
 
-Requiere solo `DOPPLER_TOKEN` y permiso `contents: write` (ya declarado en el workflow).
+Requiere `DOPPLER_TOKEN` y permiso `contents: write` (ya declarado en el workflow); usa el mismo
+secreto `FIREBASE_SERVICE_ACCOUNT_JSON` que la vía 1 para el paso de Firebase.
 El tag `models-v1` (modelos de MediaPipe) no dispara este workflow: el patrón es `v*`.
 
 ## Secretos dentro del APK

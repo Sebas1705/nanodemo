@@ -396,7 +396,7 @@ Dos vías, independientes, que comparten el mismo build firmado (acción compues
 | Vía | Workflow | Cuándo corre | Resultado |
 |---|---|---|---|
 | Firebase App Distribution | `.github/workflows/distribute.yml` | push a `master` / manual | Release en Firebase + aviso al grupo `testers` |
-| GitHub Release | `.github/workflows/release-apk.yml` | tag `vX.Y.Z` / manual con versión | Release con `AIMobiDemo-vX.Y.Z.apk`, su `.sha256` y notas generadas |
+| GitHub Release | `.github/workflows/release-apk.yml` | tag `vX.Y.Z` / manual con versión | Release con `AIMobiDemo-vX.Y.Z.apk`, su `.sha256` y notas generadas — y ese mismo APK también a Firebase App Distribution, con `versionName` sin sufijo `-dev` |
 
 ```bash
 git tag v1.2.0 && git push origin v1.2.0   # publica una GitHub Release del APK
