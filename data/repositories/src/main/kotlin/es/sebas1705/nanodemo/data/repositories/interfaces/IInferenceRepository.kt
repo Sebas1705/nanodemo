@@ -47,6 +47,13 @@ interface IInferenceRepository {
     /** Carga una conversación guardada del historial: fija tier/transcript y sigue agregando a partir de ella. */
     fun loadConversation(conversationId: Long)
 
+    /**
+     * Borra una conversación del historial. Pasa por acá (no directo a `data:history`) porque es quien
+     * conoce `currentConversationId`: si se borra la conversación que Chat sigue mostrando, hay que
+     * desengancharla para que el próximo turno no intente persistir contra una fila que ya no existe.
+     */
+    fun deleteConversation(conversationId: Long)
+
     /** Cambia el modelo del Tier B (MediaPipe) — recomprueba disponibilidad para ese tier. */
     fun selectMediaPipeModel(option: MediaPipeModelOption)
 }

@@ -9,6 +9,7 @@ class ObserveConversationsUseCase @Inject constructor(private val repository: IH
     operator fun invoke(): Flow<List<Conversation>> = repository.observeConversations()
 }
 
-class DeleteConversationUseCase @Inject constructor(private val repository: IHistoryRepository) {
-    suspend operator fun invoke(conversationId: Long) = repository.deleteConversation(conversationId)
-}
+// El borrado vive en domain:usescases:inference (DeleteConversationUseCase), no acá: pasa por
+// IInferenceRepository porque es quien conoce currentConversationId — borrar directo contra
+// IHistoryRepository (como hacía este archivo antes) dejaba esa referencia desactualizada y producía un
+// FOREIGN KEY constraint failed en el siguiente turno (visto en Crashlytics).

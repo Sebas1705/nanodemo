@@ -53,6 +53,10 @@ class LoadConversationUseCase @Inject constructor(private val repository: IInfer
     operator fun invoke(conversationId: Long) = repository.loadConversation(conversationId)
 }
 
+class DeleteConversationUseCase @Inject constructor(private val repository: IInferenceRepository) {
+    operator fun invoke(conversationId: Long) = repository.deleteConversation(conversationId)
+}
+
 class SelectMediaPipeModelUseCase @Inject constructor(private val repository: IInferenceRepository) {
     operator fun invoke(option: MediaPipeModelOption) = repository.selectMediaPipeModel(option)
 }
