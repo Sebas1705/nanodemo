@@ -64,7 +64,7 @@ jobs:
         env:
           TAG: ${{ steps.ver.outputs.tag }}
         run: |
-          APK="nanodemo-$TAG.apk"
+          APK="AIMobiDemo-$TAG.apk"
           cp app/build/outputs/apk/release/app-release.apk "$RUNNER_TEMP/$APK"
           (cd "$RUNNER_TEMP" && sha256sum "$APK" > "$APK.sha256")
           echo "apk=$RUNNER_TEMP/$APK" >> "$GITHUB_OUTPUT"

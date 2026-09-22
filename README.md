@@ -1,4 +1,4 @@
-# Demo de IA en móvil — 5 motores con fallback
+# AIMobiDemo — demo de IA en móvil con 5 motores y fallback
 
 Demo en Kotlin + Jetpack Compose que intenta cubrir **cualquier hardware**,
 probando cinco motores de IA (tiers) en orden y cayendo automáticamente
@@ -365,7 +365,7 @@ Dos vías, independientes, que comparten el mismo build firmado (acción compues
 | Vía | Workflow | Cuándo corre | Resultado |
 |---|---|---|---|
 | Firebase App Distribution | `.github/workflows/distribute.yml` | push a `master` / manual | Release en Firebase + aviso al grupo `testers` |
-| GitHub Release | `.github/workflows/release-apk.yml` | tag `vX.Y.Z` / manual con versión | Release con `nanodemo-vX.Y.Z.apk`, su `.sha256` y notas generadas |
+| GitHub Release | `.github/workflows/release-apk.yml` | tag `vX.Y.Z` / manual con versión | Release con `AIMobiDemo-vX.Y.Z.apk`, su `.sha256` y notas generadas |
 
 ```bash
 git tag v1.2.0 && git push origin v1.2.0   # publica una GitHub Release del APK

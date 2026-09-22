@@ -64,7 +64,7 @@ git push origin v1.2.0
 o Actions → **Release APK** → *Run workflow* con `1.2.0` (crea el tag sobre el commit del
 run). Versiones con sufijo (`1.2.0-beta.1`) se publican como *pre-release*. El workflow
 valida el formato, rechaza una versión que ya tiene release y adjunta
-`nanodemo-vX.Y.Z.apk` y `nanodemo-vX.Y.Z.apk.sha256`.
+`AIMobiDemo-vX.Y.Z.apk` y `AIMobiDemo-vX.Y.Z.apk.sha256`.
 
 Requiere solo `DOPPLER_TOKEN` y permiso `contents: write` (ya declarado en el workflow).
 El tag `models-v1` (modelos de MediaPipe) no dispara este workflow: el patrón es `v*`.
@@ -89,7 +89,7 @@ y Doppler):
 .github/workflows/release-apk.yml              # vía 2
 ```
 
-Al copiarlos hay que cambiar: el nombre `nanodemo` en el nombre del asset
+Al copiarlos hay que cambiar: el nombre `AIMobiDemo` en el nombre del asset
 (`release-apk.yml`), la lista de secretos que verifica la acción (`action.yml`) y el
 `VERSION_CODE` / `VERSION_NAME` que lee `app/build.gradle.kts` (ver su cabecera). El template
 ya tiene un `release.yml` propio para releases de la plantilla (`vYYYY.MM.PATCH` + CHANGELOG):
