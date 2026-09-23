@@ -65,7 +65,7 @@ class MlKitNanoBackend @Inject constructor(
         // instrucción no llega y el modelo nunca la va a respetar.
         structuredOutput = true,
         functionCalling = true,
-        // A diferencia de las otras 2, SÍ depende de un secreto (Google Custom Search) -- si no
+        // A diferencia de las otras 2, SÍ depende de un secreto (Brave Search API) -- si no
         // está configurado, el toggle sale deshabilitado en vez de fallar en runtime.
         webSearch = WebSearchTool.isConfigured,
     )

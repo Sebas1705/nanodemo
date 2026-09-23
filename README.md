@@ -113,11 +113,10 @@ Models framework de Apple).
     entrenamiento. Cloud/Firebase AI usan grounding nativo de su propia API
     (en Chat se ven las consultas hechas y cuántas fuentes citó);
     Nano/MediaPipe/LiteRT-LM no tienen red propia, así que emulan lo mismo
-    por prompt (`WebSearchTool`) — la app busca de verdad (Google Custom
-    Search JSON API, requiere `GOOGLE_CSE_API_KEY`/`GOOGLE_CSE_ENGINE_ID`;
-    sin eso el toggle queda deshabilitado en esos 3) y le pasa los
-    resultados al modelo. Distinto de "Pegar un link" (#13): acá el modelo
-    elige cuándo y qué buscar, no vos.
+    por prompt (`WebSearchTool`) — la app busca de verdad (Brave Search API,
+    requiere `BRAVE_SEARCH_API_KEY`; sin eso el toggle queda deshabilitado
+    en esos 3) y le pasa los resultados al modelo. Distinto de "Pegar un
+    link" (#13): acá el modelo elige cuándo y qué buscar, no vos.
 18. **Búsqueda semántica del historial** (Historial): buscá conversaciones
     pasadas por significado ("¿qué le pregunté sobre X?"), no por texto
     exacto — 100% on-device (MediaPipe TextEmbedder, un modelo aparte de
@@ -183,7 +182,7 @@ La app está dividida en módulos Gradle por capa (convention plugins en
 | tokens reales en stats | ❌ (aproximado) | ✅ (`sizeInTokens()`) | ✅ (`usageMetadata`) |
 | Modo JSON (salida estructurada) | ✅ (emulado por prompt) | ✅ (emulado por prompt) | ✅ (nativo, `responseMimeType`) |
 | Herramientas (function calling) | ✅ (emulado por prompt) | ✅ (emulado por prompt) | ✅ (nativo, `DemoTools`, ver Parámetros) |
-| Búsqueda en internet (grounding) | ✅ (emulado, requiere `GOOGLE_CSE_*`) | ✅ (emulado, requiere `GOOGLE_CSE_*`) | ✅ (nativo, `google_search`, ver Parámetros) |
+| Búsqueda en internet (grounding) | ✅ (emulado, requiere `BRAVE_SEARCH_API_KEY`) | ✅ (emulado, requiere `BRAVE_SEARCH_API_KEY`) | ✅ (nativo, `google_search`, ver Parámetros) |
 
 Ver qué soporta cada tier es en sí mismo parte del estudio — por eso la UI
 deshabilita en vez de ocultar los controles no soportados. La tabla cubre los
@@ -353,18 +352,19 @@ ids de Firebase, y para CI el keystore y la cuenta de servicio) viven en un proy
 | `FIREBASE_API_KEY`, `FIREBASE_APP_ID`, `FIREBASE_PROJECT_ID` | Tier E (y `FIREBASE_APP_ID` también sube a App Distribution) |
 | `MEDIAPIPE_MODEL_TOKEN`, `MEDIAPIPE_MODEL_URL`, `MEDIAPIPE_MODEL_URL_GEMMA_2_2B_PART1`, `MEDIAPIPE_MODEL_URL_GEMMA_2_2B_PART2` | Tier B |
 | `LITERTLM_MODEL_URL` (opcional) | Tier D, para apuntar a otro modelo |
-| `GOOGLE_CSE_API_KEY`, `GOOGLE_CSE_ENGINE_ID` (opcionales) | Búsqueda en internet emulada de los tiers A/B/D (Google Custom Search JSON API) — `TierCapabilities.webSearch` de esos 3 tiers refleja si están configurados: si faltan, el toggle sale deshabilitado en vez de fallar en runtime |
+| `BRAVE_SEARCH_API_KEY` (opcional) | Búsqueda en internet emulada de los tiers A/B/D (Brave Search API) — `TierCapabilities.webSearch` de esos 3 tiers refleja si está configurado: si falta, el toggle sale deshabilitado en vez de fallar en runtime |
 | `CRASHLYTICS_ENABLED`, `ANALYTICS_ENABLED` (opcionales, por defecto `true`) | `false` apaga el envío a Crashlytics / Analytics (útil en `dev`) |
 | `SIGNING_KEYSTORE_BASE64`, `SIGNING_STORE_PASSWORD`, `SIGNING_KEY_ALIAS`, `SIGNING_KEY_PASSWORD` | Solo CI (`prd`) |
 | `FIREBASE_SERVICE_ACCOUNT_JSON` | Solo CI (`prd`) |
 
-**Conseguir `GOOGLE_CSE_API_KEY`/`GOOGLE_CSE_ENGINE_ID`** (opcional, solo para la búsqueda
-emulada de A/B/D): en [Google Cloud Console](https://console.cloud.google.com/apis/credentials),
-habilitar la **Custom Search API** y crear una API key (`GOOGLE_CSE_API_KEY`); en
-[Programmable Search Engine](https://programmablesearchengine.google.com/), crear un motor con
-"Buscar en toda la web" activado — el `cx` que te da es `GOOGLE_CSE_ENGINE_ID`. Tiene capa
-gratis (~100 consultas/día); sin ninguno de los dos, el toggle de búsqueda queda deshabilitado
-en los 3 tiers locales, sin romper nada.
+**Conseguir `BRAVE_SEARCH_API_KEY`** (opcional, solo para la búsqueda emulada de A/B/D): creá una
+cuenta en el [Brave Search API dashboard](https://api-dashboard.search.brave.com/), suscribite a
+un plan (pide tarjeta, con $5 de crédito mensual gratis — ~1000 consultas — y $5 cada 1000 de más;
+conviene poner un tope de gasto en el dashboard para no llevarse una sorpresa) y generá una API
+key. Se probó antes con Google Custom Search JSON API, pero Google discontinuó "buscar en toda la
+web" para motores nuevos desde el 20/01/2026 (solo deja hasta 50 sitios fijos, no sirve para
+grounding general). Sin `BRAVE_SEARCH_API_KEY`, el toggle de búsqueda queda deshabilitado en los
+3 tiers locales, sin romper nada.
 
 El build lee cada clave primero de una **variable de entorno**, después de
 `local.properties`, y si no está queda vacía (el tier sale "no disponible"). Dos formas de

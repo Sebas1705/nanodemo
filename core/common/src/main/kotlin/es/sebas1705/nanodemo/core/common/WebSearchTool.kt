@@ -9,7 +9,7 @@ import java.net.URL
 import java.net.URLEncoder
 
 private const val TAG = "NanoDemo.WebSearchTool"
-private const val ENDPOINT = "https://www.googleapis.com/customsearch/v1"
+private const val ENDPOINT = "https://api.search.brave.com/res/v1/web/search"
 private const val MAX_RESULTS = 5
 private const val TIMEOUT_MS = 15_000
 
@@ -21,14 +21,15 @@ private const val TIMEOUT_MS = 15_000
  * ellos solo puede significar que la APP busca y le pasa los resultados al modelo — google_search
  * nativo de Cloud/Firebase (grounding real del lado de Google) sigue siendo distinto de esto.
  *
- * Usa la Google Custom Search JSON API (`GOOGLE_CSE_API_KEY` + `GOOGLE_CSE_ENGINE_ID`, un motor de
- * Programmable Search Engine configurado para buscar en toda la web). Ninguno de los dos es
- * obligatorio: si faltan, [isConfigured] da `false` y la búsqueda queda deshabilitada con un mensaje,
- * nunca rompe el turno (ver build.gradle.kts de este módulo).
+ * Usa la Brave Search API (`BRAVE_SEARCH_API_KEY`, header `X-Subscription-Token`) — se probó antes
+ * con Google Custom Search JSON API, pero Google discontinuó "buscar en toda la web" para motores
+ * nuevos desde el 20/01/2026 (solo hasta 50 sitios fijos, no útil para grounding general). El
+ * secreto es opcional: si falta, [isConfigured] da `false` y la búsqueda queda deshabilitada con un
+ * mensaje, nunca rompe el turno (ver build.gradle.kts de este módulo).
  */
 object WebSearchTool {
     val isConfigured: Boolean
-        get() = BuildConfig.GOOGLE_CSE_API_KEY.isNotBlank() && BuildConfig.GOOGLE_CSE_ENGINE_ID.isNotBlank()
+        get() = BuildConfig.BRAVE_SEARCH_API_KEY.isNotBlank()
 
     private val REACT_CALL_REGEX = Regex("""\[\[SEARCH_WEB:([^\]]+)\]\]""")
 
@@ -51,18 +52,19 @@ object WebSearchTool {
         REACT_CALL_REGEX.find(text)?.groupValues?.get(1)?.trim()?.ifBlank { null }
 
     /**
-     * Busca `query` y devuelve un resumen legible de los primeros resultados (título + snippet +
+     * Busca `query` y devuelve un resumen legible de los primeros resultados (título + descripción +
      * link), listo para agregar como turno de contexto. Nunca lanza: cualquier fallo (sin
      * configurar, HTTP, red) vuelve como un string explicativo en vez de una excepción — la
      * herramienta nunca tiene que romper el turno, mismo criterio que `DemoTools.executeCurrentTime`.
      */
     suspend fun search(query: String): String = withContext(Dispatchers.IO) {
-        if (!isConfigured) return@withContext "Búsqueda no configurada en este dispositivo (faltan GOOGLE_CSE_API_KEY/GOOGLE_CSE_ENGINE_ID)."
-        val url = "$ENDPOINT?key=${BuildConfig.GOOGLE_CSE_API_KEY}&cx=${BuildConfig.GOOGLE_CSE_ENGINE_ID}" +
-            "&num=$MAX_RESULTS&q=${URLEncoder.encode(query, "UTF-8")}"
+        if (!isConfigured) return@withContext "Búsqueda no configurada en este dispositivo (falta BRAVE_SEARCH_API_KEY)."
+        val url = "$ENDPOINT?q=${URLEncoder.encode(query, "UTF-8")}&count=$MAX_RESULTS"
         val connection = (URL(url).openConnection() as HttpURLConnection).apply {
             connectTimeout = TIMEOUT_MS
             readTimeout = TIMEOUT_MS
+            setRequestProperty("Accept", "application/json")
+            setRequestProperty("X-Subscription-Token", BuildConfig.BRAVE_SEARCH_API_KEY)
         }
         try {
             if (connection.responseCode !in 200..299) {
@@ -70,11 +72,11 @@ object WebSearchTool {
                 return@withContext "Error buscando \"$query\" (HTTP ${connection.responseCode})."
             }
             val body = connection.inputStream.bufferedReader().use { it.readText() }
-            val items = JSONObject(body).optJSONArray("items")
-            if (items == null || items.length() == 0) return@withContext "Sin resultados para \"$query\"."
-            (0 until items.length()).joinToString("\n\n") { i ->
-                val item = items.getJSONObject(i)
-                "- ${item.optString("title")}: ${item.optString("snippet")} (${item.optString("link")})"
+            val results = JSONObject(body).optJSONObject("web")?.optJSONArray("results")
+            if (results == null || results.length() == 0) return@withContext "Sin resultados para \"$query\"."
+            (0 until results.length()).joinToString("\n\n") { i ->
+                val item = results.getJSONObject(i)
+                "- ${item.optString("title")}: ${item.optString("description")} (${item.optString("url")})"
             }
         } catch (e: Exception) {
             Log.e(TAG, "search(\"$query\"): falló", e)
