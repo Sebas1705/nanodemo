@@ -3,6 +3,7 @@ package es.sebas1705.nanodemo.data.firebaseai
 import android.content.Context
 import android.util.Log
 import es.sebas1705.nanodemo.core.common.DemoTools
+import es.sebas1705.nanodemo.core.common.appContextPreamble
 import es.sebas1705.nanodemo.core.common.hasInternetConnection
 import es.sebas1705.nanodemo.domain.models.ChatMessage
 import es.sebas1705.nanodemo.domain.models.GenerationConfig
@@ -162,7 +163,9 @@ class FirebaseAiBackend @Inject constructor(
         return Firebase.ai(backend = GenerativeBackend.googleAI()).generativeModel(
             modelName = CLOUD_MODEL,
             generationConfig = generationConfig,
-            systemInstruction = config.systemPrompt?.let { prompt -> content { text(prompt) } },
+            systemInstruction = content {
+                text(listOfNotNull(appContextPreamble(), config.systemPrompt).joinToString("\n\n"))
+            },
             tools = tools,
         )
     }

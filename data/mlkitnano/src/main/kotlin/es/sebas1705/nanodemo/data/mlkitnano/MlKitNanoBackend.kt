@@ -149,7 +149,7 @@ class MlKitNanoBackend @Inject constructor(
         config.maxOutputTokens?.let { requestBuilder.maxOutputTokens = it }
         val fullSystemPrompt =
             buildLocalSystemPrompt(config.systemPrompt, config.functionCalling, config.webSearch, config.jsonMode)
-        if (fullSystemPrompt != null && generativeModel.isSystemPromptAvailable()) {
+        if (generativeModel.isSystemPromptAvailable()) {
             requestBuilder.systemInstruction = SystemInstruction(fullSystemPrompt)
         }
 

@@ -338,7 +338,7 @@ class MediaPipeBackend @Inject constructor(
             val newSession = LlmInferenceSession.createFromOptions(inference, sessionOptionsBuilder.build())
             val fullSystemPrompt =
                 buildLocalSystemPrompt(config.systemPrompt, config.functionCalling, config.webSearch, config.jsonMode)
-            fullSystemPrompt?.let { newSession.addQueryChunk("Instrucciones: $it\n\n") }
+            newSession.addQueryChunk("Instrucciones: $fullSystemPrompt\n\n")
             session = newSession
             newSession
         }

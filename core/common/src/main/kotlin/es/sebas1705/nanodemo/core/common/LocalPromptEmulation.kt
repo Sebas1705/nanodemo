@@ -16,8 +16,9 @@ const val JSON_MODE_INSTRUCTION =
         "parsearse como JSON de punta a punta."
 
 /**
- * Combina el system prompt del usuario con los addendums de emulación que correspondan según
- * `config`, o `null` si no hay nada que agregar.
+ * Combina [appContextPreamble] (siempre primero) con el system prompt del usuario y los addendums
+ * de emulación que correspondan según `config`. Nunca es blank -- `appContextPreamble()` sola ya
+ * garantiza contenido, así que a diferencia de antes esto no necesita devolver `String?`.
  *
  * `webSearch` tiene prioridad sobre `functionCalling` — mismo criterio que ya usan Cloud/Firebase
  * ("si también prendiste Herramientas, [búsqueda] gana", ver `ConfigScreen`): son 2 instrucciones
@@ -30,14 +31,15 @@ fun buildLocalSystemPrompt(
     functionCalling: Boolean,
     webSearch: Boolean,
     jsonMode: Boolean,
-): String? = buildList {
+): String = buildList {
+    add(appContextPreamble())
     userSystemPrompt?.let(::add)
     when {
         webSearch -> add(WebSearchTool.reactInstruction())
         functionCalling -> add(DemoTools.reactInstruction())
     }
     if (jsonMode) add(JSON_MODE_INSTRUCTION)
-}.joinToString("\n\n").ifBlank { null }
+}.joinToString("\n\n")
 
 /** Lo que hay que mostrar (`marker`) y agregar como turno siguiente (`resultMessage`) tras ejecutar una herramienta emulada. */
 data class LocalToolCall(val marker: String, val resultMessage: String)

@@ -247,9 +247,7 @@ class LiteRtLmBackend @Inject constructor(
             )
             val fullSystemPrompt =
                 buildLocalSystemPrompt(config.systemPrompt, config.functionCalling, config.webSearch, config.jsonMode)
-            if (fullSystemPrompt != null) {
-                conversationConfig = conversationConfig.copy(systemInstruction = Contents.of(fullSystemPrompt))
-            }
+            conversationConfig = conversationConfig.copy(systemInstruction = Contents.of(fullSystemPrompt))
 
             Log.d(TAG, "getOrCreateConversation: config=$config, turnos previos=${previousTurns.size}")
             activeEngine.createConversation(conversationConfig).also { conversation = it }

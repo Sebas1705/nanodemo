@@ -126,7 +126,8 @@ fun ConfigScreen(viewModel: ConfigViewModel = hiltViewModel()) {
             )
             Text(
                 "Instrucción que se le da al modelo antes de cada prompt, para fijar su rol " +
-                    "o estilo de respuesta (ej. \"Respondé siempre en 2 oraciones\").",
+                    "o estilo de respuesta (ej. \"Respondé siempre en 2 oraciones\"). Se suma a un " +
+                    "contexto fijo que ya le cuenta al modelo qué es AIMobiDemo, en los 5 tiers.",
                 style = MaterialTheme.typography.bodySmall,
                 color = DemoColors.Muted,
             )

@@ -5,6 +5,7 @@ import android.net.Uri
 import android.util.Base64
 import android.util.Log
 import es.sebas1705.nanodemo.core.common.DemoTools
+import es.sebas1705.nanodemo.core.common.appContextPreamble
 import es.sebas1705.nanodemo.core.common.hasInternetConnection
 import es.sebas1705.nanodemo.domain.models.ChatMessage
 import es.sebas1705.nanodemo.domain.models.GenerationConfig
@@ -277,12 +278,11 @@ class CloudGeminiBackend @Inject constructor(
             )
         }
 
-        config.systemPrompt?.let { systemPrompt ->
-            body.put(
-                "systemInstruction",
-                JSONObject().put("parts", JSONArray().put(JSONObject().put("text", systemPrompt)))
-            )
-        }
+        val fullSystemPrompt = listOfNotNull(appContextPreamble(), config.systemPrompt).joinToString("\n\n")
+        body.put(
+            "systemInstruction",
+            JSONObject().put("parts", JSONArray().put(JSONObject().put("text", fullSystemPrompt)))
+        )
         return body
     }
 

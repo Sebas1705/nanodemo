@@ -65,7 +65,10 @@ Models framework de Apple).
    vez de fallar en silencio.
 4. Panel de **parámetros de generación** (temperature, top-K, top-P, max
    output tokens, system prompt) — cada control se deshabilita si el tier
-   activo no lo soporta (ver tabla de capacidades más abajo).
+   activo no lo soporta (ver tabla de capacidades más abajo). Además del
+   system prompt propio de cada tier, un preámbulo fijo (`appContextPreamble()`,
+   `core:common`) le cuenta al modelo qué es AIMobiDemo en los 5 tiers, para
+   que pueda responder si le preguntan qué es o qué hace la app.
 5. **Conversación multi-turno**: el prompt y la respuesta quedan en un
    transcript que se manda de contexto en el siguiente turno; "Nueva
    conversación" lo resetea (y cierra la sesión de MediaPipe, si aplica).
