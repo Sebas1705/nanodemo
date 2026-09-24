@@ -6,10 +6,11 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import java.time.LocalDate
+import java.time.ZoneId
 import java.time.format.DateTimeFormatter
 
 enum class QuotaPeriod(val perLabel: String, val resetLabel: String) {
-    DAY("por día", "mañana"),
+    DAY("por día", "a la medianoche del Pacífico"),
     MONTH("por mes", "el mes que viene"),
 }
 
@@ -29,11 +30,11 @@ enum class QuotaService(
 ) {
     GEMINI_CLOUD(
         "Gemini API · Tier C (Cloud)", QuotaPeriod.DAY, 20,
-        "Cada llamada HTTP cuenta (un turno con herramientas o búsqueda hace 2). Comparar gasta 1 por prompt.",
+        "Plan gratis: límites por PROYECTO (no por key), sin tarjeta. Cada llamada HTTP cuenta (un turno con herramientas o búsqueda hace 2). Sin grounding en el plan gratis.",
     ),
     GEMINI_FIREBASE(
         "Firebase AI Logic · Tier E", QuotaPeriod.DAY, 20,
-        "Mismo plan gratis de Gemini, medido aparte porque usa otra key/proyecto. Cada llamada cuenta.",
+        "Gemini Developer API vía Firebase (plan Spark, sin tarjeta). Si la key del Tier C es del MISMO proyecto, comparten cuota: repartí el límite entre los dos. Vincular facturación (Blaze) vuelve todo de pago.",
     ),
     BRAVE_SEARCH(
         "Brave Search · búsqueda de los tiers locales", QuotaPeriod.MONTH, 1000,
@@ -55,8 +56,8 @@ data class QuotaState(
 
 /**
  * Contador local de uso contra los límites gratis. Se persiste en SharedPreferences y se reinicia solo al
- * cambiar el día/mes (calendario local: Google reinicia sus cuotas diarias a medianoche del Pacífico, así
- * que es una aproximación). Es solo del lado de la app — no sabe lo que gastaste desde otro dispositivo o
+ * cambiar el día/mes (el día de Gemini se mide en hora del Pacífico, como reinicia Google sus cuotas; el mes,
+ * en calendario local). Es solo del lado de la app — no sabe lo que gastaste desde otro dispositivo o
  * key, ni reemplaza los topes de gasto de las consolas.
  *
  * Es un `object` (no un servicio inyectado) porque lo consultan módulos independientes que no comparten
@@ -66,6 +67,7 @@ object UsageQuota {
     private const val PREFS = "usage_quota"
     private val DAY_KEY = DateTimeFormatter.ISO_LOCAL_DATE
     private val MONTH_KEY = DateTimeFormatter.ofPattern("yyyy-MM")
+    private val PACIFIC: ZoneId = ZoneId.of("America/Los_Angeles")
 
     private var prefs: SharedPreferences? = null
     private val _states = MutableStateFlow<Map<QuotaService, QuotaState>>(emptyMap())
@@ -80,7 +82,8 @@ object UsageQuota {
     }
 
     private fun periodKey(service: QuotaService): String {
-        val today = LocalDate.now()
+        // Las cuotas diarias de Gemini se reinician a medianoche del Pacífico (no a la del dispositivo).
+        val today = LocalDate.now(if (service.period == QuotaPeriod.DAY) PACIFIC else ZoneId.systemDefault())
         return when (service.period) {
             QuotaPeriod.DAY -> today.format(DAY_KEY)
             QuotaPeriod.MONTH -> today.format(MONTH_KEY)
