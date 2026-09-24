@@ -5,8 +5,8 @@ import kotlinx.serialization.Serializable
 
 /**
  * Rutas de las 4 pestañas de la app (Navigation 3). Parámetros y Dispositivo dejaron de ser
- * pestañas propias — viven en la hoja modal "Ajustes" (`SettingsSheet.kt`), que se abre con un
- * FAB y no participa del backstack (es estado local de `AppNav`, no una ruta).
+ * pestañas propias — viven en la hoja modal "Ajustes" (`SettingsSheet.kt`), que se abre desde el
+ * menú lateral y no participa del backstack (es estado local de `AppNav`, no una ruta).
  */
 sealed interface AppGraph : NavKey {
 

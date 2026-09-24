@@ -9,6 +9,8 @@ dependencies {
     implementation(projects.domain.models)
     // Solo para el chip de tier activo de la barra superior compartida (ver MainViewModel/AppNav).
     implementation(projects.domain.usescases.inference)
+    // Conversaciones recientes del menú lateral (ver MainViewModel/AppDrawer).
+    implementation(projects.domain.usescases.history)
 
     implementation(projects.feature.chat)
     implementation(projects.feature.compare)

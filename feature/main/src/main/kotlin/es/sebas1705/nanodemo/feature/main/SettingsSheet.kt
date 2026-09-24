@@ -20,7 +20,7 @@ import es.sebas1705.nanodemo.feature.device.DeviceScreen
 
 /**
  * "Ajustes": características de dispositivo + parámetros de generación por tier/modelo,
- * combinados en una sola hoja modal abierta desde el FAB de `AppNav` — antes eran 2 pestañas
+ * combinados en una sola hoja modal abierta desde el menú lateral (`AppDrawer`) — antes eran 2 pestañas
  * fijas (Dispositivo, Parámetros) compitiendo por espacio con las 4 que se usan a diario
  * (Chat/Comparar/Historial/Estadísticas). `ModalBottomSheet` maneja sus propios insets de
  * sistema (ver `docs`/skill de edge-to-edge), así que no hace falta repetir ese trabajo acá.

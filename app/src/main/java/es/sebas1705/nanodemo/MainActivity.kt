@@ -17,9 +17,9 @@ import dagger.hilt.android.AndroidEntryPoint
  * ML Kit GenAI Prompt API (Gemini Nano on-device) -> MediaPipe LLM Inference
  * (Gemma local) -> Gemini API en la nube (fallback universal con red).
  *
- * Repartido en 6 pantallas (Chat, Comparar, Parámetros, Dispositivo,
- * Historial, Estadísticas) con navegación adaptativa — ver
- * `feature:main/AppNav.kt` para el shell (`NavigationBar`/`NavigationRail`
+ * Repartido en 4 secciones (Chat, Comparar, Historial, Estadísticas) más la hoja de Ajustes
+ * (Dispositivo + Parámetros), con menú lateral adaptativo — ver
+ * `feature:main/AppNav.kt` para el shell (drawer modal/permanente
  * según `ScreenSizeClass`) y `core:designsystem` para las piezas de UI
  * compartidas entre pantallas.
  */
@@ -31,11 +31,11 @@ class MainActivity : ComponentActivity() {
         // Explícito, no solo por quedar prolijo: con targetSdk 36 el sistema ya dibuja edge-to-edge
         // sin pedirlo (desde Android 15), así que sin esto el contenido igual queda por detrás de
         // las barras del sistema, pero sin el manejo automático de color de sus iconos que da esta
-        // llamada. Los insets de cada barra propia (ChannelTopBar, NavigationBar) se manejan aparte
+        // llamada. Los insets de la barra propia (ChannelTopBar) se manejan aparte
         // — ver AppNav.kt.
         enableEdgeToEdge()
         // Sin esto, el sistema le pone un scrim translúcido a la barra de navegación por debajo
-        // de nuestra `NavigationBar` (opaca, con su propio `DemoColors.Panel`) — minSdk 31 ya
+        // de nuestro contenido (el composer del Chat llega hasta abajo) — minSdk 31 ya
         // cubre de sobra el API 29+ que pide esta propiedad.
         window.isNavigationBarContrastEnforced = false
         setContent {

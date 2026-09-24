@@ -173,7 +173,8 @@ La app está dividida en módulos Gradle por capa (convention plugins en
   **`stats`** / **`history`** — una pantalla + su propio `@HiltViewModel` cada
   una.
 - **`feature:main`** — shell de navegación adaptativo sobre Navigation 3
-  (`NavigationBar`/`NavigationRail` según tamaño de pantalla).
+  con menú lateral (drawer modal en teléfono, permanente en tablet) en vez de barra inferior:
+  secciones, "Nueva conversación", conversaciones recientes y Ajustes.
 - **`:app`** — solo `Application` (`@HiltAndroidApp`) y `MainActivity`
   (`@AndroidEntryPoint`).
 

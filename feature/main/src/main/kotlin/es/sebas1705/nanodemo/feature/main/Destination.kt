@@ -8,10 +8,10 @@ import androidx.compose.material.icons.filled.Science
 import androidx.compose.ui.graphics.vector.ImageVector
 
 /**
- * Las 4 pestañas del nav bar/rail — Parámetros y Dispositivo se movieron a la hoja "Ajustes"
- * (`SettingsSheet.kt`, abierta con el FAB), así que ya no compiten por espacio con las 4 que se
+ * Las 4 secciones del menú lateral — Parámetros y Dispositivo se movieron a la hoja "Ajustes"
+ * (`SettingsSheet.kt`, ítem al pie del menú), así que ya no compiten por espacio con las 4 que se
  * usan a diario. `label` es también el título que muestra la barra superior compartida
- * (`ChannelTopBar` en `AppNav.kt`) para esa pantalla, en mayúscula — una sola fuente para los dos.
+ * (`ChannelTopBar` en `AppNav.kt`) para esa pantalla — una sola fuente para los dos.
  */
 enum class Destination(val label: String, val icon: ImageVector) {
     Chat("Chat", Icons.Filled.Chat),

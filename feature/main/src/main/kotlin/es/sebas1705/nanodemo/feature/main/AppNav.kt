@@ -1,5 +1,6 @@
 package es.sebas1705.nanodemo.feature.main
 
+import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -7,28 +8,28 @@ import androidx.compose.foundation.layout.consumeWindowInsets
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.statusBarsPadding
+import androidx.compose.foundation.layout.width
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Settings
-import androidx.compose.material3.FloatingActionButton
+import androidx.compose.material.icons.filled.Menu
+import androidx.compose.material3.DrawerValue
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.NavigationBar
-import androidx.compose.material3.NavigationBarItem
-import androidx.compose.material3.NavigationBarItemDefaults
-import androidx.compose.material3.NavigationRail
-import androidx.compose.material3.NavigationRailItem
-import androidx.compose.material3.NavigationRailItemDefaults
+import androidx.compose.material3.ModalDrawerSheet
+import androidx.compose.material3.ModalNavigationDrawer
+import androidx.compose.material3.PermanentDrawerSheet
+import androidx.compose.material3.PermanentNavigationDrawer
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
+import androidx.compose.material3.rememberDrawerState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -53,13 +54,14 @@ import es.sebas1705.nanodemo.feature.chat.ChatScreen
 import es.sebas1705.nanodemo.feature.compare.CompareScreen
 import es.sebas1705.nanodemo.feature.history.HistoryScreen
 import es.sebas1705.nanodemo.feature.stats.StatsScreen
+import kotlinx.coroutines.launch
 
 /**
- * Shell de navegación adaptativo: `NavigationBar` abajo en teléfono,
- * `NavigationRail` al costado en tablet/plegable/landscape ancho — mismo
- * breakpoint (`ScreenSizeClass`) que ya usaba la versión de un solo módulo,
- * reescrito sobre Navigation 3 en vez de Navigation Compose 2.x. Las dos ramas
- * comparten `ChannelTopBar` arriba (título de la pantalla + tier activo).
+ * Shell de navegación adaptativo con menú lateral (`DrawerContent`) en vez de la barra inferior: en
+ * teléfono es un drawer modal que se abre con el botón de menú o deslizando desde el borde; en
+ * tablet/plegable/landscape ancho es un drawer permanente a la izquierda — mismo breakpoint
+ * (`ScreenSizeClass`) de siempre, sobre Navigation 3. Las dos ramas comparten `ChannelTopBar` arriba
+ * (título de la pantalla + tier activo). Ajustes ya no es un FAB: es un ítem al pie del menú.
  */
 @Composable
 fun AppNav(initialSharedText: String? = null, mainViewModel: MainViewModel = hiltViewModel()) {
@@ -69,98 +71,90 @@ fun AppNav(initialSharedText: String? = null, mainViewModel: MainViewModel = hil
     val currentDestination = (backStack.lastOrNull() as? AppGraph)?.toDestination()
     val activeTier by mainViewModel.activeTier.collectAsState()
     val availability by mainViewModel.availability.collectAsState()
+    val recents by mainViewModel.recentConversations.collectAsState()
     var showSettings by remember { mutableStateOf(false) }
+    val drawerState = rememberDrawerState(DrawerValue.Closed)
+    val scope = rememberCoroutineScope()
 
-    // Una vista de pantalla por cambio de pestaña. Abrir una conversación desde el historial no cambia
+    // Una vista de pantalla por cambio de sección. Abrir una conversación desde el historial no cambia
     // de destino (sigue siendo Chat), así que no cuenta como pantalla nueva.
     LaunchedEffect(currentDestination) {
         currentDestination?.let { mainViewModel.onScreenShown(it.name.lowercase()) }
     }
 
-    // Un teléfono en landscape entra en medium/expanded por ancho, pero no
-    // tiene alto suficiente para un rail de 6 ítems — en ese caso se queda
-    // con la barra inferior aunque el ancho diga "tablet".
+    // `afterAction` cierra el drawer modal tras elegir algo (en el permanente no hace nada).
+    val drawerContent: @Composable (afterAction: () -> Unit) -> Unit = { afterAction ->
+        DrawerContent(
+            currentDestination = currentDestination,
+            activeTier = activeTier,
+            recents = recents,
+            onNavigate = { destination ->
+                backStack.pushAndFree(destination.toRoute())
+                afterAction()
+            },
+            onNewConversation = {
+                mainViewModel.startNewConversation()
+                backStack.pushAndFree(AppGraph.Chat())
+                afterAction()
+            },
+            onOpenConversation = { conversationId ->
+                backStack.pushAndFree(AppGraph.Chat(conversationId))
+                afterAction()
+            },
+            onOpenSettings = {
+                showSettings = true
+                afterAction()
+            },
+        )
+    }
+
+    val topBarTier = availability[activeTier] ?: TierAvailability.UNKNOWN
+
+    // Un teléfono en landscape entra en medium/expanded por ancho, pero no tiene alto para un drawer
+    // permanente cómodo — en ese caso se queda con el modal aunque el ancho diga "tablet".
     if (sizeClass == ScreenSizeClass.COMPACT || isCompactHeight) {
-        // En Chat el FAB de Ajustes taparía el botón de enviar del composer (queda abajo a la derecha): ahí
-        // el acceso pasa a un ícono en la barra superior.
-        val settingsInTopBar = currentDestination == Destination.Chat
-        Scaffold(
-            topBar = {
-                ChannelTopBar(
-                    title = currentDestination?.label ?: "",
-                    activeTier = activeTier,
-                    availability = availability[activeTier] ?: TierAvailability.UNKNOWN,
-                    onOpenSettings = if (settingsInTopBar) ({ showSettings = true }) else null,
+        BackHandler(enabled = drawerState.isOpen) { scope.launch { drawerState.close() } }
+        ModalNavigationDrawer(
+            drawerState = drawerState,
+            drawerContent = {
+                ModalDrawerSheet(drawerContainerColor = DemoColors.Panel) {
+                    drawerContent { scope.launch { drawerState.close() } }
+                }
+            },
+        ) {
+            Scaffold(
+                topBar = {
+                    ChannelTopBar(
+                        title = currentDestination?.label ?: "",
+                        activeTier = activeTier,
+                        availability = topBarTier,
+                        onOpenMenu = { scope.launch { drawerState.open() } },
+                    )
+                },
+            ) { padding ->
+                AppNavHost(
+                    backStack = backStack,
+                    sizeClass = sizeClass,
+                    // consumeWindowInsets: el padding ya incluye la barra de navegación del sistema; sin esto,
+                    // un `imePadding()` más adentro (composer del Chat) sumaría el teclado ENCIMA de ese hueco.
+                    modifier = Modifier.padding(padding).consumeWindowInsets(padding).fillMaxSize(),
                 )
-            },
-            bottomBar = {
-                NavigationBar(containerColor = DemoColors.Panel) {
-                    Destination.entries.forEach { destination ->
-                        NavigationBarItem(
-                            selected = currentDestination == destination,
-                            onClick = { backStack.pushAndFree(destination.toRoute()) },
-                            icon = {
-                                Icon(
-                                    imageVector = destination.icon,
-                                    contentDescription = destination.label,
-                                )
-                            },
-                            label = { Text(destination.label) },
-                            colors = navBarItemColors(),
-                            // Con 6 pestañas, un label fijo por ítem las aprieta — igual que ya
-                            // hace el NavigationRail de abajo, solo el ítem activo lo muestra.
-                            alwaysShowLabel = false,
-                        )
-                    }
-                }
-            },
-            floatingActionButton = {
-                if (!settingsInTopBar) {
-                    FloatingActionButton(onClick = { showSettings = true }) {
-                        Icon(Icons.Filled.Settings, contentDescription = "Ajustes")
-                    }
-                }
             }
-        ) { padding ->
-            AppNavHost(
-                backStack = backStack,
-                sizeClass = sizeClass,
-                // consumeWindowInsets: el padding ya incluye la barra de navegación; sin esto, un
-                // `imePadding()` más adentro (composer del Chat) sumaría el teclado ENCIMA de ese hueco.
-                modifier = Modifier.padding(padding).consumeWindowInsets(padding).fillMaxSize(),
-            )
         }
     } else {
-        Row(Modifier.fillMaxSize()) {
-            NavigationRail(
-                containerColor = DemoColors.Panel,
-                header = {
-                    FloatingActionButton(onClick = { showSettings = true }) {
-                        Icon(Icons.Filled.Settings, contentDescription = "Ajustes")
-                    }
-                },
-            ) {
-                Destination.entries.forEach { destination ->
-                    NavigationRailItem(
-                        selected = currentDestination == destination,
-                        onClick = { backStack.pushAndFree(destination.toRoute()) },
-                        icon = {
-                            Icon(
-                                imageVector = destination.icon,
-                                contentDescription = destination.label,
-                            )
-                        },
-                        label = { Text(destination.label) },
-                        colors = navRailItemColors(),
-                        alwaysShowLabel = false, // solo el seleccionado muestra label: los 6 ítems entran más ajustados
-                    )
+        PermanentNavigationDrawer(
+            drawerContent = {
+                PermanentDrawerSheet(modifier = Modifier.width(300.dp), drawerContainerColor = DemoColors.Panel) {
+                    drawerContent {}
                 }
-            }
-            Column(Modifier.weight(1f).fillMaxSize()) {
+            },
+        ) {
+            Column(Modifier.fillMaxSize()) {
                 ChannelTopBar(
                     title = currentDestination?.label ?: "",
                     activeTier = activeTier,
-                    availability = availability[activeTier] ?: TierAvailability.UNKNOWN,
+                    availability = topBarTier,
+                    onOpenMenu = null,
                 )
                 AppNavHost(
                     backStack = backStack,
@@ -177,65 +171,46 @@ fun AppNav(initialSharedText: String? = null, mainViewModel: MainViewModel = hil
 }
 
 /**
- * Barra superior compartida entre las 6 pantallas — antes cada una dibujaba su propio
- * título (`Text(headlineSmall)`) suelto adentro de su `Column` scrolleable, y no había
- * ningún lugar que mostrara qué tier está activo fuera de Chat. Deliberadamente NO es el
- * `TopAppBar` de Material3 (con su elevación/scroll-behavior): un `Row` simple mantiene la
- * estética plana de panel de instrumentos que ya tiene el resto de la app — pero al ser
- * custom, a diferencia de un `TopAppBar` real, no reserva sola el espacio de la barra de
- * estado: `statusBarsPadding()` hace ese trabajo a mano (si no, con `targetSdk` 36 la barra
- * de estado del sistema dibuja encima del título).
+ * Barra superior compartida entre las pantallas: botón de menú (solo con drawer modal), título y el
+ * tier activo. Deliberadamente NO es el `TopAppBar` de Material3 (con su elevación/scroll-behavior):
+ * un `Row` simple mantiene la estética plana del resto de la app — pero al ser custom, a diferencia
+ * de un `TopAppBar` real, no reserva sola el espacio de la barra de estado: `statusBarsPadding()` hace
+ * ese trabajo a mano (si no, con `targetSdk` 36 la barra de estado del sistema dibuja encima del título).
  */
 @Composable
 private fun ChannelTopBar(
     title: String,
     activeTier: InferenceTier,
     availability: TierAvailability,
-    onOpenSettings: (() -> Unit)? = null,
+    onOpenMenu: (() -> Unit)?,
 ) {
     Row(
         modifier = Modifier
             .fillMaxWidth()
             .statusBarsPadding()
-            .padding(horizontal = 16.dp, vertical = 12.dp),
+            .padding(start = if (onOpenMenu != null) 4.dp else 16.dp, end = 16.dp, top = 4.dp, bottom = 4.dp),
         horizontalArrangement = Arrangement.SpaceBetween,
         verticalAlignment = Alignment.CenterVertically,
     ) {
-        Text(
-            text = title,
-            style = MaterialTheme.typography.titleLarge,
-            color = DemoColors.Ink,
-        )
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            onOpenMenu?.let {
+                IconButton(onClick = it) {
+                    Icon(Icons.Filled.Menu, contentDescription = "Menú", tint = DemoColors.Ink)
+                }
+            }
+            Text(
+                text = title,
+                style = MaterialTheme.typography.titleLarge,
+                color = DemoColors.Ink,
+                modifier = Modifier.padding(vertical = if (onOpenMenu == null) 12.dp else 0.dp),
+            )
+        }
         Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
             TierAvatar(activeTier, 24.dp)
             StatusIndicator(availability, activeTier.signalColor)
-            onOpenSettings?.let {
-                // 32dp (no los 48dp por defecto) para que la barra no crezca solo en Chat.
-                IconButton(onClick = it, modifier = Modifier.size(32.dp)) {
-                    Icon(Icons.Filled.Settings, contentDescription = "Ajustes", tint = DemoColors.Muted, modifier = Modifier.size(20.dp))
-                }
-            }
         }
     }
 }
-
-@Composable
-private fun navBarItemColors() = NavigationBarItemDefaults.colors(
-    selectedIconColor = DemoColors.TierA,
-    selectedTextColor = DemoColors.TierA,
-    unselectedIconColor = DemoColors.Muted,
-    unselectedTextColor = DemoColors.Muted,
-    indicatorColor = DemoColors.TierA.copy(alpha = 0.16f),
-)
-
-@Composable
-private fun navRailItemColors() = NavigationRailItemDefaults.colors(
-    selectedIconColor = DemoColors.TierA,
-    selectedTextColor = DemoColors.TierA,
-    unselectedIconColor = DemoColors.Muted,
-    unselectedTextColor = DemoColors.Muted,
-    indicatorColor = DemoColors.TierA.copy(alpha = 0.16f),
-)
 
 @Composable
 private fun AppNavHost(
