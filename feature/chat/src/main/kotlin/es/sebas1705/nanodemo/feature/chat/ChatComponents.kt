@@ -83,7 +83,13 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import es.sebas1705.nanodemo.core.designsystem.ErrorCard
+import es.sebas1705.nanodemo.core.designsystem.MarkdownText
+import es.sebas1705.nanodemo.core.designsystem.PromptBar
+import es.sebas1705.nanodemo.core.designsystem.SectionLabel
 import es.sebas1705.nanodemo.core.designsystem.StatusIndicator
+import es.sebas1705.nanodemo.core.designsystem.TypingDots
+import es.sebas1705.nanodemo.core.designsystem.TierAvatar
 import es.sebas1705.nanodemo.core.designsystem.TierChannelRow
 import es.sebas1705.nanodemo.core.designsystem.channelLetter
 import es.sebas1705.nanodemo.core.designsystem.downloadableMessage
@@ -117,28 +123,6 @@ internal fun rememberImageBitmap(uri: Uri?): ImageBitmap? {
                 null
             }
         }
-    }
-}
-
-/** Círculo con la letra del canal: la "identidad" del modelo que responde, como el logo en otros chats de IA. */
-@Composable
-internal fun TierAvatar(tier: InferenceTier, size: Dp, modifier: Modifier = Modifier) {
-    val color = tier.signalColor
-    Box(
-        modifier = modifier
-            .size(size)
-            .clip(CircleShape)
-            .background(color.copy(alpha = 0.16f))
-            .border(1.dp, color.copy(alpha = 0.6f), CircleShape),
-        contentAlignment = Alignment.Center,
-    ) {
-        Text(
-            tier.channelLetter(),
-            style = readoutStyle,
-            color = color,
-            fontWeight = FontWeight.Bold,
-            fontSize = (size.value * 0.42f).sp,
-        )
     }
 }
 
@@ -227,7 +211,7 @@ private fun MediaPipeModelRow(
     onSelect: (MediaPipeModelOption) -> Unit,
 ) {
     Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
-        Text("MODELO", style = MaterialTheme.typography.labelSmall, color = DemoColors.Muted)
+        SectionLabel("Modelo")
         LazyRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
             items(models) { model ->
                 FilterChip(
@@ -371,41 +355,6 @@ internal fun AttachmentPill(
     }
 }
 
-@Composable
-internal fun TypingDots(color: Color) {
-    val transition = rememberInfiniteTransition(label = "typing")
-    Row(
-        modifier = Modifier.padding(vertical = 10.dp),
-        horizontalArrangement = Arrangement.spacedBy(5.dp),
-    ) {
-        repeat(3) { index ->
-            val alpha by transition.animateFloat(
-                initialValue = 0.25f,
-                targetValue = 1f,
-                animationSpec = infiniteRepeatable(tween(600, delayMillis = index * 160), RepeatMode.Reverse),
-                label = "dot$index",
-            )
-            Box(Modifier.size(8.dp).alpha(alpha).background(color, CircleShape))
-        }
-    }
-}
-
-@Composable
-internal fun ErrorCard(message: String) {
-    Row(
-        modifier = Modifier
-            .fillMaxWidth()
-            .clip(RoundedCornerShape(14.dp))
-            .background(DemoColors.Danger.copy(alpha = 0.12f))
-            .border(1.dp, DemoColors.Danger.copy(alpha = 0.4f), RoundedCornerShape(14.dp))
-            .padding(12.dp),
-        horizontalArrangement = Arrangement.spacedBy(10.dp),
-    ) {
-        Icon(Icons.Filled.ErrorOutline, contentDescription = null, tint = DemoColors.Danger)
-        Text(message, style = MaterialTheme.typography.bodyMedium, color = DemoColors.Ink)
-    }
-}
-
 // ---------------------------------------------------------------------------------------------
 // Estados vacíos / no listo
 // ---------------------------------------------------------------------------------------------
@@ -432,7 +381,7 @@ internal fun EmptyChat(tier: InferenceTier, onSuggestion: (String) -> Unit) {
     ) {
         TierAvatar(tier, 64.dp)
         Spacer(Modifier.size(8.dp))
-        Text("¿En qué te ayudo?", style = MaterialTheme.typography.headlineSmall.copy(letterSpacing = 0.sp), color = DemoColors.Ink)
+        Text("¿En qué te ayudo?", style = MaterialTheme.typography.headlineSmall, color = DemoColors.Ink)
         Text(
             "Hablando con ${tier.label()}",
             style = MaterialTheme.typography.bodyMedium,
@@ -528,66 +477,49 @@ internal fun ChatComposer(
 ) {
     var menuOpen by remember { mutableStateOf(false) }
     var urlDialogOpen by remember { mutableStateOf(false) }
-    val canSend = value.isNotBlank() && !isGenerating
     val thumbnail = rememberImageBitmap(pendingImageUri)
 
-    Column(
-        modifier = modifier
-            .fillMaxWidth()
-            .padding(horizontal = 12.dp, vertical = 8.dp)
-            .clip(RoundedCornerShape(28.dp))
-            .background(DemoColors.Panel)
-            .border(1.dp, Color.White.copy(alpha = 0.10f), RoundedCornerShape(28.dp))
-            .padding(start = 16.dp, end = 8.dp, top = 12.dp, bottom = 8.dp),
-        verticalArrangement = Arrangement.spacedBy(8.dp),
-    ) {
-        if (thumbnail != null || attachedUrl != null) {
-            Row(
-                modifier = Modifier.horizontalScroll(rememberScrollState()),
-                horizontalArrangement = Arrangement.spacedBy(8.dp),
-                verticalAlignment = Alignment.CenterVertically,
-            ) {
-                thumbnail?.let {
-                    Box {
-                        Image(
-                            bitmap = it,
-                            contentDescription = "Imagen a adjuntar",
-                            contentScale = ContentScale.Crop,
-                            modifier = Modifier.size(56.dp).clip(RoundedCornerShape(12.dp)),
-                        )
-                        IconButton(
-                            onClick = onClearImage,
-                            modifier = Modifier
-                                .align(Alignment.TopEnd)
-                                .size(22.dp)
-                                .background(Color.Black.copy(alpha = 0.6f), CircleShape),
-                        ) {
-                            Icon(Icons.Filled.Close, contentDescription = "Quitar imagen", tint = Color.White, modifier = Modifier.size(14.dp))
+    PromptBar(
+        value = value,
+        onValueChange = onValueChange,
+        onSend = onSend,
+        accent = tier.signalColor,
+        isBusy = isGenerating,
+        placeholder = "Escribe un mensaje…",
+        modifier = modifier,
+        topContent = if (thumbnail != null || attachedUrl != null) {
+            {
+                Row(
+                    modifier = Modifier.horizontalScroll(rememberScrollState()),
+                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                ) {
+                    thumbnail?.let {
+                        Box {
+                            Image(
+                                bitmap = it,
+                                contentDescription = "Imagen a adjuntar",
+                                contentScale = ContentScale.Crop,
+                                modifier = Modifier.size(56.dp).clip(RoundedCornerShape(12.dp)),
+                            )
+                            IconButton(
+                                onClick = onClearImage,
+                                modifier = Modifier
+                                    .align(Alignment.TopEnd)
+                                    .size(22.dp)
+                                    .background(Color.Black.copy(alpha = 0.6f), CircleShape),
+                            ) {
+                                Icon(Icons.Filled.Close, contentDescription = "Quitar imagen", tint = Color.White, modifier = Modifier.size(14.dp))
+                            }
                         }
                     }
+                    attachedUrl?.let { AttachmentPill(icon = Icons.Filled.Link, label = it, onClear = onClearUrl) }
                 }
-                attachedUrl?.let { AttachmentPill(icon = Icons.Filled.Link, label = it, onClear = onClearUrl) }
             }
-        }
-
-        BasicTextField(
-            value = value,
-            onValueChange = onValueChange,
-            textStyle = MaterialTheme.typography.bodyLarge.copy(color = DemoColors.Ink),
-            cursorBrush = SolidColor(tier.signalColor),
-            maxLines = 6,
-            modifier = Modifier.fillMaxWidth().padding(end = 8.dp),
-            decorationBox = { inner ->
-                Box {
-                    if (value.isEmpty()) {
-                        Text("Escribe un mensaje…", style = MaterialTheme.typography.bodyLarge, color = DemoColors.Muted)
-                    }
-                    inner()
-                }
-            },
-        )
-
-        Row(verticalAlignment = Alignment.CenterVertically) {
+        } else {
+            null
+        },
+        leading = {
             Box {
                 IconButton(onClick = { menuOpen = true }) {
                     Icon(Icons.Filled.Add, contentDescription = "Adjuntar", tint = DemoColors.Ink)
@@ -607,27 +539,8 @@ internal fun ChatComposer(
                     )
                 }
             }
-            Spacer(Modifier.weight(1f))
-            Box(
-                modifier = Modifier
-                    .size(40.dp)
-                    .clip(CircleShape)
-                    .background(if (canSend || isGenerating) tier.signalColor.copy(alpha = if (isGenerating) 0.25f else 1f) else Color.White.copy(alpha = 0.10f))
-                    .clickable(enabled = canSend, onClick = onSend),
-                contentAlignment = Alignment.Center,
-            ) {
-                if (isGenerating) {
-                    CircularProgressIndicator(color = tier.signalColor, strokeWidth = 2.dp, modifier = Modifier.size(20.dp))
-                } else {
-                    Icon(
-                        Icons.Filled.ArrowUpward,
-                        contentDescription = "Enviar",
-                        tint = if (canSend) DemoColors.Background else DemoColors.Muted,
-                    )
-                }
-            }
-        }
-    }
+        },
+    )
 
     if (urlDialogOpen) {
         UrlDialog(

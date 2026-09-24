@@ -37,6 +37,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.unit.dp
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
+import es.sebas1705.nanodemo.core.designsystem.ErrorCard
 import es.sebas1705.nanodemo.core.designsystem.ScreenPhase
 import es.sebas1705.nanodemo.core.designsystem.phase
 import es.sebas1705.nanodemo.core.ui.DemoColors

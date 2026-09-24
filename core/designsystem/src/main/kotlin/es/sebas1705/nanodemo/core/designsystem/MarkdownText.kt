@@ -1,4 +1,4 @@
-package es.sebas1705.nanodemo.feature.chat
+package es.sebas1705.nanodemo.core.designsystem
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.horizontalScroll
@@ -139,7 +139,7 @@ internal fun inlineMarkdown(text: String, linkColor: Color = Color(0xFF5CC7F2)):
     }
 
 @Composable
-internal fun MarkdownText(text: String, modifier: Modifier = Modifier, color: Color = DemoColors.Ink) {
+fun MarkdownText(text: String, modifier: Modifier = Modifier, color: Color = DemoColors.Ink) {
     val blocks = remember(text) { parseMarkdown(text) }
     Column(modifier = modifier, verticalArrangement = Arrangement.spacedBy(8.dp)) {
         blocks.forEach { block ->

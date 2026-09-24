@@ -26,6 +26,9 @@ object DemoColors {
     val TierD = Color(0xFFB08CF2) // LiteRT-LM — on-device, runtime nuevo de Google.
     val TierE = Color(0xFFF25CB6) // Firebase AI Logic — nube vía Firebase.
     val Danger = Color(0xFFF26D5C)
+
+    /** Borde sutil de tarjetas/campos (blanco al 10%): reemplaza a los bordes de color de antes. */
+    val Outline = Color(0x1AFFFFFF)
 }
 
 private val demoColorScheme = darkColorScheme(
@@ -41,23 +44,15 @@ private val demoColorScheme = darkColorScheme(
     onError = DemoColors.Background,
 )
 
-// Headline con tracking ancho, tipo placa de equipo de laboratorio. El resto
-// (body/label) se deja en la tipografía Material3 por defecto: es contenido
-// conversacional (prompt/respuesta) que necesita quedar legible, no decorado.
+// Estilo de chat de IA en toda la app: títulos en la fuente por defecto, sin mayúsculas ni tracking ancho
+// (antes: placa de instrumento). Lo monoespaciado queda para datos/etiquetas chicas (`labelSmall`,
+// `readoutStyle`) — un guiño al banco de pruebas, no el tono de toda la interfaz.
 private val demoTypography = Typography().let { base ->
     base.copy(
-        headlineSmall = base.headlineSmall.copy(
-            fontFamily = FontFamily.Default,
-            fontWeight = FontWeight.Bold,
-            letterSpacing = 1.5.sp,
-        ),
-        titleSmall = base.titleSmall.copy(
-            fontFamily = FontFamily.Monospace,
-            letterSpacing = 0.5.sp,
-        ),
-        labelSmall = base.labelSmall.copy(
-            fontFamily = FontFamily.Monospace,
-        ),
+        headlineSmall = base.headlineSmall.copy(fontWeight = FontWeight.SemiBold),
+        titleLarge = base.titleLarge.copy(fontWeight = FontWeight.SemiBold),
+        titleMedium = base.titleMedium.copy(fontWeight = FontWeight.SemiBold),
+        labelSmall = base.labelSmall.copy(fontFamily = FontFamily.Monospace),
     )
 }
 
