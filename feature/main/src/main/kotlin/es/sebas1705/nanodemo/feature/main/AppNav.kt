@@ -3,14 +3,17 @@ package es.sebas1705.nanodemo.feature.main
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.consumeWindowInsets
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material3.FloatingActionButton
 import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.NavigationBar
 import androidx.compose.material3.NavigationBarItem
@@ -78,12 +81,16 @@ fun AppNav(initialSharedText: String? = null, mainViewModel: MainViewModel = hil
     // tiene alto suficiente para un rail de 6 ítems — en ese caso se queda
     // con la barra inferior aunque el ancho diga "tablet".
     if (sizeClass == ScreenSizeClass.COMPACT || isCompactHeight) {
+        // En Chat el FAB de Ajustes taparía el botón de enviar del composer (queda abajo a la derecha): ahí
+        // el acceso pasa a un ícono en la barra superior.
+        val settingsInTopBar = currentDestination == Destination.Chat
         Scaffold(
             topBar = {
                 ChannelTopBar(
                     title = currentDestination?.label ?: "",
                     activeTier = activeTier,
                     availability = availability[activeTier] ?: TierAvailability.UNKNOWN,
+                    onOpenSettings = if (settingsInTopBar) ({ showSettings = true }) else null,
                 )
             },
             bottomBar = {
@@ -108,15 +115,19 @@ fun AppNav(initialSharedText: String? = null, mainViewModel: MainViewModel = hil
                 }
             },
             floatingActionButton = {
-                FloatingActionButton(onClick = { showSettings = true }) {
-                    Icon(Icons.Filled.Settings, contentDescription = "Ajustes")
+                if (!settingsInTopBar) {
+                    FloatingActionButton(onClick = { showSettings = true }) {
+                        Icon(Icons.Filled.Settings, contentDescription = "Ajustes")
+                    }
                 }
             }
         ) { padding ->
             AppNavHost(
                 backStack = backStack,
                 sizeClass = sizeClass,
-                modifier = Modifier.padding(padding).fillMaxSize(),
+                // consumeWindowInsets: el padding ya incluye la barra de navegación; sin esto, un
+                // `imePadding()` más adentro (composer del Chat) sumaría el teclado ENCIMA de ese hueco.
+                modifier = Modifier.padding(padding).consumeWindowInsets(padding).fillMaxSize(),
             )
         }
     } else {
@@ -180,6 +191,7 @@ private fun ChannelTopBar(
     title: String,
     activeTier: InferenceTier,
     availability: TierAvailability,
+    onOpenSettings: (() -> Unit)? = null,
 ) {
     Row(
         modifier = Modifier
@@ -201,6 +213,12 @@ private fun ChannelTopBar(
                 color = activeTier.signalColor,
             )
             StatusIndicator(availability, activeTier.signalColor)
+            onOpenSettings?.let {
+                // 32dp (no los 48dp por defecto) para que la barra no crezca solo en Chat.
+                IconButton(onClick = it, modifier = Modifier.size(32.dp)) {
+                    Icon(Icons.Filled.Settings, contentDescription = "Ajustes", tint = DemoColors.Muted, modifier = Modifier.size(20.dp))
+                }
+            }
         }
     }
 }

@@ -57,8 +57,13 @@ Models framework de Apple).
 
 1. Al abrir la app, prueba los tiers en orden (A → B → C → D → E) y se queda en
    el primero disponible o descargable.
-2. Un selector arriba permite forzar cualquiera de los cinco manualmente, para
-   comparar respuestas en el mismo dispositivo.
+2. Un selector compacto arriba del chat (píldora con el motor activo) abre una
+   hoja para forzar cualquiera de los cinco manualmente, para comparar
+   respuestas en el mismo dispositivo. El chat sigue el diseño de las apps de
+   IA: mensajes del usuario en burbuja a la derecha, respuestas del modelo a
+   todo el ancho con Markdown (negritas, listas, bloques de código con
+   copiar), respuesta en streaming con cursor, sugerencias en la pantalla
+   vacía y una barra de entrada con "+" para adjuntar imagen o link.
 3. Si el tier activo necesita un paso previo (descargar el modelo de Gemini
    Nano, el `.task` de MediaPipe o el `.litertlm` de LiteRT-LM), lo muestra en
    pantalla con un botón para descargarlo — con progreso cuando se conoce — en

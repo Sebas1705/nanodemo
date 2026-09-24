@@ -4,29 +4,26 @@ import android.net.Uri
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.PickVisualMediaRequest
 import androidx.activity.result.contract.ActivityResultContracts
-import androidx.compose.animation.AnimatedContent
-import androidx.compose.foundation.background
-import androidx.compose.foundation.border
+import androidx.compose.foundation.gestures.scrollBy
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.WindowInsets
+import androidx.compose.foundation.layout.ime
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.lazy.LazyRow
-import androidx.compose.foundation.lazy.items
-import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.foundation.verticalScroll
-import androidx.compose.material3.Button
-import androidx.compose.material3.CircularProgressIndicator
-import androidx.compose.material3.FilterChip
-import androidx.compose.material3.LinearProgressIndicator
-import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedTextField
+import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.itemsIndexed
+import androidx.compose.foundation.lazy.rememberLazyListState
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.EditNote
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
@@ -34,32 +31,36 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
+import androidx.compose.runtime.snapshotFlow
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.unit.dp
-import es.sebas1705.nanodemo.core.designsystem.ImageAttachRow
-import es.sebas1705.nanodemo.core.designsystem.MessageBubble
+import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import es.sebas1705.nanodemo.core.designsystem.ScreenPhase
-import es.sebas1705.nanodemo.core.designsystem.TierChannelRow
-import es.sebas1705.nanodemo.core.designsystem.channelLetter
-import es.sebas1705.nanodemo.core.designsystem.downloadableMessage
-import es.sebas1705.nanodemo.core.designsystem.label
 import es.sebas1705.nanodemo.core.designsystem.phase
-import es.sebas1705.nanodemo.core.designsystem.signalColor
-import es.sebas1705.nanodemo.core.designsystem.unavailableMessage
 import es.sebas1705.nanodemo.core.ui.DemoColors
 import es.sebas1705.nanodemo.core.ui.readoutStyle
-import es.sebas1705.nanodemo.domain.models.ChatMessage
 import es.sebas1705.nanodemo.domain.models.DemoState
 import es.sebas1705.nanodemo.domain.models.InferenceTier
-import es.sebas1705.nanodemo.domain.models.MediaPipeModelOption
 import es.sebas1705.nanodemo.domain.models.Role
 import es.sebas1705.nanodemo.domain.models.TierAvailability
-import es.sebas1705.nanodemo.domain.models.TierCapabilities
-import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 
-/** Chat: selector de canal + conversación multi-turno de un solo tier a la vez. */
+/**
+ * Lo que el usuario acaba de mandar y todavía no está en `conversation` (el repositorio recién agrega el
+ * turno cuando la respuesta termina bien): se muestra igual al toque, como cualquier chat. `stateAtSend`
+ * distingue "el resultado de ESTE turno" del `Result` viejo que sigue en `state` hasta que arranca la
+ * generación nueva (identidad, no igualdad: dos respuestas iguales seguirían siendo dos turnos).
+ */
+private data class InFlightTurn(
+    val text: String,
+    val imageUri: Uri?,
+    val url: String?,
+    val baseSize: Int,
+    val stateAtSend: DemoState,
+)
+
+/** Chat: conversación multi-turno de un solo tier a la vez, con el selector de motor en la cabecera. */
 @Composable
 fun ChatScreen(
     conversationId: Long? = null,
@@ -78,207 +79,210 @@ fun ChatScreen(
     val pendingImage by viewModel.pendingImage.collectAsState()
     val attachedUrl by viewModel.attachedUrl.collectAsState()
     val selectedMediaPipeModel by viewModel.selectedMediaPipeModel.collectAsState()
-    var promptText by remember {
-        // Compartir desde otra app precarga el prompt (con una instrucción, no el texto pelado) en
-        // vez de mandarlo solo: el usuario lo revisa/edita antes de generar, nunca se envía sin que
-        // lo vea — ver el intent-filter ACTION_SEND en AndroidManifest.xml y MainActivity.
-        mutableStateOf(sharedText?.let { "Resume esto:\n\n$it" } ?: "Explícame en una frase qué es un agente de IA.")
+    val capabilities = viewModel.capabilitiesOf(activeTier)
+
+    // Compartir desde otra app precarga el prompt (con una instrucción, no el texto pelado) en vez de
+    // mandarlo solo: el usuario lo revisa/edita antes de enviar, nunca se envía sin que lo vea — ver el
+    // intent-filter ACTION_SEND en AndroidManifest.xml y MainActivity.
+    var promptText by remember { mutableStateOf(sharedText?.let { "Resume esto:\n\n$it" } ?: "") }
+    var inFlight by remember { mutableStateOf<InFlightTurn?>(null) }
+    var showTierSheet by remember { mutableStateOf(false) }
+    var pinnedToBottom by remember { mutableStateOf(true) }
+    val listState = rememberLazyListState()
+
+    val imagePicker = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.PickVisualMedia(),
+        onResult = { uri -> viewModel.setPendingImage(uri) },
+    )
+
+    val isGenerating = state is DemoState.Generating
+    // Estado que corresponde a ESTE turno (no el Result/Error viejo previo a que arranque la generación).
+    val turnState = inFlight?.takeIf { state !== it.stateAtSend }?.let { state }
+    val streamingText = when (val s = turnState) {
+        is DemoState.Generating -> s.partialText
+        is DemoState.Result -> s.text
+        else -> null
+    }
+    val errorMessage = (state as? DemoState.Error)?.takeIf { inFlight == null || state !== inFlight?.stateAtSend }?.message
+
+    fun send(text: String, fromComposer: Boolean) {
+        val prompt = text.trim()
+        if (prompt.isEmpty() || isGenerating) return
+        inFlight = InFlightTurn(prompt, pendingImage, attachedUrl, conversation.size, state)
+        if (fromComposer) promptText = ""
+        pinnedToBottom = true
+        viewModel.generate(prompt)
     }
 
-    Column(
-        modifier = Modifier
-            .fillMaxSize()
-            // El padding va DESPUÉS del scroll (no antes): así viaja con el contenido en vez de
-            // recortar el viewport una vez fijo — con `.padding().verticalScroll()` el margen de
-            // abajo era un hueco fijo siempre presente, no algo que aparece recién al llegar al
-            // final del scroll (ver AppNav.kt/ChannelTopBar para la nota de edge-to-edge).
-            .verticalScroll(rememberScrollState())
-            .padding(16.dp),
-        verticalArrangement = Arrangement.spacedBy(16.dp),
-    ) {
-        Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
-            InferenceTier.entries.forEach { tier ->
-                TierChannelRow(
-                    tier = tier,
-                    isActive = tier == activeTier,
-                    availability = availability[tier] ?: TierAvailability.UNKNOWN,
-                    onClick = { viewModel.selectTier(tier) },
-                )
+    LaunchedEffect(conversation.size) {
+        inFlight?.let { if (conversation.size > it.baseSize) inFlight = null }
+    }
+    LaunchedEffect(state) {
+        if (state !is DemoState.Generating && state !is DemoState.Result && state !is DemoState.Error) inFlight = null
+        // Si falló, el texto vuelve al campo para reintentar/editar en vez de perderse.
+        val turn = inFlight
+        if (state is DemoState.Error && turn != null && state !== turn.stateAtSend && promptText.isEmpty()) {
+            promptText = turn.text
+        }
+    }
+
+    val itemCount = conversation.size + (if (inFlight != null) 2 else 0) + (if (errorMessage != null) 1 else 0)
+    val streamedChars = streamingText?.length ?: 0
+
+    // "Pegado al final": mientras el usuario no scrollee hacia arriba, cada chunk nuevo lo sigue. Si sube a
+    // leer algo, deja de seguirlo; al volver al final, lo retoma.
+    // `autoScrolling` evita que nuestro propio scrollToItem/scrollBy (que pasa un instante por "todavía
+    // se puede bajar") se lea como si el usuario hubiera subido y suelte el seguimiento.
+    val autoScrolling = remember { booleanArrayOf(false) }
+    LaunchedEffect(listState) {
+        snapshotFlow { listState.isScrollInProgress to listState.canScrollForward }.collect { (scrolling, canForward) ->
+            if (autoScrolling[0]) return@collect
+            if (scrolling) pinnedToBottom = !canForward else if (!canForward) pinnedToBottom = true
+        }
+    }
+    // Abrir/cerrar el teclado achica/agranda la lista: también hay que volver a pegarse al final.
+    val imeVisible = WindowInsets.ime.getBottom(LocalDensity.current) > 0
+    LaunchedEffect(itemCount, streamedChars, imeVisible) {
+        if (itemCount > 0 && pinnedToBottom) {
+            autoScrolling[0] = true
+            try {
+                listState.scrollToItem(itemCount - 1)
+                listState.scrollBy(100_000f)
+            } finally {
+                autoScrolling[0] = false
+            }
+        }
+    }
+
+    Column(modifier = Modifier.fillMaxSize()) {
+        ChatHeader(
+            tier = activeTier,
+            availability = availability[activeTier] ?: TierAvailability.UNKNOWN,
+            modelName = selectedMediaPipeModel.displayName.takeIf { activeTier == InferenceTier.MEDIAPIPE_LOCAL },
+            canStartOver = conversation.isNotEmpty() || inFlight != null,
+            onOpenTierPicker = { showTierSheet = true },
+            onStartOver = {
+                inFlight = null
+                viewModel.resetConversation()
+            },
+        )
+
+        Box(modifier = Modifier.weight(1f).fillMaxWidth()) {
+            when {
+                // Dentro de un Box para centrarlos: sus Column scrollean (pantallas chicas/landscape) y una
+                // Column con scroll no puede centrar a sus hijos, no conoce su alto.
+                state.phase != ScreenPhase.READY_GROUP -> Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                    TierStatusPanel(state = state, tier = activeTier, onDownload = { viewModel.downloadModel() })
+                }
+
+                conversation.isEmpty() && inFlight == null && errorMessage == null ->
+                    Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                        EmptyChat(tier = activeTier, onSuggestion = { send(it, fromComposer = false) })
+                    }
+
+                else -> LazyColumn(
+                    state = listState,
+                    modifier = Modifier.fillMaxSize(),
+                    contentPadding = PaddingValues(horizontal = 16.dp, vertical = 12.dp),
+                    verticalArrangement = Arrangement.spacedBy(20.dp),
+                ) {
+                    val lastModelIndex = conversation.indexOfLast { it.role == Role.MODEL }
+                    itemsIndexed(conversation, key = { index, _ -> index }) { index, message ->
+                        if (message.role == Role.USER) {
+                            UserBubble(message.text, message.imageUri, url = null, tier = activeTier)
+                        } else {
+                            AssistantMessage(
+                                text = message.text,
+                                tier = activeTier,
+                                streaming = false,
+                                // Solo compara lo que pidió ESTE turno con jsonMode activo — un turno viejo de
+                                // antes de prenderlo no se marca como "inválido" retroactivamente.
+                                extra = if (config.jsonMode && index == lastModelIndex && inFlight == null) {
+                                    { JsonValidityBadge(message.text) }
+                                } else {
+                                    null
+                                },
+                            )
+                        }
+                    }
+                    inFlight?.let { turn ->
+                        item(key = "inflight-user") { UserBubble(turn.text, turn.imageUri, turn.url, activeTier) }
+                        if (errorMessage == null) {
+                            item(key = "inflight-assistant") {
+                                AssistantMessage(
+                                    text = streamingText.orEmpty(),
+                                    tier = activeTier,
+                                    streaming = turnState !is DemoState.Result,
+                                )
+                            }
+                        }
+                    }
+                    errorMessage?.let { message -> item(key = "error") { ErrorCard(message) } }
+                }
             }
         }
 
-        if (activeTier == InferenceTier.MEDIAPIPE_LOCAL) {
-            MediaPipeModelRow(
-                models = viewModel.mediaPipeModels,
-                selected = selectedMediaPipeModel,
-                onSelect = { viewModel.selectMediaPipeModel(it) },
+        if (state.phase == ScreenPhase.READY_GROUP) {
+            ChatComposer(
+                value = promptText,
+                onValueChange = { promptText = it },
+                onSend = { send(promptText, fromComposer = true) },
+                isGenerating = isGenerating || (inFlight != null && turnState == null),
+                tier = activeTier,
+                imageSupported = capabilities.images,
+                pendingImageUri = pendingImage,
+                attachedUrl = attachedUrl,
+                onPickImage = {
+                    imagePicker.launch(
+                        PickVisualMediaRequest.Builder()
+                            .setMediaType(ActivityResultContracts.PickVisualMedia.ImageOnly)
+                            .build(),
+                    )
+                },
+                onClearImage = { viewModel.setPendingImage(null) },
+                onAttachUrl = { viewModel.setAttachedUrl(it) },
+                onClearUrl = { viewModel.setAttachedUrl(null) },
+                // Antes AppNav le daba padding de la barra de navegación (y la consumía): imePadding solo
+                // suma lo que el teclado agrega por encima de eso.
+                modifier = Modifier.imePadding(),
             )
         }
+    }
 
-        ActivePanel(
-            state = state,
+    if (showTierSheet) {
+        TierPickerSheet(
             activeTier = activeTier,
-            capabilities = viewModel.capabilitiesOf(activeTier),
-            jsonModeOn = config.jsonMode,
-            conversation = conversation,
-            pendingImageUri = pendingImage,
-            attachedUrl = attachedUrl,
-            promptText = promptText,
-            onPromptChange = { promptText = it },
-            onGenerate = { viewModel.generate(promptText) },
-            onDownload = { viewModel.downloadModel() },
-            onPickImage = { viewModel.setPendingImage(it) },
-            onAttachUrl = { viewModel.setAttachedUrl(it) },
-            onResetConversation = { viewModel.resetConversation() },
+            availability = availability,
+            mediaPipeModels = viewModel.mediaPipeModels,
+            selectedMediaPipeModel = selectedMediaPipeModel,
+            onSelectTier = { tier -> viewModel.selectTier(tier) },
+            onSelectMediaPipeModel = { viewModel.selectMediaPipeModel(it) },
+            onDismiss = { showTierSheet = false },
         )
     }
 }
 
-/** Elegir qué modelo del catálogo de MediaPipe usar — cada uno se descarga/mantiene por separado. */
 @Composable
-private fun MediaPipeModelRow(
-    models: List<MediaPipeModelOption>,
-    selected: MediaPipeModelOption,
-    onSelect: (MediaPipeModelOption) -> Unit,
+private fun ChatHeader(
+    tier: InferenceTier,
+    availability: TierAvailability,
+    modelName: String?,
+    canStartOver: Boolean,
+    onOpenTierPicker: () -> Unit,
+    onStartOver: () -> Unit,
 ) {
-    Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
-        Text("MODELO", style = MaterialTheme.typography.labelSmall, color = DemoColors.Muted)
-        LazyRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-            items(models) { model ->
-                FilterChip(
-                    selected = model == selected,
-                    onClick = { onSelect(model) },
-                    label = { Text("${model.displayName} (${model.sizeHint})") },
-                )
-            }
-        }
-    }
-}
-
-@Composable
-private fun ActivePanel(
-    state: DemoState,
-    activeTier: InferenceTier,
-    capabilities: TierCapabilities,
-    jsonModeOn: Boolean,
-    conversation: List<ChatMessage>,
-    pendingImageUri: Uri?,
-    attachedUrl: String?,
-    promptText: String,
-    onPromptChange: (String) -> Unit,
-    onGenerate: () -> Unit,
-    onDownload: () -> Unit,
-    onPickImage: (Uri?) -> Unit,
-    onAttachUrl: (String?) -> Unit,
-    onResetConversation: () -> Unit,
-) {
-    val imagePickerLauncher = rememberLauncherForActivityResult(
-        contract = ActivityResultContracts.PickVisualMedia(),
-        onResult = { uri -> onPickImage(uri) },
-    )
-
-    Box(
-        modifier = Modifier
-            .fillMaxWidth()
-            .border(1.dp, activeTier.signalColor.copy(alpha = 0.35f), RoundedCornerShape(8.dp))
-            .background(DemoColors.Panel, RoundedCornerShape(8.dp))
-            .padding(16.dp)
+    Row(
+        modifier = Modifier.fillMaxWidth().padding(horizontal = 12.dp, vertical = 4.dp),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.SpaceBetween,
     ) {
-        AnimatedContent(targetState = state.phase, label = "activePanel") { phase ->
-            Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
-                when (phase) {
-                    ScreenPhase.CHECKING -> {
-                        Text("Comprobando disponibilidad de ${activeTier.label()}…", color = DemoColors.Ink)
-                        CircularProgressIndicator(color = activeTier.signalColor)
-                    }
-
-                    ScreenPhase.UNAVAILABLE -> {
-                        Text(activeTier.unavailableMessage(), color = DemoColors.Ink)
-                    }
-
-                    ScreenPhase.DOWNLOADABLE -> {
-                        Text(activeTier.downloadableMessage(), color = DemoColors.Ink)
-                        Button(onClick = onDownload) {
-                            Text("Descargar modelo")
-                        }
-                    }
-
-                    ScreenPhase.DOWNLOADING -> {
-                        val percent = (state as? DemoState.Downloading)?.progressPercent
-                        if (percent != null) {
-                            Text("Descargando ${activeTier.label()}… $percent%", color = DemoColors.Ink)
-                            LinearProgressIndicator(
-                                progress = { percent / 100f },
-                                color = activeTier.signalColor,
-                                modifier = Modifier.fillMaxWidth()
-                            )
-                        } else {
-                            Text("Preparando ${activeTier.label()}… (puede tardar)", color = DemoColors.Ink)
-                            CircularProgressIndicator(color = activeTier.signalColor)
-                        }
-                    }
-
-                    ScreenPhase.READY_GROUP -> {
-                        if (conversation.isNotEmpty()) {
-                            Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
-                                conversation.forEach { message -> MessageBubble(message, activeTier.signalColor) }
-                            }
-                            // Solo compara lo que pidió ESTE turno con jsonMode activo — un turno viejo de
-                            // antes de prenderlo no se marca como "inválido" retroactivamente.
-                            if (jsonModeOn) {
-                                conversation.lastOrNull { it.role == Role.MODEL }
-                                    ?.let { lastModelMessage -> JsonValidityBadge(lastModelMessage.text) }
-                            }
-                            TextButton(onClick = onResetConversation) { Text("Nueva conversación") }
-                        }
-
-                        if (capabilities.images) {
-                            ImageAttachRow(
-                                pendingImageUri = pendingImageUri,
-                                onLaunchPicker = {
-                                    imagePickerLauncher.launch(
-                                        PickVisualMediaRequest.Builder()
-                                            .setMediaType(ActivityResultContracts.PickVisualMedia.ImageOnly)
-                                            .build()
-                                    )
-                                },
-                                onClear = { onPickImage(null) },
-                            )
-                        }
-
-                        // A diferencia de imágenes, no depende de TierCapabilities: el contenido de la
-                        // página se manda como texto de más, así que funciona en los 5 tiers por igual.
-                        UrlAttachRow(attachedUrl = attachedUrl, onAttach = onAttachUrl, onClear = { onAttachUrl(null) })
-
-                        OutlinedTextField(
-                            value = promptText,
-                            onValueChange = onPromptChange,
-                            label = { Text("Prompt") },
-                            modifier = Modifier.fillMaxWidth()
-                        )
-
-                        val isGenerating = state is DemoState.Generating
-                        Button(
-                            onClick = onGenerate,
-                            enabled = !isGenerating
-                        ) {
-                            Text(if (isGenerating) "Generando…" else "Generar con ${activeTier.label()}")
-                        }
-
-                        when (state) {
-                            is DemoState.Generating -> {
-                                Text("Generando:", style = MaterialTheme.typography.titleSmall, color = DemoColors.Muted)
-                                Text(state.partialText, color = DemoColors.Ink)
-                            }
-                            is DemoState.Error -> {
-                                Text("Error: ${state.message}", color = DemoColors.Danger)
-                            }
-                            // Result ya quedó reflejado como el último turno del transcript de arriba.
-                            else -> Unit
-                        }
-                    }
-                }
-            }
+        TierPill(tier = tier, availability = availability, modelName = modelName, onClick = onOpenTierPicker)
+        IconButton(onClick = onStartOver, enabled = canStartOver) {
+            Icon(
+                Icons.Filled.EditNote,
+                contentDescription = "Nueva conversación",
+                tint = if (canStartOver) DemoColors.Ink else DemoColors.Muted.copy(alpha = 0.4f),
+            )
         }
     }
 }
@@ -286,7 +290,7 @@ private fun ActivePanel(
 /**
  * Con "Modo JSON" activo, muestra si la última respuesta del modelo terminó siendo JSON válido —
  * el punto del control es justamente comparar qué tiers lo garantizan (Cloud/Firebase, vía
- * `responseMimeType`) y cuáles no lo soportan (el resto, ver `TierCapabilities.structuredOutput`).
+ * `responseMimeType`) y cuáles lo emulan por prompt (el resto, ver `TierCapabilities.structuredOutput`).
  * Parseo simple con `org.json` (ya en el SDK de Android, sin dependencias nuevas): alcanza para
  * distinguir "es JSON" de "no lo es", no valida un schema.
  */
@@ -300,50 +304,4 @@ private fun JsonValidityBadge(responseText: String) {
         style = readoutStyle,
         color = if (isValidJson) DemoColors.TierA else DemoColors.Danger,
     )
-}
-
-/**
- * "Pegar un link y preguntar": la app descarga la página y la manda de contexto al generar (ver
- * `InferenceRepository.generate()`) — funciona igual en los 5 tiers, no como las imágenes (solo
- * Nano/Cloud/LiteRT-LM/Firebase AI tienen encoder de visión).
- */
-@Composable
-private fun UrlAttachRow(attachedUrl: String?, onAttach: (String) -> Unit, onClear: () -> Unit) {
-    var urlInput by remember { mutableStateOf("") }
-    Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
-        Text("LINK (OPCIONAL)", style = MaterialTheme.typography.labelSmall, color = DemoColors.Muted)
-        if (attachedUrl != null) {
-            Row(
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.spacedBy(8.dp),
-            ) {
-                Text(
-                    attachedUrl,
-                    style = readoutStyle,
-                    color = DemoColors.Ink,
-                    maxLines = 1,
-                    overflow = TextOverflow.Ellipsis,
-                    modifier = Modifier.weight(1f),
-                )
-                TextButton(onClick = onClear) { Text("Quitar") }
-            }
-        } else {
-            Row(
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.spacedBy(8.dp),
-            ) {
-                OutlinedTextField(
-                    value = urlInput,
-                    onValueChange = { urlInput = it },
-                    label = { Text("https://…") },
-                    singleLine = true,
-                    modifier = Modifier.weight(1f),
-                )
-                TextButton(
-                    onClick = { if (urlInput.isNotBlank()) { onAttach(urlInput.trim()); urlInput = "" } },
-                    enabled = urlInput.isNotBlank(),
-                ) { Text("Adjuntar") }
-            }
-        }
-    }
 }

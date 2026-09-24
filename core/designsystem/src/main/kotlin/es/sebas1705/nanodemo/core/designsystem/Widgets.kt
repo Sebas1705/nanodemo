@@ -1,8 +1,5 @@
 package es.sebas1705.nanodemo.core.designsystem
 
-import android.graphics.BitmapFactory
-import android.net.Uri
-import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
@@ -21,27 +18,20 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.asImageBitmap
-import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import es.sebas1705.nanodemo.core.ui.DemoColors
 import es.sebas1705.nanodemo.core.ui.readoutStyle
-import es.sebas1705.nanodemo.domain.models.ChatMessage
 import es.sebas1705.nanodemo.domain.models.InferenceTier
-import es.sebas1705.nanodemo.domain.models.Role
 import es.sebas1705.nanodemo.domain.models.TierAvailability
 
 /**
- * Piezas de UI compartidas entre las pantallas — selector de tier, burbujas
- * de chat, adjuntar imagen.
+ * Piezas de UI compartidas entre las pantallas — selector de tier, grilla adaptativa.
  */
 
 /**
@@ -124,75 +114,3 @@ fun StatusIndicator(availability: TierAvailability, color: Color) {
     }
 }
 
-@Composable
-fun MessageBubble(message: ChatMessage, tierColor: Color) {
-    val isUser = message.role == Role.USER
-    val context = LocalContext.current
-    val imageBitmap = remember(message.imageUri) {
-        message.imageUri?.let { uri ->
-            try {
-                context.contentResolver.openInputStream(uri)?.use { stream ->
-                    BitmapFactory.decodeStream(stream)?.asImageBitmap()
-                }
-            } catch (e: Exception) {
-                null
-            }
-        }
-    }
-    Column(
-        modifier = Modifier
-            .fillMaxWidth()
-            .background(
-                if (isUser) DemoColors.Background else tierColor.copy(alpha = 0.08f),
-                RoundedCornerShape(6.dp)
-            )
-            .padding(10.dp),
-        verticalArrangement = Arrangement.spacedBy(4.dp),
-    ) {
-        Text(
-            text = if (isUser) "TÚ" else "MODELO",
-            style = readoutStyle,
-            color = if (isUser) DemoColors.Muted else tierColor,
-        )
-        imageBitmap?.let {
-            Image(
-                bitmap = it,
-                contentDescription = "Imagen adjunta",
-                modifier = Modifier.size(96.dp).clip(RoundedCornerShape(6.dp)),
-            )
-        }
-        Text(message.text, color = DemoColors.Ink)
-    }
-}
-
-@Composable
-fun ImageAttachRow(
-    pendingImageUri: Uri?,
-    onLaunchPicker: () -> Unit,
-    onClear: () -> Unit,
-) {
-    val context = LocalContext.current
-    val imageBitmap = remember(pendingImageUri) {
-        pendingImageUri?.let { uri ->
-            try {
-                context.contentResolver.openInputStream(uri)?.use { stream ->
-                    BitmapFactory.decodeStream(stream)?.asImageBitmap()
-                }
-            } catch (e: Exception) {
-                null
-            }
-        }
-    }
-    Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-        if (imageBitmap != null) {
-            Image(
-                bitmap = imageBitmap,
-                contentDescription = "Imagen a adjuntar",
-                modifier = Modifier.size(56.dp).clip(RoundedCornerShape(6.dp)),
-            )
-            TextButton(onClick = onClear) { Text("Quitar imagen") }
-        } else {
-            TextButton(onClick = onLaunchPicker) { Text("+ Adjuntar imagen") }
-        }
-    }
-}
