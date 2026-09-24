@@ -130,6 +130,18 @@ Models framework de Apple).
     exacto — 100% on-device (MediaPipe TextEmbedder, un modelo aparte de
     ~6MB, nada sale del teléfono). Funciona sobre los 5 tiers por igual: es
     sobre el historial guardado, no sobre la generación.
+19. **Uso y límites gratis** (Ajustes → Uso y límites): un contador local
+    (`UsageQuota`, `core:common`) cuenta cada llamada a los servicios con
+    cuota — Gemini en Cloud y en Firebase AI (por día) y Brave Search (por
+    mes) — y, con el bloqueo activo, frena el servicio al llegar al límite en
+    vez de dejar que se cobre de más. Los topes son editables: Google no
+    publica el número exacto del plan gratis de Gemini (se ve en
+    [AI Studio](https://aistudio.google.com/rate-limit); por defecto 20/día,
+    lo que reportan fuentes externas para Gemini 3.5 Flash) y Brave da $5 de
+    crédito mensual (~1000 búsquedas). Los tiers on-device no gastan cuota. Ojo:
+    el grounding con Google Search de Cloud/Firebase AI **no** está en el plan
+    gratis de Gemini. El contador es solo de esta app/dispositivo; no reemplaza
+    los topes de gasto de las consolas.
 
 ## Arquitectura (multi-módulo, clean architecture)
 

@@ -59,6 +59,12 @@ object WebSearchTool {
      */
     suspend fun search(query: String): String = withContext(Dispatchers.IO) {
         if (!isConfigured) return@withContext "Búsqueda no configurada en este dispositivo (falta BRAVE_SEARCH_API_KEY)."
+        // Sin cuota mensual (ver UsageQuota) no se llama a Brave: el modelo recibe este aviso como
+        // resultado y se lo explica al usuario, en vez de que la búsqueda cobre de más en silencio.
+        if (!UsageQuota.canUse(QuotaService.BRAVE_SEARCH)) {
+            return@withContext UsageQuota.blockedMessage(QuotaService.BRAVE_SEARCH)
+        }
+        UsageQuota.record(QuotaService.BRAVE_SEARCH)
         val url = "$ENDPOINT?q=${URLEncoder.encode(query, "UTF-8")}&count=$MAX_RESULTS"
         val connection = (URL(url).openConnection() as HttpURLConnection).apply {
             connectTimeout = TIMEOUT_MS

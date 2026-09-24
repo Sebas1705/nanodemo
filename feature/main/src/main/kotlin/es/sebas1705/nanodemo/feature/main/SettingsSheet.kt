@@ -16,6 +16,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import es.sebas1705.nanodemo.core.ui.DemoColors
 import es.sebas1705.nanodemo.feature.config.ConfigScreen
+import es.sebas1705.nanodemo.feature.config.UsageLimitsScreen
 import es.sebas1705.nanodemo.feature.device.DeviceScreen
 
 /**
@@ -51,6 +52,7 @@ fun SettingsSheet(onDismiss: () -> Unit) {
             )
             SettingsSection("Dispositivo") { DeviceScreen() }
             SettingsSection("Parámetros") { ConfigScreen() }
+            SettingsSection("Uso y límites") { UsageLimitsScreen() }
         }
     }
 }

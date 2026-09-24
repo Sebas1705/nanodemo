@@ -5,6 +5,8 @@ import android.net.Uri
 import android.util.Base64
 import android.util.Log
 import es.sebas1705.nanodemo.core.common.DemoTools
+import es.sebas1705.nanodemo.core.common.QuotaService
+import es.sebas1705.nanodemo.core.common.UsageQuota
 import es.sebas1705.nanodemo.core.common.appContextPreamble
 import es.sebas1705.nanodemo.core.common.hasInternetConnection
 import es.sebas1705.nanodemo.domain.models.ChatMessage
@@ -144,6 +146,7 @@ class CloudGeminiBackend @Inject constructor(
         extraTurns: List<JSONObject>,
         onText: suspend (String) -> Unit,
     ): StreamResult {
+        UsageQuota.record(QuotaService.GEMINI_CLOUD)
         val url = URL(
             "$API_BASE/$CLOUD_MODEL:streamGenerateContent" +
                 "?alt=sse&key=${URLEncoder.encode(apiKey, "UTF-8")}"

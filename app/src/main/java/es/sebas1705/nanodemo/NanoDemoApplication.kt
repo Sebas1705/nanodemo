@@ -8,6 +8,7 @@ import dagger.hilt.android.HiltAndroidApp
 import es.sebas1705.nanodemo.core.common.Telemetry
 import es.sebas1705.nanodemo.core.common.TelemetryEvents
 import es.sebas1705.nanodemo.core.common.TelemetryParams
+import es.sebas1705.nanodemo.core.common.UsageQuota
 import javax.inject.Inject
 
 /** Punto de entrada de Hilt para toda la app (necesario para que `@AndroidEntryPoint`/`@HiltViewModel` funcionen). */
@@ -21,6 +22,7 @@ class NanoDemoApplication : Application() {
         super.onCreate() // Hilt inyecta los campos aquí, antes de que se ejecute el resto.
         // Cuanto antes: lo que ocurra antes de este punto no llega a Crashlytics ni a Analytics.
         telemetry.initialize()
+        UsageQuota.init(this)
         registerActivityLifecycleCallbacks(LifecycleBreadcrumbs())
     }
 

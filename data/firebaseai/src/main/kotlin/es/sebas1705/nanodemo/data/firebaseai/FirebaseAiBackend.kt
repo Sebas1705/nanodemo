@@ -3,6 +3,8 @@ package es.sebas1705.nanodemo.data.firebaseai
 import android.content.Context
 import android.util.Log
 import es.sebas1705.nanodemo.core.common.DemoTools
+import es.sebas1705.nanodemo.core.common.QuotaService
+import es.sebas1705.nanodemo.core.common.UsageQuota
 import es.sebas1705.nanodemo.core.common.appContextPreamble
 import es.sebas1705.nanodemo.core.common.hasInternetConnection
 import es.sebas1705.nanodemo.domain.models.ChatMessage
@@ -205,6 +207,7 @@ class FirebaseAiBackend @Inject constructor(
         contents: List<Content>,
         onText: suspend (String) -> Unit,
     ): StreamResult {
+        UsageQuota.record(QuotaService.GEMINI_FIREBASE)
         var functionCall: FunctionCallPart? = null
         var grounding: GroundingInfo? = null
         model.generateContentStream(contents).collect { response ->

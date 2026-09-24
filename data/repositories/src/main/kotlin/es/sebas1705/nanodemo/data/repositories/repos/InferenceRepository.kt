@@ -4,8 +4,10 @@ import android.content.Context
 import android.net.Uri
 import android.util.Log
 import androidx.core.content.FileProvider
+import es.sebas1705.nanodemo.core.common.QuotaService
 import es.sebas1705.nanodemo.core.common.Telemetry
 import es.sebas1705.nanodemo.core.common.TelemetryResult
+import es.sebas1705.nanodemo.core.common.UsageQuota
 import es.sebas1705.nanodemo.core.common.fetchUrlText
 import es.sebas1705.nanodemo.data.cloudgemini.CloudGeminiBackend
 import es.sebas1705.nanodemo.data.firebaseai.FirebaseAiBackend
@@ -441,6 +443,18 @@ class InferenceRepository @Inject constructor(
         mode: String,
         onStateChange: (DemoState) -> Unit,
     ): Result<String> {
+        // Tiers con cuota gratis: si ya se llegó al límite (y el bloqueo está activo) ni se llama a la API.
+        // No es una falla del backend, así que no pasa por telemetry.failure ni cuenta como corrida en Estadísticas.
+        val quotaService = when (tier) {
+            InferenceTier.CLOUD_GEMINI -> QuotaService.GEMINI_CLOUD
+            InferenceTier.FIREBASE_AI -> QuotaService.GEMINI_FIREBASE
+            else -> null
+        }
+        if (quotaService != null && !UsageQuota.canUse(quotaService)) {
+            Log.w(TAG, "runGeneration($tier): bloqueado por límite gratis de $quotaService")
+            onStateChange(DemoState.Error(UsageQuota.blockedMessage(quotaService)))
+            return Result.failure(IllegalStateException("Límite gratis alcanzado: $quotaService"))
+        }
         Log.d(TAG, "runGeneration($tier): history de ${history.size} turnos")
         val model = modelOf(tier)
         val hasImage = history.last().imageUri != null
