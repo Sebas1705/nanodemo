@@ -79,10 +79,10 @@ Definidos en `data/repositories/.../InferenceTelemetry.kt`, sobre los genéricos
 |---|---|
 | `tier_selected` | `tier`, `reason` (`auto` / `manual` / `none_available`) |
 | `tier_availability` | `tier`, `model`, `availability` |
-| `operation_result` con `operation=generate` | `tier`, `model`, `mode` (`chat`/`compare`/`benchmark`), `turns`, `has_image`, `first_chunk_ms`, `prompt_chars`, `response_chars`, `response_tokens`, `tokens_exact`, `memory_delta_kb` |
+| `operation_result` con `operation=generate` | `tier`, `model`, `mode` (`chat`/`compare`), `turns`, `has_image`, `first_chunk_ms`, `prompt_chars`, `response_chars`, `response_tokens`, `tokens_exact`, `memory_delta_kb` |
 | `operation_result` con `operation=download` | `tier`, `model`, `duration_ms` |
 | `operation_result` con `operation=check_availability` / `export_csv` | `tier` / `turns` |
-| `feature_used` con `feature=` `conversation_reset`, `conversation_open`, `mediapipe_model_select`, `compare_run`, `benchmark_run` | `tier`, `model`, `turns` |
+| `feature_used` con `feature=` `conversation_reset`, `conversation_open`, `mediapipe_model_select`, `compare_run` | `tier`, `model`, `turns` |
 
 Las descargas dejan además migas de pan cada 25 %.
 

@@ -29,7 +29,7 @@ enum class QuotaService(
 ) {
     GEMINI_CLOUD(
         "Gemini API · Tier C (Cloud)", QuotaPeriod.DAY, 20,
-        "Cada llamada HTTP cuenta (un turno con herramientas o búsqueda hace 2). Comparar y el benchmark gastan 1 por prompt.",
+        "Cada llamada HTTP cuenta (un turno con herramientas o búsqueda hace 2). Comparar gasta 1 por prompt.",
     ),
     GEMINI_FIREBASE(
         "Firebase AI Logic · Tier E", QuotaPeriod.DAY, 20,

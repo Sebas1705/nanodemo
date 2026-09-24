@@ -24,7 +24,6 @@ import es.sebas1705.nanodemo.domain.models.GenerationMetric
 import es.sebas1705.nanodemo.domain.models.InferenceBackend
 import es.sebas1705.nanodemo.domain.models.InferenceTier
 import es.sebas1705.nanodemo.domain.models.MediaPipeModelOption
-import es.sebas1705.nanodemo.domain.models.PROMPT_BANK
 import es.sebas1705.nanodemo.domain.models.Role
 import es.sebas1705.nanodemo.domain.models.TierAvailability
 import es.sebas1705.nanodemo.domain.models.TierCapabilities
@@ -32,9 +31,6 @@ import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.SupervisorJob
-import kotlinx.coroutines.async
-import kotlinx.coroutines.awaitAll
-import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -384,30 +380,6 @@ class InferenceRepository @Inject constructor(
                     _compareStates.update { it + (tier to newState) }
                 }
             }
-        }
-    }
-
-    override fun runBenchmark() {
-        telemetry.feature(InferenceFeatures.BENCHMARK_RUN, InferenceParams.TURNS to PROMPT_BANK.size)
-        scope.launch {
-            for (preset in PROMPT_BANK) {
-                Log.i(TAG, "runBenchmark: preset=${preset.name}")
-                coroutineScope {
-                    InferenceTier.entries.map { tier ->
-                        async {
-                            if (_availability.value[tier] != TierAvailability.AVAILABLE) {
-                                _compareStates.update { it + (tier to DemoState.Unavailable) }
-                                return@async
-                            }
-                            runGeneration(tier, listOf(ChatMessage(Role.USER, preset.text)), GenerationMode.BENCHMARK) { newState ->
-                                _compareStates.update { it + (tier to newState) }
-                            }
-                            Unit
-                        }
-                    }.awaitAll()
-                }
-            }
-            Log.i(TAG, "runBenchmark: completo (${PROMPT_BANK.size} presets)")
         }
     }
 

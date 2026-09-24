@@ -82,9 +82,9 @@ Models framework de Apple).
    en MediaPipe (el modelo que tenemos hosteado no tiene encoder de visión).
 7. **Modo comparación**: un toggle que corre el mismo prompt en los 5 tiers
    a la vez, mostrando las respuestas lado a lado (en cuadrícula adaptativa).
-8. **Banco de prompts / benchmark**: una fila de presets (resumen, código,
-   traducción, etc.) y un botón para correrlos todos contra los 5 tiers de
-   forma repetible.
+8. **Prompts recomendados**: en Comparar, un desplegable con prompts de prueba
+   (resumen, código, traducción, etc.) que se cargan en el campo para revisarlos
+   y mandarlos a los 5 tiers a la vez.
 9. El panel de **estadísticas** compara latencia (promedio, p50, p95),
    velocidad y tokens (reales cuando el backend los expone, aproximados si
    no) por tier, con un botón para **exportar todo a CSV** y compartirlo.
@@ -169,7 +169,7 @@ La app está dividida en módulos Gradle por capa (convention plugins en
 - **`data:repositories`** — `InferenceRepository` (`@Singleton`): única
   fuente de verdad compartida por todas las pantallas (reemplaza al viejo
   `InferenceOrchestratorViewModel`), orquesta fallback automático,
-  `generate()`/`generateCompare()`/`runBenchmark()`, `exportMetricsCsv()`, y
+  `generate()`/`generateCompare()`, `exportMetricsCsv()`, y
   persiste cada turno vía `data:history`.
 - **`data:history`** — base de datos Room (`conversations`/`messages`/
   `conversation_embeddings`) detrás de `IHistoryRepository`, que también

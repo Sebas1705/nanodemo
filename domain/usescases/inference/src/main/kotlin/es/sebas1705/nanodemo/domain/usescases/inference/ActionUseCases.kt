@@ -44,10 +44,6 @@ class GenerateCompareUseCase @Inject constructor(private val repository: IInfere
     operator fun invoke(prompt: String) = repository.generateCompare(prompt)
 }
 
-class RunBenchmarkUseCase @Inject constructor(private val repository: IInferenceRepository) {
-    operator fun invoke() = repository.runBenchmark()
-}
-
 class ExportMetricsCsvUseCase @Inject constructor(private val repository: IInferenceRepository) {
     operator fun invoke(): Uri? = repository.exportMetricsCsv()
 }

@@ -47,7 +47,6 @@ interface IInferenceRepository {
     fun resetConversation()
     fun generate(prompt: String)
     fun generateCompare(prompt: String)
-    fun runBenchmark()
     fun exportMetricsCsv(): Uri?
 
     /** Carga una conversación guardada del historial: fija tier/transcript y sigue agregando a partir de ella. */

@@ -41,7 +41,6 @@ internal object InferenceFeatures {
     const val CONVERSATION_DELETE = "conversation_delete"
     const val MEDIAPIPE_MODEL_SELECT = "mediapipe_model_select"
     const val COMPARE_RUN = "compare_run"
-    const val BENCHMARK_RUN = "benchmark_run"
     const val URL_ATTACH = "url_attach"
 }
 
@@ -65,5 +64,4 @@ internal object InferenceParams {
 internal object GenerationMode {
     const val CHAT = "chat"
     const val COMPARE = "compare"
-    const val BENCHMARK = "benchmark"
 }

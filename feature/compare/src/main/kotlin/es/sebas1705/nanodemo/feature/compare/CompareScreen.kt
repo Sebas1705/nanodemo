@@ -1,8 +1,6 @@
 package es.sebas1705.nanodemo.feature.compare
 
 import androidx.compose.foundation.background
-import androidx.compose.foundation.border
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -13,13 +11,14 @@ import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.widthIn
-import androidx.compose.foundation.lazy.LazyRow
-import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Speed
+import androidx.compose.material.icons.filled.ArrowDropDown
+import androidx.compose.material.icons.filled.Lightbulb
+import androidx.compose.material3.DropdownMenu
+import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
@@ -55,7 +54,8 @@ import es.sebas1705.nanodemo.domain.models.PROMPT_BANK
 
 /**
  * Comparar: el mismo prompt en los 5 motores a la vez. Mismo esquema que el Chat — respuestas arriba (una
- * tarjeta por motor, en streaming), barra de entrada abajo — y el banco de prompts como sugerencias.
+ * tarjeta por motor, en streaming), barra de entrada abajo — con los prompts recomendados para pruebas en
+ * un desplegable (elegir uno lo carga en el campo para revisarlo/editarlo antes de enviarlo).
  */
 @Composable
 fun CompareScreen(
@@ -66,13 +66,12 @@ fun CompareScreen(
     var promptText by remember { mutableStateOf("") }
     var sentPrompt by remember { mutableStateOf<String?>(null) }
     val isBusy = compareStates.values.any { it is DemoState.Generating }
-    val accent = DemoColors.TierA
 
-    fun run(text: String, fromComposer: Boolean) {
-        val prompt = text.trim()
+    fun run() {
+        val prompt = promptText.trim()
         if (prompt.isEmpty() || isBusy) return
         sentPrompt = prompt
-        if (fromComposer) promptText = ""
+        promptText = ""
         viewModel.generateCompare(prompt)
     }
 
@@ -80,9 +79,7 @@ fun CompareScreen(
         Box(modifier = Modifier.weight(1f).fillMaxWidth()) {
             val prompt = sentPrompt
             if (prompt == null) {
-                Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                    EmptyCompare(onPreset = { run(it, fromComposer = false) })
-                }
+                Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) { EmptyCompare() }
             } else {
                 Column(
                     modifier = Modifier
@@ -101,42 +98,57 @@ fun CompareScreen(
             }
         }
 
-        if (sentPrompt != null) {
-            LazyRow(
-                contentPadding = androidx.compose.foundation.layout.PaddingValues(horizontal = 12.dp),
-                horizontalArrangement = Arrangement.spacedBy(8.dp),
-            ) {
-                items(PROMPT_BANK) { preset -> Pill(preset.name) { promptText = preset.text } }
-            }
-        }
-
         PromptBar(
             value = promptText,
             onValueChange = { promptText = it },
-            onSend = { run(promptText, fromComposer = true) },
-            accent = accent,
+            onSend = ::run,
+            accent = DemoColors.TierA,
             isBusy = isBusy,
             placeholder = "Mismo prompt a los ${InferenceTier.entries.size} motores…",
             modifier = Modifier.imePadding(),
-            leading = {
-                TextButton(
-                    onClick = {
-                        sentPrompt = "Benchmark: banco de prompts completo (${PROMPT_BANK.size})"
-                        viewModel.runBenchmark()
-                    },
-                    enabled = !isBusy,
-                ) {
-                    Icon(Icons.Filled.Speed, contentDescription = null, modifier = Modifier.size(18.dp))
-                    Text("  Benchmark (${PROMPT_BANK.size} prompts)", style = MaterialTheme.typography.labelLarge)
-                }
-            },
+            leading = { RecommendedPrompts(onPick = { promptText = it }) },
         )
     }
 }
 
-/** Bienvenida: qué hace la pantalla + el banco de prompts como tarjetas que se mandan al toque. */
+/** Desplegable con los prompts recomendados para pruebas: elegir uno lo carga en el campo de entrada. */
 @Composable
-private fun EmptyCompare(onPreset: (String) -> Unit) {
+private fun RecommendedPrompts(onPick: (String) -> Unit) {
+    var open by remember { mutableStateOf(false) }
+    Box {
+        TextButton(onClick = { open = true }) {
+            Icon(Icons.Filled.Lightbulb, contentDescription = null, modifier = Modifier.size(18.dp))
+            Text("  Prompts recomendados", style = MaterialTheme.typography.labelLarge)
+            Icon(Icons.Filled.ArrowDropDown, contentDescription = null, modifier = Modifier.size(18.dp))
+        }
+        DropdownMenu(expanded = open, onDismissRequest = { open = false }) {
+            PROMPT_BANK.forEach { preset ->
+                DropdownMenuItem(
+                    text = {
+                        Column(modifier = Modifier.widthIn(max = 280.dp)) {
+                            Text(preset.name, style = MaterialTheme.typography.bodyLarge, fontWeight = FontWeight.SemiBold)
+                            Text(
+                                preset.text,
+                                style = MaterialTheme.typography.bodySmall,
+                                color = DemoColors.Muted,
+                                maxLines = 2,
+                                overflow = TextOverflow.Ellipsis,
+                            )
+                        }
+                    },
+                    onClick = {
+                        open = false
+                        onPick(preset.text)
+                    },
+                )
+            }
+        }
+    }
+}
+
+/** Bienvenida: qué hace la pantalla y dónde están los prompts recomendados. */
+@Composable
+private fun EmptyCompare() {
     Column(
         modifier = Modifier
             .fillMaxWidth()
@@ -155,49 +167,13 @@ private fun EmptyCompare(onPreset: (String) -> Unit) {
             modifier = Modifier.padding(top = 12.dp),
         )
         Text(
-            "Mandá el mismo prompt a todos a la vez y mirá cuál responde mejor y más rápido.",
+            "Mandá el mismo prompt a todos a la vez y mirá cuál responde mejor y más rápido. " +
+                "Escribí el tuyo o elegí uno de los prompts recomendados.",
             style = MaterialTheme.typography.bodyMedium,
             color = DemoColors.Muted,
             textAlign = TextAlign.Center,
         )
-        Column(
-            modifier = Modifier.padding(top = 12.dp),
-            verticalArrangement = Arrangement.spacedBy(8.dp),
-        ) {
-            PROMPT_BANK.forEach { preset ->
-                AppCard(
-                    modifier = Modifier.fillMaxWidth().widthIn(max = 480.dp),
-                    onClick = { onPreset(preset.text) },
-                    verticalArrangement = Arrangement.spacedBy(2.dp),
-                    contentPadding = androidx.compose.foundation.layout.PaddingValues(horizontal = 14.dp, vertical = 12.dp),
-                ) {
-                    Text(preset.name, style = MaterialTheme.typography.bodyLarge, fontWeight = FontWeight.SemiBold, color = DemoColors.Ink)
-                    Text(
-                        preset.text,
-                        style = MaterialTheme.typography.bodySmall,
-                        color = DemoColors.Muted,
-                        maxLines = 2,
-                        overflow = TextOverflow.Ellipsis,
-                    )
-                }
-            }
-        }
     }
-}
-
-@Composable
-private fun Pill(text: String, onClick: () -> Unit) {
-    Text(
-        text,
-        style = MaterialTheme.typography.labelLarge,
-        color = DemoColors.Ink,
-        modifier = Modifier
-            .clip(RoundedCornerShape(50))
-            .background(DemoColors.Panel)
-            .border(1.dp, DemoColors.Outline, RoundedCornerShape(50))
-            .clickable(onClick = onClick)
-            .padding(horizontal = 14.dp, vertical = 8.dp),
-    )
 }
 
 /** El prompt enviado, como burbuja a la derecha — igual que un turno del usuario en el Chat. */

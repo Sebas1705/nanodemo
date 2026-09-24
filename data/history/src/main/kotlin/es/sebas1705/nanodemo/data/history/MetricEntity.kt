@@ -7,7 +7,7 @@ import androidx.room.PrimaryKey
 /**
  * Una corrida de `generate()` persistida (antes solo vivía en memoria, se perdía al matar el
  * proceso — ver `GenerationMetric` en `domain:models`). Sin relación con `conversations`/`messages`
- * a propósito: una corrida de comparación/benchmark no pertenece a ninguna conversación guardada.
+ * a propósito: una corrida de comparación no pertenece a ninguna conversación guardada.
  */
 @Entity(tableName = "metrics", indices = [Index("startedAtMs")])
 data class MetricEntity(

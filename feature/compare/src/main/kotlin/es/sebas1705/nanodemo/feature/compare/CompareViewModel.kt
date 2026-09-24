@@ -5,7 +5,6 @@ import es.sebas1705.nanodemo.domain.models.DemoState
 import es.sebas1705.nanodemo.domain.models.InferenceTier
 import es.sebas1705.nanodemo.domain.usescases.inference.GenerateCompareUseCase
 import es.sebas1705.nanodemo.domain.usescases.inference.ObserveCompareStatesUseCase
-import es.sebas1705.nanodemo.domain.usescases.inference.RunBenchmarkUseCase
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.StateFlow
 import javax.inject.Inject
@@ -14,7 +13,6 @@ import javax.inject.Inject
 class CompareViewModel @Inject constructor(
     observeCompareStates: ObserveCompareStatesUseCase,
     val generateCompare: GenerateCompareUseCase,
-    val runBenchmark: RunBenchmarkUseCase,
 ) : ViewModel() {
     val compareStates: StateFlow<Map<InferenceTier, DemoState>> = observeCompareStates()
 }
