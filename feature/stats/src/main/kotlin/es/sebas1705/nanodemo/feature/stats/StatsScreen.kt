@@ -3,8 +3,8 @@ package es.sebas1705.nanodemo.feature.stats
 import android.content.Context
 import android.content.Intent
 import androidx.compose.foundation.background
-import androidx.compose.foundation.border
-import androidx.compose.foundation.clickable
+
+
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -14,9 +14,16 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.BarChart
+import androidx.compose.material.icons.filled.KeyboardArrowDown
+import androidx.compose.material.icons.filled.KeyboardArrowUp
+import androidx.compose.material.icons.filled.Share
+import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
@@ -31,10 +38,12 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
+
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import es.sebas1705.nanodemo.core.designsystem.AdaptiveGrid
-import es.sebas1705.nanodemo.core.designsystem.channelLetter
+import es.sebas1705.nanodemo.core.designsystem.AppCard
+import es.sebas1705.nanodemo.core.designsystem.EmptyState
+import es.sebas1705.nanodemo.core.designsystem.TierAvatar
 import es.sebas1705.nanodemo.core.designsystem.label
 import es.sebas1705.nanodemo.core.designsystem.signalColor
 import es.sebas1705.nanodemo.core.designsystem.ScreenSizeClass
@@ -67,18 +76,20 @@ fun StatsScreen(sizeClass: ScreenSizeClass, viewModel: StatsViewModel = hiltView
     ) {
         if (metrics.isNotEmpty()) {
             Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.End) {
-                TextButton(onClick = { exportAndShare(viewModel, context) }) { Text("Exportar CSV") }
+                TextButton(onClick = { exportAndShare(viewModel, context) }) {
+                    Icon(Icons.Filled.Share, contentDescription = null, modifier = Modifier.size(18.dp))
+                    Text("  Exportar CSV")
+                }
             }
         }
 
         HelpPanel()
 
         if (metrics.isEmpty()) {
-            Text(
-                "Todavía no generaste nada. Probá un prompt en Chat o en Comparar " +
-                    "para empezar a ver métricas acá.",
-                style = MaterialTheme.typography.bodyMedium,
-                color = DemoColors.Muted,
+            EmptyState(
+                icon = Icons.Filled.BarChart,
+                title = "Todavía no hay métricas",
+                message = "Probá un prompt en Chat o en Comparar y acá vas a ver la latencia, velocidad y costo de cada motor.",
             )
             return@Column
         }
@@ -113,38 +124,30 @@ private val METRIC_HELP: List<Pair<String, String>> = listOf(
 @Composable
 private fun HelpPanel() {
     var expanded by remember { mutableStateOf(false) }
-    Column(
-        modifier = Modifier
-            .fillMaxWidth()
-            .background(DemoColors.Panel, RoundedCornerShape(8.dp))
-            .padding(12.dp),
-        verticalArrangement = Arrangement.spacedBy(8.dp),
-    ) {
+    AppCard(modifier = Modifier.fillMaxWidth(), onClick = { expanded = !expanded }) {
         Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .clickable { expanded = !expanded },
+            modifier = Modifier.fillMaxWidth(),
             horizontalArrangement = Arrangement.SpaceBetween,
             verticalAlignment = Alignment.CenterVertically,
         ) {
-            Text(
-                "¿QUÉ SIGNIFICA CADA MÉTRICA?",
-                style = MaterialTheme.typography.labelSmall,
-                color = DemoColors.Muted,
-                letterSpacing = 1.5.sp,
+            Text("¿Qué significa cada métrica?", style = MaterialTheme.typography.titleSmall, color = DemoColors.Ink)
+            Icon(
+                if (expanded) Icons.Filled.KeyboardArrowUp else Icons.Filled.KeyboardArrowDown,
+                contentDescription = null,
+                tint = DemoColors.Muted,
             )
-            Text(if (expanded) "▲" else "▼", style = readoutStyle, color = DemoColors.Muted)
         }
         if (expanded) {
             METRIC_HELP.forEach { (label, help) ->
                 Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
-                    Text(label, style = readoutStyle, color = DemoColors.Ink, fontWeight = FontWeight.Bold)
+                    Text(label, style = MaterialTheme.typography.bodyMedium, color = DemoColors.Ink, fontWeight = FontWeight.SemiBold)
                     Text(help, style = MaterialTheme.typography.bodySmall, color = DemoColors.Muted)
                 }
             }
         }
     }
 }
+
 
 private fun exportAndShare(viewModel: StatsViewModel, context: Context) {
     viewModel.exportMetricsCsv()?.let { uri ->
@@ -228,33 +231,34 @@ private fun percentile(sortedValues: List<Long>, fraction: Double): Double {
 @Composable
 private fun StatCard(tier: InferenceTier, stat: TierStat, maxAvgLatencyMs: Double, modifier: Modifier) {
     val fraction = (stat.avgLatencyMs / maxAvgLatencyMs).toFloat().coerceIn(0.05f, 1f)
-    Column(
-        modifier = modifier
-            .border(1.dp, tier.signalColor.copy(alpha = 0.35f), RoundedCornerShape(8.dp))
-            .background(DemoColors.Panel, RoundedCornerShape(8.dp))
-            .padding(16.dp),
-        verticalArrangement = Arrangement.spacedBy(10.dp),
-    ) {
-        Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-            Text("[${tier.channelLetter()}]", style = readoutStyle, color = tier.signalColor, fontWeight = FontWeight.Bold)
-            Text(tier.label(), style = MaterialTheme.typography.titleMedium, color = DemoColors.Ink)
+    AppCard(modifier = modifier) {
+        Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+            TierAvatar(tier, 32.dp)
+            Text(tier.label(), style = MaterialTheme.typography.titleMedium, color = DemoColors.Ink, modifier = Modifier.weight(1f))
+            Column(horizontalAlignment = Alignment.End) {
+                Text(
+                    String.format(Locale.US, "%.1fs", stat.avgLatencyMs / 1000),
+                    style = MaterialTheme.typography.titleLarge,
+                    color = tier.signalColor,
+                )
+                Text("latencia prom.", style = MaterialTheme.typography.labelSmall, color = DemoColors.Muted)
+            }
         }
 
         Box(
             modifier = Modifier
                 .fillMaxWidth()
-                .height(8.dp)
-                .background(DemoColors.Background, RoundedCornerShape(4.dp))
+                .height(6.dp)
+                .background(DemoColors.Background, RoundedCornerShape(3.dp))
         ) {
             Box(
                 modifier = Modifier
                     .fillMaxWidth(fraction)
                     .fillMaxHeight()
-                    .background(tier.signalColor, RoundedCornerShape(4.dp))
+                    .background(tier.signalColor, RoundedCornerShape(3.dp))
             )
         }
 
-        StatRow("Latencia prom.", String.format(Locale.US, "%.1fs", stat.avgLatencyMs / 1000))
         StatRow("p50 / p95", String.format(Locale.US, "%.1fs / %.1fs", stat.p50Ms / 1000, stat.p95Ms / 1000))
         StatRow("Velocidad", String.format(Locale.US, "%.0f c/s", stat.charsPerSec))
         StatRow(
@@ -271,7 +275,7 @@ private fun StatCard(tier: InferenceTier, stat: TierStat, maxAvgLatencyMs: Doubl
 @Composable
 private fun StatRow(label: String, value: String) {
     Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
-        Text(label, style = readoutStyle, color = DemoColors.Muted)
+        Text(label, style = MaterialTheme.typography.bodyMedium, color = DemoColors.Muted)
         Text(value, style = readoutStyle, color = DemoColors.Ink)
     }
 }

@@ -1,12 +1,9 @@
 package es.sebas1705.nanodemo.feature.device
 
-import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Text
@@ -14,16 +11,18 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import es.sebas1705.nanodemo.core.common.hasInternetConnection
 import es.sebas1705.nanodemo.core.common.totalRamGb
 import es.sebas1705.nanodemo.core.designsystem.AdaptiveGrid
-import es.sebas1705.nanodemo.core.designsystem.channelLetter
+import es.sebas1705.nanodemo.core.designsystem.AppCard
+import es.sebas1705.nanodemo.core.designsystem.SectionLabel
+import es.sebas1705.nanodemo.core.designsystem.TierAvatar
 import es.sebas1705.nanodemo.core.designsystem.label
 import es.sebas1705.nanodemo.core.designsystem.rememberScreenSizeClass
 import es.sebas1705.nanodemo.core.designsystem.signalColor
@@ -46,6 +45,14 @@ private val CAPABILITY_ROWS: List<Pair<String, (TierCapabilities) -> Boolean>> =
     "Imágenes" to { it.images },
 )
 
+private fun TierAvailability.displayText(): String = when (this) {
+    TierAvailability.AVAILABLE -> "Disponible"
+    TierAvailability.DOWNLOADABLE -> "Descargable"
+    TierAvailability.UNAVAILABLE -> "No disponible"
+    TierAvailability.CHECKING -> "Comprobando…"
+    TierAvailability.UNKNOWN -> "Sin comprobar"
+}
+
 /**
  * Ya no es una pantalla propia con su propio scroll — vive dentro de la hoja "Ajustes"
  * (`feature:main/SettingsSheet.kt`), que aporta el scroll y el padding compartidos con
@@ -60,77 +67,48 @@ fun DeviceScreen(viewModel: DeviceViewModel = hiltViewModel()) {
 
     Column(
         modifier = Modifier.fillMaxWidth(),
-        verticalArrangement = Arrangement.spacedBy(16.dp),
+        verticalArrangement = Arrangement.spacedBy(12.dp),
     ) {
-        Column(
-            modifier = Modifier
-                .fillMaxWidth()
-                .background(DemoColors.Panel, RoundedCornerShape(8.dp))
-                .padding(16.dp),
-            verticalArrangement = Arrangement.spacedBy(8.dp),
-        ) {
+        AppCard(modifier = Modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(8.dp)) {
             InfoRow("RAM total", String.format(Locale.US, "%.1f GB", ramGb))
             InfoRow("¿Alcanza para MediaPipe (~4GB+)?", if (ramGb >= 4.0) "Sí" else "No")
             InfoRow("Conectividad", if (hasInternet) "Con internet" else "Sin conexión")
         }
 
-        Text(
-            "DISPONIBILIDAD ACTUAL",
-            style = MaterialTheme.typography.labelSmall,
-            color = DemoColors.Muted,
-            letterSpacing = 1.5.sp,
-        )
-        Column(
-            modifier = Modifier
-                .fillMaxWidth()
-                .background(DemoColors.Panel, RoundedCornerShape(8.dp))
-                .padding(16.dp),
-            verticalArrangement = Arrangement.spacedBy(8.dp),
-        ) {
+        SectionLabel("Disponibilidad actual")
+        AppCard(modifier = Modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(10.dp)) {
             InferenceTier.entries.forEach { tier ->
+                val tierAvailability = availability[tier] ?: TierAvailability.UNKNOWN
                 Row(
                     modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(10.dp),
                 ) {
+                    TierAvatar(tier, 28.dp)
                     Text(
-                        "[${tier.channelLetter()}] ${tier.label()}",
-                        style = readoutStyle,
-                        color = tier.signalColor,
+                        tier.label(),
+                        style = MaterialTheme.typography.bodyLarge,
+                        color = DemoColors.Ink,
+                        modifier = Modifier.weight(1f),
                     )
                     Text(
-                        (availability[tier] ?: TierAvailability.UNKNOWN).toString(),
-                        style = readoutStyle,
-                        color = DemoColors.Muted,
+                        tierAvailability.displayText(),
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = if (tierAvailability == TierAvailability.AVAILABLE) tier.signalColor else DemoColors.Muted,
                     )
                 }
             }
         }
 
-        Text(
-            "QUÉ SOPORTA CADA TIER",
-            style = MaterialTheme.typography.labelSmall,
-            color = DemoColors.Muted,
-            letterSpacing = 1.5.sp,
-        )
+        SectionLabel("Qué soporta cada motor")
         CapabilitiesTable(viewModel)
 
-        Text(
-            "DIAGNÓSTICO (CRASHLYTICS Y ANALYTICS)",
-            style = MaterialTheme.typography.labelSmall,
-            color = DemoColors.Muted,
-            letterSpacing = 1.5.sp,
-        )
-        Column(
-            modifier = Modifier
-                .fillMaxWidth()
-                .background(DemoColors.Panel, RoundedCornerShape(8.dp))
-                .padding(16.dp),
-            verticalArrangement = Arrangement.spacedBy(8.dp),
-        ) {
+        SectionLabel("Diagnóstico (Crashlytics y Analytics)")
+        AppCard(modifier = Modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(8.dp)) {
             Text(
                 "Para comprobar que los eventos y errores llegan a la consola de Firebase. El crash " +
                     "real se envía la próxima vez que abras la app.",
-                style = readoutStyle,
+                style = MaterialTheme.typography.bodySmall,
                 color = DemoColors.Muted,
             )
             OutlinedButton(onClick = viewModel::sendTestEvent, modifier = Modifier.fillMaxWidth()) {
@@ -149,39 +127,30 @@ fun DeviceScreen(viewModel: DeviceViewModel = hiltViewModel()) {
 @Composable
 private fun InfoRow(label: String, value: String) {
     Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
-        Text(label, style = readoutStyle, color = DemoColors.Muted)
-        Text(value, style = readoutStyle, color = DemoColors.Ink)
+        Text(label, style = MaterialTheme.typography.bodyMedium, color = DemoColors.Muted)
+        Text(value, style = MaterialTheme.typography.bodyMedium, color = DemoColors.Ink, fontWeight = FontWeight.SemiBold)
     }
 }
 
 /**
- * Antes era una sola tabla de 6 columnas (label + 5 tiers) — apretadísima en un ancho de
- * teléfono, sobre todo dentro de la hoja "Ajustes" (ya no una pantalla completa). Ahora es
- * una tarjeta por tier (label a la izquierda, ✓/✗ a la derecha, sin competir por ancho con
- * las otras 4), en una grilla que usa 1 columna en teléfono y 2-3 en tablet/pantalla ancha
- * (mismo `AdaptiveGrid`/`tierColumns` que ya usan Comparar y Estadísticas).
+ * Una tarjeta por tier (label a la izquierda, ✓/✗ a la derecha, sin competir por ancho con las otras 4),
+ * en una grilla que usa 1 columna en teléfono y 2-3 en tablet/pantalla ancha (mismo
+ * `AdaptiveGrid`/`tierColumns` que ya usan Comparar y Estadísticas).
  */
 @Composable
 private fun CapabilitiesTable(viewModel: DeviceViewModel) {
     val sizeClass = rememberScreenSizeClass()
     AdaptiveGrid(items = InferenceTier.entries, columns = sizeClass.tierColumns) { tier, cardModifier ->
-        Column(
-            modifier = cardModifier
-                .background(DemoColors.Panel, RoundedCornerShape(8.dp))
-                .padding(12.dp),
-            verticalArrangement = Arrangement.spacedBy(8.dp),
-        ) {
-            Text(
-                "[${tier.channelLetter()}] ${tier.label()}",
-                style = readoutStyle,
-                color = tier.signalColor,
-                fontWeight = FontWeight.Bold,
-            )
+        AppCard(modifier = cardModifier, verticalArrangement = Arrangement.spacedBy(8.dp)) {
+            Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+                TierAvatar(tier, 28.dp)
+                Text(tier.label(), style = MaterialTheme.typography.titleMedium, color = DemoColors.Ink)
+            }
             val capabilities = viewModel.capabilitiesOf(tier)
             CAPABILITY_ROWS.forEach { (label, supports) ->
                 val supported = supports(capabilities)
                 Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
-                    Text(label, style = readoutStyle, color = DemoColors.Ink)
+                    Text(label, style = MaterialTheme.typography.bodyMedium, color = DemoColors.Ink)
                     Text(
                         if (supported) "✓" else "✗",
                         style = readoutStyle,

@@ -17,8 +17,10 @@ import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.NavigationBar
 import androidx.compose.material3.NavigationBarItem
+import androidx.compose.material3.NavigationBarItemDefaults
 import androidx.compose.material3.NavigationRail
 import androidx.compose.material3.NavigationRailItem
+import androidx.compose.material3.NavigationRailItemDefaults
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -30,7 +32,6 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.viewmodel.navigation3.rememberViewModelStoreNavEntryDecorator
@@ -41,12 +42,11 @@ import androidx.navigation3.ui.NavDisplay
 import es.sebas1705.nanodemo.core.common.pushAndFree
 import es.sebas1705.nanodemo.core.designsystem.ScreenSizeClass
 import es.sebas1705.nanodemo.core.designsystem.StatusIndicator
-import es.sebas1705.nanodemo.core.designsystem.channelLetter
+import es.sebas1705.nanodemo.core.designsystem.TierAvatar
 import es.sebas1705.nanodemo.core.designsystem.rememberIsCompactHeight
 import es.sebas1705.nanodemo.core.designsystem.rememberScreenSizeClass
 import es.sebas1705.nanodemo.core.designsystem.signalColor
 import es.sebas1705.nanodemo.core.ui.DemoColors
-import es.sebas1705.nanodemo.core.ui.readoutStyle
 import es.sebas1705.nanodemo.domain.models.InferenceTier
 import es.sebas1705.nanodemo.domain.models.TierAvailability
 import es.sebas1705.nanodemo.feature.chat.ChatScreen
@@ -103,10 +103,10 @@ fun AppNav(initialSharedText: String? = null, mainViewModel: MainViewModel = hil
                                 Icon(
                                     imageVector = destination.icon,
                                     contentDescription = destination.label,
-                                    tint = tabColor(currentDestination, destination),
                                 )
                             },
                             label = { Text(destination.label) },
+                            colors = navBarItemColors(),
                             // Con 6 pestañas, un label fijo por ítem las aprieta — igual que ya
                             // hace el NavigationRail de abajo, solo el ítem activo lo muestra.
                             alwaysShowLabel = false,
@@ -148,10 +148,10 @@ fun AppNav(initialSharedText: String? = null, mainViewModel: MainViewModel = hil
                             Icon(
                                 imageVector = destination.icon,
                                 contentDescription = destination.label,
-                                tint = tabColor(currentDestination, destination),
                             )
                         },
                         label = { Text(destination.label) },
+                        colors = navRailItemColors(),
                         alwaysShowLabel = false, // solo el seleccionado muestra label: los 6 ítems entran más ajustados
                     )
                 }
@@ -202,16 +202,12 @@ private fun ChannelTopBar(
         verticalAlignment = Alignment.CenterVertically,
     ) {
         Text(
-            text = title.uppercase(),
-            style = MaterialTheme.typography.headlineSmall,
+            text = title,
+            style = MaterialTheme.typography.titleLarge,
             color = DemoColors.Ink,
         )
         Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-            Text(
-                "[${activeTier.channelLetter()}]",
-                style = readoutStyle,
-                color = activeTier.signalColor,
-            )
+            TierAvatar(activeTier, 24.dp)
             StatusIndicator(availability, activeTier.signalColor)
             onOpenSettings?.let {
                 // 32dp (no los 48dp por defecto) para que la barra no crezca solo en Chat.
@@ -223,8 +219,23 @@ private fun ChannelTopBar(
     }
 }
 
-private fun tabColor(current: Destination?, destination: Destination): Color =
-    if (current == destination) DemoColors.TierA else DemoColors.Muted
+@Composable
+private fun navBarItemColors() = NavigationBarItemDefaults.colors(
+    selectedIconColor = DemoColors.TierA,
+    selectedTextColor = DemoColors.TierA,
+    unselectedIconColor = DemoColors.Muted,
+    unselectedTextColor = DemoColors.Muted,
+    indicatorColor = DemoColors.TierA.copy(alpha = 0.16f),
+)
+
+@Composable
+private fun navRailItemColors() = NavigationRailItemDefaults.colors(
+    selectedIconColor = DemoColors.TierA,
+    selectedTextColor = DemoColors.TierA,
+    unselectedIconColor = DemoColors.Muted,
+    unselectedTextColor = DemoColors.Muted,
+    indicatorColor = DemoColors.TierA.copy(alpha = 0.16f),
+)
 
 @Composable
 private fun AppNavHost(

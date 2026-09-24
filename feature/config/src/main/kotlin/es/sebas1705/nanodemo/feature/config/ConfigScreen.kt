@@ -1,9 +1,12 @@
 package es.sebas1705.nanodemo.feature.config
 
+import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Slider
@@ -19,14 +22,15 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
-import es.sebas1705.nanodemo.core.designsystem.TierChannelRow
+import es.sebas1705.nanodemo.core.designsystem.AppCard
+import es.sebas1705.nanodemo.core.designsystem.SectionLabel
+import es.sebas1705.nanodemo.core.designsystem.TierChip
 import es.sebas1705.nanodemo.core.designsystem.channelLetter
 import es.sebas1705.nanodemo.core.designsystem.label
 import es.sebas1705.nanodemo.core.ui.DemoColors
 import es.sebas1705.nanodemo.core.ui.readoutStyle
 import es.sebas1705.nanodemo.domain.models.GenerationConfig
 import es.sebas1705.nanodemo.domain.models.InferenceTier
-import es.sebas1705.nanodemo.domain.models.TierAvailability
 import java.util.Locale
 
 /**
@@ -40,7 +44,6 @@ import java.util.Locale
 @Composable
 fun ConfigScreen(viewModel: ConfigViewModel = hiltViewModel()) {
     val configs by viewModel.configs.collectAsState()
-    val availability by viewModel.availability.collectAsState()
     val activeTier by viewModel.activeTier.collectAsState()
     var selectedTier by remember { mutableStateOf(activeTier) }
     val config = configs[selectedTier] ?: GenerationConfig()
@@ -48,21 +51,19 @@ fun ConfigScreen(viewModel: ConfigViewModel = hiltViewModel()) {
 
     Column(
         modifier = Modifier.fillMaxWidth(),
-        verticalArrangement = Arrangement.spacedBy(16.dp),
+        verticalArrangement = Arrangement.spacedBy(12.dp),
     ) {
         Text(
-            "Cada tier guarda sus propios parámetros — elegí uno para ver o cambiar los suyos.",
-            style = MaterialTheme.typography.bodySmall,
+            "Cada motor guarda sus propios parámetros — elegí uno para ver o cambiar los suyos.",
+            style = MaterialTheme.typography.bodyMedium,
             color = DemoColors.Muted,
         )
-        Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
+        Row(
+            modifier = Modifier.horizontalScroll(rememberScrollState()),
+            horizontalArrangement = Arrangement.spacedBy(8.dp),
+        ) {
             InferenceTier.entries.forEach { tier ->
-                TierChannelRow(
-                    tier = tier,
-                    isActive = tier == selectedTier,
-                    availability = availability[tier] ?: TierAvailability.UNKNOWN,
-                    onClick = { selectedTier = tier },
-                )
+                TierChip(tier = tier, selected = tier == selectedTier, onClick = { selectedTier = tier })
             }
         }
         Text(
@@ -72,49 +73,57 @@ fun ConfigScreen(viewModel: ConfigViewModel = hiltViewModel()) {
             color = DemoColors.Muted,
         )
 
-        ConfigSlider(
-            label = "Temperature",
-            description = "Aleatoriedad de la respuesta. Cerca de 0: siempre elige la palabra " +
-                "más probable (predecible, repetitivo). Cerca de 2: se anima con opciones " +
-                "menos probables (más creativo, pero puede desvariar).",
-            value = config.temperature ?: 1.0f,
-            range = 0f..2f,
-            enabled = capabilities.temperature,
-            valueText = String.format(Locale.US, "%.2f", config.temperature ?: 1.0f),
-            onValueChange = { viewModel.updateConfig(selectedTier, config.copy(temperature = it)) },
-        )
-        ConfigSlider(
-            label = "Top-K",
-            description = "En cada palabra, el modelo solo puede elegir entre las K opciones " +
-                "más probables. K bajo (ej. 5) = respuestas más conservadoras; K alto = más variedad.",
-            value = (config.topK ?: 40).toFloat(),
-            range = 1f..100f,
-            enabled = capabilities.topK,
-            valueText = "${config.topK ?: 40}",
-            onValueChange = { viewModel.updateConfig(selectedTier, config.copy(topK = it.toInt())) },
-        )
-        ConfigSlider(
-            label = "Top-P",
-            description = "Parecido a Top-K, pero en vez de un número fijo de opciones, corta " +
-                "cuando la probabilidad acumulada llega a P (ej. 0.95 = las opciones que " +
-                "suman el 95% de probabilidad). Muchos backends combinan Top-K y Top-P a la vez.",
-            value = config.topP ?: 0.95f,
-            range = 0f..1f,
-            enabled = capabilities.topP,
-            valueText = String.format(Locale.US, "%.2f", config.topP ?: 0.95f),
-            onValueChange = { viewModel.updateConfig(selectedTier, config.copy(topP = it)) },
-        )
-        ConfigSlider(
-            label = "Max output tokens",
-            description = "Tope de longitud de la respuesta, en tokens (~4 caracteres cada uno, " +
-                "aproximado). El modelo puede terminar antes solo; esto es un techo, no un objetivo.",
-            value = (config.maxOutputTokens ?: 512).toFloat(),
-            range = 16f..2048f,
-            enabled = capabilities.maxOutputTokens,
-            valueText = "${config.maxOutputTokens ?: 512}",
-            onValueChange = { viewModel.updateConfig(selectedTier, config.copy(maxOutputTokens = it.toInt())) },
-        )
-        Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+        SectionLabel("Generación")
+        AppCard(modifier = Modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(16.dp)) {
+            ConfigSlider(
+                label = "Temperature",
+                description = "Aleatoriedad de la respuesta. Cerca de 0: siempre elige la palabra " +
+                    "más probable (predecible, repetitivo). Cerca de 2: se anima con opciones " +
+                    "menos probables (más creativo, pero puede desvariar).",
+                value = config.temperature ?: 1.0f,
+                range = 0f..2f,
+                enabled = capabilities.temperature,
+                valueText = String.format(Locale.US, "%.2f", config.temperature ?: 1.0f),
+                onValueChange = { viewModel.updateConfig(selectedTier, config.copy(temperature = it)) },
+            )
+            HorizontalDivider(color = DemoColors.Outline)
+            ConfigSlider(
+                label = "Top-K",
+                description = "En cada palabra, el modelo solo puede elegir entre las K opciones " +
+                    "más probables. K bajo (ej. 5) = respuestas más conservadoras; K alto = más variedad.",
+                value = (config.topK ?: 40).toFloat(),
+                range = 1f..100f,
+                enabled = capabilities.topK,
+                valueText = "${config.topK ?: 40}",
+                onValueChange = { viewModel.updateConfig(selectedTier, config.copy(topK = it.toInt())) },
+            )
+            HorizontalDivider(color = DemoColors.Outline)
+            ConfigSlider(
+                label = "Top-P",
+                description = "Parecido a Top-K, pero en vez de un número fijo de opciones, corta " +
+                    "cuando la probabilidad acumulada llega a P (ej. 0.95 = las opciones que " +
+                    "suman el 95% de probabilidad). Muchos backends combinan Top-K y Top-P a la vez.",
+                value = config.topP ?: 0.95f,
+                range = 0f..1f,
+                enabled = capabilities.topP,
+                valueText = String.format(Locale.US, "%.2f", config.topP ?: 0.95f),
+                onValueChange = { viewModel.updateConfig(selectedTier, config.copy(topP = it)) },
+            )
+            HorizontalDivider(color = DemoColors.Outline)
+            ConfigSlider(
+                label = "Max output tokens",
+                description = "Tope de longitud de la respuesta, en tokens (~4 caracteres cada uno, " +
+                    "aproximado). El modelo puede terminar antes solo; esto es un techo, no un objetivo.",
+                value = (config.maxOutputTokens ?: 512).toFloat(),
+                range = 16f..2048f,
+                enabled = capabilities.maxOutputTokens,
+                valueText = "${config.maxOutputTokens ?: 512}",
+                onValueChange = { viewModel.updateConfig(selectedTier, config.copy(maxOutputTokens = it.toInt())) },
+            )
+        }
+
+        SectionLabel("Instrucciones")
+        AppCard(modifier = Modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(6.dp)) {
             OutlinedTextField(
                 value = config.systemPrompt.orEmpty(),
                 onValueChange = { viewModel.updateConfig(selectedTier, config.copy(systemPrompt = it.ifBlank { null })) },
@@ -133,88 +142,69 @@ fun ConfigScreen(viewModel: ConfigViewModel = hiltViewModel()) {
             )
         }
 
-        Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically,
-            ) {
-                Text(
-                    if (capabilities.structuredOutput) "Modo JSON" else "Modo JSON (no soportado en este tier)",
-                    style = readoutStyle,
-                    color = if (capabilities.structuredOutput) DemoColors.Ink else DemoColors.Muted,
-                )
-                Switch(
-                    checked = config.jsonMode,
-                    onCheckedChange = { viewModel.updateConfig(selectedTier, config.copy(jsonMode = it)) },
-                    enabled = capabilities.structuredOutput,
-                )
-            }
-            Text(
-                "Le pide al modelo que devuelva JSON en vez de texto libre. Cloud y Firebase AI lo " +
+        SectionLabel("Capacidades")
+        AppCard(modifier = Modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(16.dp)) {
+            ConfigToggle(
+                title = "Modo JSON",
+                supported = capabilities.structuredOutput,
+                checked = config.jsonMode,
+                onCheckedChange = { viewModel.updateConfig(selectedTier, config.copy(jsonMode = it)) },
+                description = "Le pide al modelo que devuelva JSON en vez de texto libre. Cloud y Firebase AI lo " +
                     "garantizan (responseMimeType del API); Nano/MediaPipe/LiteRT-LM lo emulan por " +
                     "prompt (sin garantía sintáctica, depende de que el modelo lo respete). En Chat se " +
                     "marca si la respuesta terminó siendo JSON válido o no, en los 5 tiers.",
-                style = MaterialTheme.typography.bodySmall,
-                color = DemoColors.Muted,
             )
-        }
-
-        Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically,
-            ) {
-                Text(
-                    if (capabilities.functionCalling) "Herramientas" else "Herramientas (no soportado en este tier)",
-                    style = readoutStyle,
-                    color = if (capabilities.functionCalling) DemoColors.Ink else DemoColors.Muted,
-                )
-                Switch(
-                    checked = config.functionCalling,
-                    onCheckedChange = { viewModel.updateConfig(selectedTier, config.copy(functionCalling = it)) },
-                    enabled = capabilities.functionCalling,
-                )
-            }
-            Text(
-                "Deja que el modelo pida la hora actual en una zona horaria en vez de inventarla — " +
+            HorizontalDivider(color = DemoColors.Outline)
+            ConfigToggle(
+                title = "Herramientas",
+                supported = capabilities.functionCalling,
+                checked = config.functionCalling,
+                onCheckedChange = { viewModel.updateConfig(selectedTier, config.copy(functionCalling = it)) },
+                description = "Deja que el modelo pida la hora actual en una zona horaria en vez de inventarla — " +
                     "no tiene reloj propio. Cloud y Firebase AI lo hacen nativo (la API tiene tool-calling " +
                     "real); Nano/MediaPipe/LiteRT-LM lo emulan por prompt (menos confiable: depende de que " +
                     "el modelo respete el formato pedido). En Chat se ve cuándo la usó.",
-                style = MaterialTheme.typography.bodySmall,
-                color = DemoColors.Muted,
             )
-        }
-
-        Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically,
-            ) {
-                Text(
-                    if (capabilities.webSearch) "Búsqueda en internet" else "Búsqueda en internet (no soportado en este tier)",
-                    style = readoutStyle,
-                    color = if (capabilities.webSearch) DemoColors.Ink else DemoColors.Muted,
-                )
-                Switch(
-                    checked = config.webSearch,
-                    onCheckedChange = { viewModel.updateConfig(selectedTier, config.copy(webSearch = it)) },
-                    enabled = capabilities.webSearch,
-                )
-            }
-            Text(
-                "El modelo busca antes de responder, para preguntas actuales que no puede saber por " +
+            HorizontalDivider(color = DemoColors.Outline)
+            ConfigToggle(
+                title = "Búsqueda en internet",
+                supported = capabilities.webSearch,
+                checked = config.webSearch,
+                onCheckedChange = { viewModel.updateConfig(selectedTier, config.copy(webSearch = it)) },
+                description = "El modelo busca antes de responder, para preguntas actuales que no puede saber por " +
                     "su corte de entrenamiento. Cloud/Firebase AI usan grounding nativo (Google " +
                     "Search de la propia API); Nano/MediaPipe/LiteRT-LM no tienen red propia, así que " +
                     "la app busca por ellos (Brave Search API) y les pasa los resultados — hace falta " +
                     "configurar BRAVE_SEARCH_API_KEY, si no la búsqueda queda deshabilitada con un " +
                     "aviso. Si también prendiste Herramientas, esta gana (no se probaron juntas).",
-                style = MaterialTheme.typography.bodySmall,
-                color = DemoColors.Muted,
             )
         }
+    }
+}
+
+@Composable
+private fun ConfigToggle(
+    title: String,
+    supported: Boolean,
+    checked: Boolean,
+    onCheckedChange: (Boolean) -> Unit,
+    description: String,
+) {
+    Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            Text(
+                if (supported) title else "$title (no soportado en este tier)",
+                style = MaterialTheme.typography.bodyLarge,
+                color = if (supported) DemoColors.Ink else DemoColors.Muted,
+                modifier = Modifier.weight(1f),
+            )
+            Switch(checked = checked, onCheckedChange = onCheckedChange, enabled = supported)
+        }
+        Text(description, style = MaterialTheme.typography.bodySmall, color = DemoColors.Muted)
     }
 }
 
@@ -232,7 +222,7 @@ private fun ConfigSlider(
         Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
             Text(
                 if (enabled) label else "$label (no soportado)",
-                style = readoutStyle,
+                style = MaterialTheme.typography.bodyLarge,
                 color = if (enabled) DemoColors.Ink else DemoColors.Muted,
             )
             Text(valueText, style = readoutStyle, color = DemoColors.Muted)

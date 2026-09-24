@@ -7,7 +7,6 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.Text
@@ -15,7 +14,6 @@ import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
 import es.sebas1705.nanodemo.core.ui.DemoColors
 import es.sebas1705.nanodemo.feature.config.ConfigScreen
 import es.sebas1705.nanodemo.feature.device.DeviceScreen
@@ -47,13 +45,12 @@ fun SettingsSheet(onDismiss: () -> Unit) {
             verticalArrangement = Arrangement.spacedBy(24.dp),
         ) {
             Text(
-                text = "AJUSTES",
+                text = "Ajustes",
                 style = MaterialTheme.typography.headlineSmall,
                 color = DemoColors.Ink,
             )
-            SettingsSection("DISPOSITIVO") { DeviceScreen() }
-            HorizontalDivider(color = DemoColors.Muted.copy(alpha = 0.2f))
-            SettingsSection("PARÁMETROS") { ConfigScreen() }
+            SettingsSection("Dispositivo") { DeviceScreen() }
+            SettingsSection("Parámetros") { ConfigScreen() }
         }
     }
 }
@@ -63,9 +60,8 @@ private fun SettingsSection(title: String, content: @Composable () -> Unit) {
     Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
         Text(
             text = title,
-            style = MaterialTheme.typography.labelSmall,
-            color = DemoColors.Muted,
-            letterSpacing = 1.5.sp,
+            style = MaterialTheme.typography.titleLarge,
+            color = DemoColors.Ink,
         )
         content()
     }
