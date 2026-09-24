@@ -6,6 +6,7 @@ import android.graphics.BitmapFactory
 import android.net.Uri
 import android.util.Log
 import es.sebas1705.nanodemo.core.common.WebSearchTool
+import es.sebas1705.nanodemo.core.common.augmentWithWebSearch
 import es.sebas1705.nanodemo.core.common.buildLocalSystemPrompt
 import es.sebas1705.nanodemo.core.common.hasAtLeastRamBytes
 import es.sebas1705.nanodemo.core.common.resolveLocalToolCall
@@ -162,35 +163,51 @@ class LiteRtLmBackend @Inject constructor(
     }.flowOn(Dispatchers.IO)
 
     /**
-     * Sin herramientas: un solo `sendMessageAsync`, transmite chunk a chunk (comportamiento sin
-     * cambios). Con herramientas (function calling y/o búsqueda, emuladas por prompt — ver la
-     * instrucción agregada en `getOrCreateConversation` y `resolveLocalToolCall`): el primer pase se
-     * bufferea completo (nada se emite todavía) porque recién al terminar el flow se puede decidir
-     * si el texto ENTERO fue un pedido de herramienta o una respuesta normal — mismo trade-off que
-     * Cloud/Firebase (sin streaming visible durante el pase que decide). `Conversation` es de por sí
-     * persistente entre turnos, así que el segundo pase es solo otro `sendMessageAsync` con el
-     * resultado de la herramienta como mensaje nuevo.
+     * Con búsqueda (`webSearch`): antes de generar, la app busca en internet y enriquece el turno con los
+     * resultados + instrucciones de síntesis/formato (`augmentWithWebSearch`); es una sola pasada con
+     * streaming, y al terminar se agrega la lista de fuentes.
+     *
+     * Con la herramienta de hora (`functionCalling`, sin búsqueda; emulada por prompt — ver la instrucción
+     * agregada en `getOrCreateConversation` y `resolveLocalToolCall`): el primer pase se bufferea completo
+     * (nada se emite todavía) porque recién al terminar el flow se puede decidir si el texto ENTERO fue un
+     * pedido de herramienta o una respuesta normal — mismo trade-off que Cloud/Firebase. `Conversation` es
+     * de por sí persistente entre turnos, así que el segundo pase es solo otro `sendMessageAsync` con el
+     * resultado de la herramienta como mensaje nuevo. Sin nada de eso: un solo `sendMessageAsync`, chunk a chunk.
      */
     override fun generateContentStream(history: List<ChatMessage>, config: GenerationConfig): Flow<String> = flow {
         val lastUserMessage = history.lastOrNull { it.role == Role.USER }
             ?: error("No hay turno de usuario para enviar")
         val activeConversation = getOrCreateConversation(history, config)
-        val contents = buildContents(lastUserMessage)
+
+        var turn = lastUserMessage
+        var sourcesBlock: String? = null
+        if (config.webSearch) {
+            val augmentation = augmentWithWebSearch(
+                userText = lastUserMessage.text,
+                previousUserText = history.dropLast(1).lastOrNull { it.role == Role.USER }?.text,
+            )
+            emit(augmentation.marker)
+            augmentation.prompt?.let { turn = lastUserMessage.copy(text = it) }
+            sourcesBlock = augmentation.sourcesBlock
+        }
+
+        val contents = buildContents(turn)
         Log.d(TAG, "generateContentStream: enviando turno")
 
-        if (!config.functionCalling && !config.webSearch) {
+        if (!config.functionCalling || config.webSearch) {
             activeConversation.sendMessageAsync(contents).collect { message ->
                 val text = extractText(message)
                 Log.v(TAG, "chunk: \"$text\"")
                 if (text.isNotEmpty()) emit(text)
             }
+            sourcesBlock?.let { emit("\n\n$it") }
             return@flow
         }
 
         val firstPassBuffer = StringBuilder()
         activeConversation.sendMessageAsync(contents).collect { message -> firstPassBuffer.append(extractText(message)) }
         val firstPassText = firstPassBuffer.toString()
-        val toolCall = resolveLocalToolCall(firstPassText, config.functionCalling, config.webSearch)
+        val toolCall = resolveLocalToolCall(firstPassText)
         if (toolCall == null) {
             emit(firstPassText)
             return@flow

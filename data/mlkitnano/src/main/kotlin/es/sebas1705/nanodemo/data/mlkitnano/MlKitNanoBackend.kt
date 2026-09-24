@@ -6,6 +6,7 @@ import android.graphics.BitmapFactory
 import android.net.Uri
 import android.util.Log
 import es.sebas1705.nanodemo.core.common.WebSearchTool
+import es.sebas1705.nanodemo.core.common.augmentWithWebSearch
 import es.sebas1705.nanodemo.core.common.buildLocalSystemPrompt
 import es.sebas1705.nanodemo.core.common.resolveLocalToolCall
 import es.sebas1705.nanodemo.domain.models.ChatMessage
@@ -93,27 +94,42 @@ class MlKitNanoBackend @Inject constructor(
     }
 
     /**
-     * Sin herramientas: transmite chunk a chunk tal cual llegan (comportamiento sin cambios). Con
-     * herramientas (function calling y/o búsqueda, ambas emuladas por prompt — ver
-     * `resolveLocalToolCall`): esta API es stateless, no hay forma de "seguir" una generación en
-     * curso — el primer pase se bufferea completo (nada se emite todavía) para poder decidir si el
-     * texto ENTERO fue un pedido de herramienta o una respuesta normal, y recién ahí se resuelve uno
-     * u otro camino. Mismo trade-off que Cloud/Firebase: sin streaming visible durante el pase que
-     * decide si hubo o no pedido de herramienta.
+     * Con búsqueda (`webSearch`): antes de generar, la app busca en internet y enriquece el último turno
+     * con los resultados + instrucciones de síntesis/formato (`augmentWithWebSearch`); es una sola pasada,
+     * así la respuesta sigue en streaming, y al final se agrega la lista de fuentes.
+     *
+     * Con la herramienta de hora (`functionCalling`, sin búsqueda): esta API es stateless, no hay forma de
+     * "seguir" una generación en curso — el primer pase se bufferea completo (nada se emite todavía) para
+     * poder decidir si el texto ENTERO fue un pedido de herramienta o una respuesta normal, y recién ahí
+     * se resuelve uno u otro camino. Mismo trade-off que Cloud/Firebase: sin streaming visible durante
+     * el pase que decide. Sin nada de eso: transmite chunk a chunk tal cual llegan.
      */
     override fun generateContentStream(history: List<ChatMessage>, config: GenerationConfig): Flow<String> = flow {
-        if (!config.functionCalling && !config.webSearch) {
-            runPass(history, config).collect { text ->
+        var effectiveHistory = history
+        var sourcesBlock: String? = null
+        if (config.webSearch) {
+            val augmentation = augmentWithWebSearch(
+                userText = history.last().text,
+                previousUserText = history.dropLast(1).lastOrNull { it.role == Role.USER }?.text,
+            )
+            emit(augmentation.marker)
+            augmentation.prompt?.let { effectiveHistory = history.dropLast(1) + history.last().copy(text = it) }
+            sourcesBlock = augmentation.sourcesBlock
+        }
+
+        if (!config.functionCalling || config.webSearch) {
+            runPass(effectiveHistory, config).collect { text ->
                 Log.v(TAG, "chunk: \"$text\"")
                 emit(text)
             }
+            sourcesBlock?.let { emit("\n\n$it") }
             return@flow
         }
 
         val buffer = StringBuilder()
         runPass(history, config).collect { buffer.append(it) }
         val firstPassText = buffer.toString()
-        val toolCall = resolveLocalToolCall(firstPassText, config.functionCalling, config.webSearch)
+        val toolCall = resolveLocalToolCall(firstPassText)
         if (toolCall == null) {
             emit(firstPassText)
             return@flow

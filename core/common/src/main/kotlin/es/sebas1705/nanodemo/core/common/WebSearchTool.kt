@@ -12,14 +12,21 @@ private const val TAG = "NanoDemo.WebSearchTool"
 private const val ENDPOINT = "https://api.search.brave.com/res/v1/web/search"
 private const val MAX_RESULTS = 5
 private const val TIMEOUT_MS = 15_000
+private const val CACHE_TTL_MS = 2 * 60_000L
+
+data class WebResult(val title: String, val description: String, val url: String)
+
+sealed interface WebSearchOutcome {
+    data class Found(val results: List<WebResult>) : WebSearchOutcome
+
+    /** No se pudo buscar (sin configurar, cuota agotada, HTTP, red o sin resultados): `reason` es legible. */
+    data class Unavailable(val reason: String) : WebSearchOutcome
+}
 
 /**
- * Segunda herramienta emulada por prompt para los tiers locales (ver `DemoTools` para la primera,
- * `get_current_time`, y `LocalPromptEmulation.kt` para el mecanismo general de etiqueta + 2 pases).
- * A diferencia de esa, esta SÍ necesita red: ninguno de los 3 motores locales (ML Kit Nano,
- * MediaPipe, LiteRT-LM) tiene acceso a internet por su cuenta, así que "búsqueda en internet" para
- * ellos solo puede significar que la APP busca y le pasa los resultados al modelo — google_search
- * nativo de Cloud/Firebase (grounding real del lado de Google) sigue siendo distinto de esto.
+ * Búsqueda en internet para los 3 tiers locales (ML Kit Nano, MediaPipe, LiteRT-LM), que no tienen red
+ * propia: la APP busca y le pasa los resultados al modelo (ver `WebSearchAnswer.kt` para cómo se arma el
+ * turno). Cloud/Firebase AI no pasan por acá — usan el grounding nativo de Google Search de su API.
  *
  * Usa la Brave Search API (`BRAVE_SEARCH_API_KEY`, header `X-Subscription-Token`) — se probó antes
  * con Google Custom Search JSON API, pero Google discontinuó "buscar en toda la web" para motores
@@ -31,38 +38,21 @@ object WebSearchTool {
     val isConfigured: Boolean
         get() = BuildConfig.BRAVE_SEARCH_API_KEY.isNotBlank()
 
-    private val REACT_CALL_REGEX = Regex("""\[\[SEARCH_WEB:([^\]]+)\]\]""")
+    // Comparar manda el mismo prompt a los 3 tiers locales casi a la vez: sin esto serían 3 búsquedas
+    // iguales (3 unidades de cuota de Brave). También evita gastar otra si se reintenta enseguida.
+    private val cache = HashMap<String, Pair<Long, WebSearchOutcome.Found>>()
 
     /**
-     * Addendum de system prompt para los tiers locales: sin esto, el modelo respondería con lo que
-     * sepa de su corte de entrenamiento en vez de reconocer que no puede saber algo actual. Misma
-     * idea que [DemoTools.reactInstruction] — responder ÚNICAMENTE con la etiqueta permite tratar el
-     * turno completo como "sí"/"no" hubo pedido de búsqueda.
+     * Busca `query` y devuelve los primeros resultados (título, descripción, link). Nunca lanza: cualquier
+     * fallo vuelve como [WebSearchOutcome.Unavailable] — la búsqueda nunca tiene que romper el turno.
      */
-    fun reactInstruction(): String =
-        "Si te preguntan algo actual que no podés saber con certeza por tu corte de entrenamiento " +
-            "(noticias, precios, resultados recientes, versiones nuevas, etc.), no lo inventes. En vez " +
-            "de responder directamente, respondé ÚNICAMENTE con esta etiqueta exacta, sin texto antes " +
-            "ni después: [[SEARCH_WEB:tu consulta de búsqueda]] (ej. " +
-            "[[SEARCH_WEB:resultado final del mundial 2026]]). Vas a recibir resultados reales y ahí sí " +
-            "completás tu respuesta con esa información."
-
-    /** `null` si `text` no contiene la etiqueta emulada. Si la contiene, la consulta pedida (recortada, nunca vacía). */
-    fun matchReactCall(text: String): String? =
-        REACT_CALL_REGEX.find(text)?.groupValues?.get(1)?.trim()?.ifBlank { null }
-
-    /**
-     * Busca `query` y devuelve un resumen legible de los primeros resultados (título + descripción +
-     * link), listo para agregar como turno de contexto. Nunca lanza: cualquier fallo (sin
-     * configurar, HTTP, red) vuelve como un string explicativo en vez de una excepción — la
-     * herramienta nunca tiene que romper el turno, mismo criterio que `DemoTools.executeCurrentTime`.
-     */
-    suspend fun search(query: String): String = withContext(Dispatchers.IO) {
-        if (!isConfigured) return@withContext "Búsqueda no configurada en este dispositivo (falta BRAVE_SEARCH_API_KEY)."
-        // Sin cuota mensual (ver UsageQuota) no se llama a Brave: el modelo recibe este aviso como
-        // resultado y se lo explica al usuario, en vez de que la búsqueda cobre de más en silencio.
+    suspend fun search(query: String): WebSearchOutcome = withContext(Dispatchers.IO) {
+        if (!isConfigured) return@withContext WebSearchOutcome.Unavailable("falta BRAVE_SEARCH_API_KEY")
+        synchronized(cache) { cache[query]?.takeIf { System.currentTimeMillis() - it.first < CACHE_TTL_MS } }
+            ?.let { return@withContext it.second }
+        // Sin cuota mensual (ver UsageQuota) no se llama a Brave, en vez de cobrar de más en silencio.
         if (!UsageQuota.canUse(QuotaService.BRAVE_SEARCH)) {
-            return@withContext UsageQuota.blockedMessage(QuotaService.BRAVE_SEARCH)
+            return@withContext WebSearchOutcome.Unavailable("límite gratis de Brave alcanzado")
         }
         UsageQuota.record(QuotaService.BRAVE_SEARCH)
         val url = "$ENDPOINT?q=${URLEncoder.encode(query, "UTF-8")}&count=$MAX_RESULTS"
@@ -75,20 +65,36 @@ object WebSearchTool {
         try {
             if (connection.responseCode !in 200..299) {
                 Log.w(TAG, "search(\"$query\"): HTTP ${connection.responseCode}")
-                return@withContext "Error buscando \"$query\" (HTTP ${connection.responseCode})."
+                return@withContext WebSearchOutcome.Unavailable("error HTTP ${connection.responseCode}")
             }
             val body = connection.inputStream.bufferedReader().use { it.readText() }
-            val results = JSONObject(body).optJSONObject("web")?.optJSONArray("results")
-            if (results == null || results.length() == 0) return@withContext "Sin resultados para \"$query\"."
-            (0 until results.length()).joinToString("\n\n") { i ->
-                val item = results.getJSONObject(i)
-                "- ${item.optString("title")}: ${item.optString("description")} (${item.optString("url")})"
+            val array = JSONObject(body).optJSONObject("web")?.optJSONArray("results")
+            val results = (0 until (array?.length() ?: 0)).mapNotNull { i ->
+                val item = array!!.getJSONObject(i)
+                val link = item.optString("url").takeIf { it.isNotBlank() } ?: return@mapNotNull null
+                WebResult(
+                    title = cleanHtml(item.optString("title")).ifBlank { link },
+                    description = cleanHtml(item.optString("description")),
+                    url = link,
+                )
+            }
+            if (results.isEmpty()) return@withContext WebSearchOutcome.Unavailable("sin resultados")
+            WebSearchOutcome.Found(results).also { found ->
+                synchronized(cache) { cache[query] = System.currentTimeMillis() to found }
             }
         } catch (e: Exception) {
             Log.e(TAG, "search(\"$query\"): falló", e)
-            "No se pudo buscar \"$query\" (error de red)."
+            WebSearchOutcome.Unavailable("error de red")
         } finally {
             connection.disconnect()
         }
     }
+
+    /** Brave devuelve `<strong>` en los snippets y entidades HTML: se limpian para no ensuciar el prompt. */
+    private fun cleanHtml(raw: String): String = raw
+        .replace(Regex("<[^>]+>"), "")
+        .replace("&amp;", "&").replace("&quot;", "\"").replace("&#x27;", "'").replace("&#39;", "'")
+        .replace("&lt;", "<").replace("&gt;", ">").replace("&nbsp;", " ")
+        .replace(Regex("\\s+"), " ")
+        .trim()
 }

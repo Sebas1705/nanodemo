@@ -171,12 +171,13 @@ fun ConfigScreen(viewModel: ConfigViewModel = hiltViewModel()) {
                 supported = capabilities.webSearch,
                 checked = config.webSearch,
                 onCheckedChange = { viewModel.updateConfig(selectedTier, config.copy(webSearch = it)) },
-                description = "El modelo busca antes de responder, para preguntas actuales que no puede saber por " +
-                    "su corte de entrenamiento. Cloud/Firebase AI usan grounding nativo (Google " +
-                    "Search de la propia API); Nano/MediaPipe/LiteRT-LM no tienen red propia, así que " +
-                    "la app busca por ellos (Brave Search API) y les pasa los resultados — hace falta " +
-                    "configurar BRAVE_SEARCH_API_KEY, si no la búsqueda queda deshabilitada con un " +
-                    "aviso. Si también prendiste Herramientas, esta gana (no se probaron juntas).",
+                description = "Busca en internet antes de responder, para preguntas actuales que el modelo no puede saber. " +
+                    "Cloud/Firebase AI usan grounding nativo (Google Search de la propia API; el modelo decide " +
+                    "cuándo). Nano/MediaPipe/LiteRT-LM no tienen red propia: con esto activo la app SIEMPRE " +
+                    "busca (Brave Search API), lee un extracto de las primeras páginas y se lo pasa al modelo, que " +
+                    "responde con formato, citando [1], [2] y con la lista de fuentes clickeable abajo. Hace falta " +
+                    "configurar BRAVE_SEARCH_API_KEY, si no queda deshabilitada. Si también prendiste Herramientas, " +
+                    "esta gana (no se probaron juntas).",
             )
         }
     }

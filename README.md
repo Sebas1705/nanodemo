@@ -116,15 +116,18 @@ Models framework de Apple).
     tipada, menos confiable porque depende de que el modelo respete el
     formato pedido (ver `DemoTools.reactInstruction()`/`matchReactCall()`).
     En Chat se ve cuándo la usó, en los 5 tiers.
-17. **Búsqueda en internet**: toggle en Parámetros — el modelo busca antes
-    de responder, para preguntas actuales fuera de su corte de
-    entrenamiento. Cloud/Firebase AI usan grounding nativo de su propia API
-    (en Chat se ven las consultas hechas y cuántas fuentes citó);
-    Nano/MediaPipe/LiteRT-LM no tienen red propia, así que emulan lo mismo
-    por prompt (`WebSearchTool`) — la app busca de verdad (Brave Search API,
-    requiere `BRAVE_SEARCH_API_KEY`; sin eso el toggle queda deshabilitado
-    en esos 3) y le pasa los resultados al modelo. Distinto de "Pegar un
-    link" (#13): acá el modelo elige cuándo y qué buscar, no vos.
+17. **Búsqueda en internet**: toggle en Parámetros — se busca antes de responder,
+    para preguntas actuales fuera del corte de entrenamiento. Cloud/Firebase AI
+    usan grounding nativo de su propia API (el modelo decide cuándo; en Chat se
+    ven las consultas hechas y cuántas fuentes citó). Nano/MediaPipe/LiteRT-LM
+    no tienen red propia, así que con el toggle activo la app **siempre** busca
+    (Brave Search API, requiere `BRAVE_SEARCH_API_KEY`; sin eso el toggle queda
+    deshabilitado en esos 3), lee un extracto de las 2 primeras páginas y arma el
+    turno con los resultados + instrucciones de síntesis y formato
+    (`augmentWithWebSearch`): una sola pasada con streaming, respuesta en
+    Markdown que cita [1], [2] y termina con la lista de fuentes clickeable.
+    Un chip "busqué en internet…" marca que hubo búsqueda. Distinto de "Pegar
+    un link" (#13): acá la app elige qué buscar a partir de tu pregunta.
 18. **Búsqueda semántica del historial** (Historial): buscá conversaciones
     pasadas por significado ("¿qué le pregunté sobre X?"), no por texto
     exacto — 100% on-device (MediaPipe TextEmbedder, un modelo aparte de

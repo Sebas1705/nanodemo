@@ -6,6 +6,7 @@ import android.util.Base64
 import android.util.Log
 import es.sebas1705.nanodemo.core.common.DemoTools
 import es.sebas1705.nanodemo.core.common.QuotaService
+import es.sebas1705.nanodemo.core.common.SEARCH_ANSWER_FORMAT
 import es.sebas1705.nanodemo.core.common.UsageQuota
 import es.sebas1705.nanodemo.core.common.appContextPreamble
 import es.sebas1705.nanodemo.core.common.hasInternetConnection
@@ -281,7 +282,7 @@ class CloudGeminiBackend @Inject constructor(
             )
         }
 
-        val fullSystemPrompt = listOfNotNull(appContextPreamble(), config.systemPrompt).joinToString("\n\n")
+        val fullSystemPrompt = listOfNotNull(appContextPreamble(), config.systemPrompt, SEARCH_ANSWER_FORMAT.takeIf { config.webSearch }).joinToString("\n\n")
         body.put(
             "systemInstruction",
             JSONObject().put("parts", JSONArray().put(JSONObject().put("text", fullSystemPrompt)))

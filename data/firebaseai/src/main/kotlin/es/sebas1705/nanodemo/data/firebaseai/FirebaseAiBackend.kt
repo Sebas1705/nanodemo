@@ -4,6 +4,7 @@ import android.content.Context
 import android.util.Log
 import es.sebas1705.nanodemo.core.common.DemoTools
 import es.sebas1705.nanodemo.core.common.QuotaService
+import es.sebas1705.nanodemo.core.common.SEARCH_ANSWER_FORMAT
 import es.sebas1705.nanodemo.core.common.UsageQuota
 import es.sebas1705.nanodemo.core.common.appContextPreamble
 import es.sebas1705.nanodemo.core.common.hasInternetConnection
@@ -166,7 +167,7 @@ class FirebaseAiBackend @Inject constructor(
             modelName = CLOUD_MODEL,
             generationConfig = generationConfig,
             systemInstruction = content {
-                text(listOfNotNull(appContextPreamble(), config.systemPrompt).joinToString("\n\n"))
+                text(listOfNotNull(appContextPreamble(), config.systemPrompt, SEARCH_ANSWER_FORMAT.takeIf { config.webSearch }).joinToString("\n\n"))
             },
             tools = tools,
         )

@@ -24,12 +24,15 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalClipboardManager
 import androidx.compose.ui.text.AnnotatedString
+import androidx.compose.ui.text.LinkAnnotation
+import androidx.compose.ui.text.TextLinkStyles
 import androidx.compose.ui.text.SpanStyle
 import androidx.compose.ui.text.buildAnnotatedString
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextDecoration
+import androidx.compose.ui.text.withLink
 import androidx.compose.ui.text.withStyle
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.em
@@ -112,13 +115,13 @@ private val INLINE = Regex(
     """\*\*(.+?)\*\*|`([^`\n]+)`|(?<![*\w])\*(?!\s)([^*\n]+?)(?<!\s)\*(?![*\w])|\[([^\]\n]+)]\(([^)\s]+)\)""",
 )
 
-/** Negrita, cursiva, código en línea y links (solo estilo: no son clickeables). */
+/** Negrita, cursiva, código en línea y links (clickeables). */
 internal fun inlineMarkdown(text: String, linkColor: Color = Color(0xFF5CC7F2)): AnnotatedString =
     buildAnnotatedString {
         var cursor = 0
         for (match in INLINE.findAll(text)) {
             append(text.substring(cursor, match.range.first))
-            val (bold, code, italic, linkLabel) = match.destructured
+            val (bold, code, italic, linkLabel, linkUrl) = match.destructured
             when {
                 bold.isNotEmpty() -> withStyle(SpanStyle(fontWeight = FontWeight.Bold)) { append(bold) }
                 code.isNotEmpty() -> withStyle(
@@ -129,8 +132,12 @@ internal fun inlineMarkdown(text: String, linkColor: Color = Color(0xFF5CC7F2)):
                     ),
                 ) { append(code) }
                 italic.isNotEmpty() -> withStyle(SpanStyle(fontStyle = FontStyle.Italic)) { append(italic) }
-                linkLabel.isNotEmpty() -> withStyle(
-                    SpanStyle(color = linkColor, textDecoration = TextDecoration.Underline),
+                // Clickeable (abre el navegador): las fuentes de una búsqueda vienen como links Markdown.
+                linkLabel.isNotEmpty() -> withLink(
+                    LinkAnnotation.Url(
+                        linkUrl,
+                        TextLinkStyles(SpanStyle(color = linkColor, textDecoration = TextDecoration.Underline)),
+                    ),
                 ) { append(linkLabel) }
             }
             cursor = match.range.last + 1

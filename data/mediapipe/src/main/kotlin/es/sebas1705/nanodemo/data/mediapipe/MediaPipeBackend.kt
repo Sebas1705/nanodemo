@@ -9,6 +9,7 @@ package es.sebas1705.nanodemo.data.mediapipe
 import android.content.Context
 import android.util.Log
 import es.sebas1705.nanodemo.core.common.WebSearchTool
+import es.sebas1705.nanodemo.core.common.augmentWithWebSearch
 import es.sebas1705.nanodemo.core.common.buildLocalSystemPrompt
 import es.sebas1705.nanodemo.core.common.hasEnoughRamForMediaPipe
 import es.sebas1705.nanodemo.core.common.resolveLocalToolCall
@@ -33,7 +34,6 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.callbackFlow
 import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.flow.flowOn
-import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import java.io.File
 import java.net.HttpURLConnection
@@ -241,14 +241,16 @@ class MediaPipeBackend @Inject constructor(
     }.flowOn(Dispatchers.IO)
 
     /**
-     * Sin herramientas: un solo `generateResponseAsync`, transmite chunk a chunk (comportamiento sin
-     * cambios). Con herramientas (function calling y/o búsqueda, emuladas por prompt — ver la
-     * instrucción agregada en `getOrCreateSession` y `resolveLocalToolCall`): el primer pase se
-     * bufferea completo (nada se emite todavía) porque recién al llegar `done=true` se puede decidir
-     * si el texto ENTERO fue un pedido de herramienta o una respuesta normal. `resolveLocalToolCall`
-     * es `suspend` (la búsqueda hace red), de ahí el `launch` dentro del callback. `isGenerating` se
-     * mantiene `true` durante los dos pases -- es una sola generación desde la perspectiva de
-     * `close()`/`resetConversation()`, así que el cierre diferido (ver `runOrDefer`) solo se resuelve
+     * Con búsqueda (`webSearch`): antes de generar, la app busca en internet y enriquece el turno con los
+     * resultados + instrucciones de síntesis/formato (`augmentWithWebSearch`); sigue siendo una sola
+     * pasada con streaming, y al terminar se agrega la lista de fuentes.
+     *
+     * Con la herramienta de hora (`functionCalling`, sin búsqueda; emulada por prompt — ver la instrucción
+     * agregada en `getOrCreateSession` y `resolveLocalToolCall`): el primer pase se bufferea completo (nada
+     * se emite todavía) porque recién al llegar `done=true` se puede decidir si el texto ENTERO fue un pedido
+     * de herramienta o una respuesta normal. Sin nada de eso: un solo `generateResponseAsync`, chunk a chunk.
+     * `isGenerating` se mantiene `true` durante los dos pases -- es una sola generación desde la perspectiva
+     * de `close()`/`resetConversation()`, así que el cierre diferido (ver `runOrDefer`) solo se resuelve
      * una vez, al terminar el pase que de verdad sea el último.
      */
     override fun generateContentStream(history: List<ChatMessage>, config: GenerationConfig): Flow<String> = callbackFlow {
@@ -256,8 +258,22 @@ class MediaPipeBackend @Inject constructor(
         val lastUserMessage = history.lastOrNull { it.role == Role.USER }
             ?: error("No hay turno de usuario para enviar")
         val activeSession = getOrCreateSession(config)
+
+        var userText = lastUserMessage.text
+        var sourcesBlock: String? = null
+        if (config.webSearch) {
+            val augmentation = augmentWithWebSearch(
+                userText = userText,
+                previousUserText = history.dropLast(1).lastOrNull { it.role == Role.USER }?.text,
+            )
+            lastResponseText += augmentation.marker
+            trySend(augmentation.marker)
+            augmentation.prompt?.let { userText = it }
+            sourcesBlock = augmentation.sourcesBlock
+        }
+
         Log.d(TAG, "generateContentStream: enviando turno")
-        activeSession.addQueryChunk(lastUserMessage.text)
+        activeSession.addQueryChunk(userText)
         isGenerating = true
 
         fun finishGeneration() {
@@ -270,12 +286,18 @@ class MediaPipeBackend @Inject constructor(
             close() // ProducerScope.close(): termina este Flow (no es MediaPipeBackend.close()).
         }
 
-        if (!config.functionCalling && !config.webSearch) {
+        if (!config.functionCalling || config.webSearch) {
             activeSession.generateResponseAsync { partialResult, done ->
                 Log.v(TAG, "chunk (done=$done): \"$partialResult\"")
                 lastResponseText += partialResult
                 trySend(partialResult)
-                if (done) finishGeneration()
+                if (done) {
+                    sourcesBlock?.let { block ->
+                        lastResponseText += "\n\n$block"
+                        trySend("\n\n$block")
+                    }
+                    finishGeneration()
+                }
             }
         } else {
             val firstPassBuffer = StringBuilder()
@@ -283,24 +305,22 @@ class MediaPipeBackend @Inject constructor(
                 firstPassBuffer.append(partialResult)
                 if (!done) return@generateResponseAsync
                 val firstPassText = firstPassBuffer.toString()
-                launch {
-                    val toolCall = resolveLocalToolCall(firstPassText, config.functionCalling, config.webSearch)
-                    if (toolCall == null) {
-                        lastResponseText += firstPassText
-                        trySend(firstPassText)
-                        finishGeneration()
-                        return@launch
-                    }
-                    Log.d(TAG, "generateContentStream: pidió una herramienta")
-                    lastResponseText += toolCall.marker
-                    trySend(toolCall.marker)
-                    activeSession.addQueryChunk(toolCall.resultMessage)
-                    activeSession.generateResponseAsync { partialResult2, done2 ->
-                        Log.v(TAG, "chunk 2do pase (done=$done2): \"$partialResult2\"")
-                        lastResponseText += partialResult2
-                        trySend(partialResult2)
-                        if (done2) finishGeneration()
-                    }
+                val toolCall = resolveLocalToolCall(firstPassText)
+                if (toolCall == null) {
+                    lastResponseText += firstPassText
+                    trySend(firstPassText)
+                    finishGeneration()
+                    return@generateResponseAsync
+                }
+                Log.d(TAG, "generateContentStream: pidió una herramienta")
+                lastResponseText += toolCall.marker
+                trySend(toolCall.marker)
+                activeSession.addQueryChunk(toolCall.resultMessage)
+                activeSession.generateResponseAsync { partialResult2, done2 ->
+                    Log.v(TAG, "chunk 2do pase (done=$done2): \"$partialResult2\"")
+                    lastResponseText += partialResult2
+                    trySend(partialResult2)
+                    if (done2) finishGeneration()
                 }
             }
         }
