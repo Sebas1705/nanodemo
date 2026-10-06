@@ -9,6 +9,7 @@ import es.sebas1705.nanodemo.domain.models.GenerationMetric
 import es.sebas1705.nanodemo.domain.models.InferenceTier
 import es.sebas1705.nanodemo.domain.models.MediaPipeModelOption
 import es.sebas1705.nanodemo.domain.models.TierAvailability
+import es.sebas1705.nanodemo.domain.models.VoteTally
 import kotlinx.coroutines.flow.StateFlow
 import javax.inject.Inject
 
@@ -49,6 +50,10 @@ class ObserveAttachedUrlUseCase @Inject constructor(private val repository: IInf
 
 class ObserveCompareStatesUseCase @Inject constructor(private val repository: IInferenceRepository) {
     operator fun invoke(): StateFlow<Map<InferenceTier, DemoState>> = repository.compareStates
+}
+
+class ObserveVotesUseCase @Inject constructor(private val repository: IInferenceRepository) {
+    operator fun invoke(): StateFlow<Map<InferenceTier, VoteTally>> = repository.votes
 }
 
 class ObserveMetricsUseCase @Inject constructor(private val repository: IInferenceRepository) {

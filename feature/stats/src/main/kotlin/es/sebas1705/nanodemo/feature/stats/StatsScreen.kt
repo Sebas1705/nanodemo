@@ -9,6 +9,7 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -52,6 +53,7 @@ import es.sebas1705.nanodemo.core.ui.DemoColors
 import es.sebas1705.nanodemo.core.ui.readoutStyle
 import es.sebas1705.nanodemo.domain.models.GenerationMetric
 import es.sebas1705.nanodemo.domain.models.InferenceTier
+import es.sebas1705.nanodemo.domain.models.VoteTally
 import java.util.Locale
 
 /**
@@ -64,6 +66,7 @@ import java.util.Locale
 @Composable
 fun StatsScreen(sizeClass: ScreenSizeClass, viewModel: StatsViewModel = hiltViewModel()) {
     val metrics by viewModel.metrics.collectAsState()
+    val votes by viewModel.votes.collectAsState()
     val context = LocalContext.current
 
     Column(
@@ -75,7 +78,12 @@ fun StatsScreen(sizeClass: ScreenSizeClass, viewModel: StatsViewModel = hiltView
         verticalArrangement = Arrangement.spacedBy(16.dp),
     ) {
         if (metrics.isNotEmpty()) {
-            Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.End) {
+            Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
+                if (votes.values.any { it.appearances > 0 }) {
+                    TextButton(onClick = viewModel.clearVotes::invoke) { Text("Reiniciar votos") }
+                } else {
+                    Spacer(Modifier.size(1.dp))
+                }
                 TextButton(onClick = { exportAndShare(viewModel, context) }) {
                     Icon(Icons.Filled.Share, contentDescription = null, modifier = Modifier.size(18.dp))
                     Text("  Exportar CSV")
@@ -99,7 +107,7 @@ fun StatsScreen(sizeClass: ScreenSizeClass, viewModel: StatsViewModel = hiltView
         val maxAvgLatencyMs = stats.maxOf { it.second.avgLatencyMs }.coerceAtLeast(1.0)
 
         AdaptiveGrid(items = stats, columns = sizeClass.tierColumns) { (tier, stat), cardModifier ->
-            StatCard(tier, stat, maxAvgLatencyMs, cardModifier)
+            StatCard(tier, stat, votes[tier], maxAvgLatencyMs, cardModifier)
         }
     }
 }
@@ -115,6 +123,12 @@ private val METRIC_HELP: List<Pair<String, String>> = listOf(
         "palabras) de la respuesta. Real cuando el backend lo expone (MediaPipe, Cloud); " +
         "aproximado (caracteres/4) en ML Kit Nano.",
     "Éxito" to "Cuántas de las corridas contra este tier terminaron sin error, sobre el total.",
+    "Carga del modelo" to "Solo MediaPipe y LiteRT-LM: lo que tarda en cargar el modelo la primera vez tras abrir " +
+        "la app o cambiar de motor. Va aparte y NO está sumado a la latencia ni a la velocidad, para que " +
+        "comparar velocidades no mezcle \"cargar\" con \"generar\" (las corridas guardadas antes de esta " +
+        "versión sí lo traen sumado, sin separar).",
+    "Mejor respuesta" to "En Comparar podés elegir cuál respondió mejor. Acá se ve en cuántas rondas votadas " +
+        "ganó cada motor, de las que participó: es tu preferencia, el complemento de las métricas objetivas.",
     "Costo (estimado)" to "Solo Cloud y Firebase AI (los tiers en la nube) lo muestran — los " +
         "on-device no llaman a ninguna API paga, cuestan \$0. Se calcula con el precio público de " +
         "Gemini Flash (entrada/salida) y una aproximación de tokens del prompt (caracteres/4, no " +
@@ -171,6 +185,8 @@ private data class TierStat(
     val totalCount: Int,
     /** `null` en los tiers on-device (A/B/D): no hay llamada facturada, el costo real es 0. */
     val totalCostUsd: Double?,
+    /** Promedio de las corridas donde hubo que cargar el modelo (MediaPipe/LiteRT-LM); `null` si ninguna. */
+    val avgLoadMs: Double?,
 )
 
 private fun computeTierStat(runs: List<GenerationMetric>): TierStat {
@@ -191,6 +207,7 @@ private fun computeTierStat(runs: List<GenerationMetric>): TierStat {
         successCount = runs.count { it.success },
         totalCount = runs.size,
         totalCostUsd = estimatedCostUsd(runs),
+        avgLoadMs = runs.mapNotNull { it.loadTimeMs }.takeIf { it.isNotEmpty() }?.average(),
     )
 }
 
@@ -229,7 +246,7 @@ private fun percentile(sortedValues: List<Long>, fraction: Double): Double {
 }
 
 @Composable
-private fun StatCard(tier: InferenceTier, stat: TierStat, maxAvgLatencyMs: Double, modifier: Modifier) {
+private fun StatCard(tier: InferenceTier, stat: TierStat, tally: VoteTally?, maxAvgLatencyMs: Double, modifier: Modifier) {
     val fraction = (stat.avgLatencyMs / maxAvgLatencyMs).toFloat().coerceIn(0.05f, 1f)
     AppCard(modifier = modifier) {
         Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(10.dp)) {
@@ -266,6 +283,10 @@ private fun StatCard(tier: InferenceTier, stat: TierStat, maxAvgLatencyMs: Doubl
             String.format(Locale.US, "%.0f%s", stat.avgTokens, if (stat.tokensExact) "" else " (aprox.)"),
         )
         StatRow("Éxito", "${stat.successCount}/${stat.totalCount}")
+        stat.avgLoadMs?.let { StatRow("Carga del modelo", String.format(Locale.US, "%.1fs", it / 1000)) }
+        tally?.winRate?.let { rate ->
+            StatRow("Mejor respuesta", "${tally.wins} de ${tally.appearances} (${(rate * 100).toInt()}%)")
+        }
         if (stat.totalCostUsd != null) {
             StatRow("Costo (estimado)", String.format(Locale.US, "\$%.4f", stat.totalCostUsd))
         }

@@ -60,3 +60,12 @@ class DeleteConversationUseCase @Inject constructor(private val repository: IInf
 class SelectMediaPipeModelUseCase @Inject constructor(private val repository: IInferenceRepository) {
     operator fun invoke(option: MediaPipeModelOption) = repository.selectMediaPipeModel(option)
 }
+
+class VoteBestUseCase @Inject constructor(private val repository: IInferenceRepository) {
+    operator fun invoke(winner: InferenceTier, participants: Set<InferenceTier>, previousWinner: InferenceTier?) =
+        repository.voteBest(winner, participants, previousWinner)
+}
+
+class ClearVotesUseCase @Inject constructor(private val repository: IInferenceRepository) {
+    operator fun invoke() = repository.clearVotes()
+}

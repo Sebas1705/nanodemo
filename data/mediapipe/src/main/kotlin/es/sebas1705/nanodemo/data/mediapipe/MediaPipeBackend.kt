@@ -7,6 +7,7 @@
 package es.sebas1705.nanodemo.data.mediapipe
 
 import android.content.Context
+import android.os.SystemClock
 import android.util.Log
 import es.sebas1705.nanodemo.core.common.WebSearchTool
 import es.sebas1705.nanodemo.core.common.augmentWithWebSearch
@@ -41,6 +42,9 @@ import java.net.URL
 import javax.inject.Inject
 
 private const val TAG = "NanoDemo.MediaPipe"
+
+// Presupuesto de contexto TOTAL del motor (prompt + respuesta, acumulado por conversación).
+private const val MAX_CONTEXT_TOKENS = 1024
 
 /**
  * Tier B: MediaPipe LLM Inference con un modelo Gemma pequeño, on-device pero
@@ -102,6 +106,7 @@ class MediaPipeBackend @Inject constructor(
         // A diferencia de las otras 2, SÍ depende de un secreto (Brave Search API) -- si no
         // está configurado, el toggle sale deshabilitado en vez de fallar en runtime.
         webSearch = WebSearchTool.isConfigured,
+        contextTokens = MAX_CONTEXT_TOKENS,
     )
 
     val availableModels: List<MediaPipeModelOption> = MediaPipeModelOption.entries
@@ -112,6 +117,9 @@ class MediaPipeBackend @Inject constructor(
     private var llmInference: LlmInference? = null
     private var session: LlmInferenceSession? = null
     private var lastResponseText: String = ""
+
+    @Volatile
+    private var lastLoadMs: Long? = null
     private val modelToken: String = BuildConfig.MEDIAPIPE_MODEL_TOKEN
 
     // `LlmInferenceSession` solo permite una `generateResponseAsync` en curso a la vez: cerrarla (o abrir
@@ -255,6 +263,7 @@ class MediaPipeBackend @Inject constructor(
      */
     override fun generateContentStream(history: List<ChatMessage>, config: GenerationConfig): Flow<String> = callbackFlow {
         lastResponseText = ""
+        lastLoadMs = null
         val lastUserMessage = history.lastOrNull { it.role == Role.USER }
             ?: error("No hay turno de usuario para enviar")
         val activeSession = getOrCreateSession(config)
@@ -265,6 +274,7 @@ class MediaPipeBackend @Inject constructor(
             val augmentation = augmentWithWebSearch(
                 userText = userText,
                 previousUserText = history.dropLast(1).lastOrNull { it.role == Role.USER }?.text,
+                compact = true, // 1024 tokens en total: sin extractos de páginas, ver augmentWithWebSearch
             )
             lastResponseText += augmentation.marker
             trySend(augmentation.marker)
@@ -338,13 +348,14 @@ class MediaPipeBackend @Inject constructor(
     private suspend fun getOrCreateSession(config: GenerationConfig): LlmInferenceSession =
         withContext(Dispatchers.IO) {
             session?.let { return@withContext it }
+            val loadStartedAt = SystemClock.elapsedRealtime()
 
             val option = _selectedModel.value
             val inference = llmInference ?: run {
                 Log.d(TAG, "getOrCreateSession: cargando modelo $option desde ${modelFile(option).absolutePath}")
                 val options = LlmInferenceOptions.builder()
                     .setModelPath(modelFile(option).absolutePath)
-                    .setMaxTokens(1024)
+                    .setMaxTokens(MAX_CONTEXT_TOKENS)
                     .build()
                 LlmInference.createFromOptions(context, options).also { llmInference = it }
             }
@@ -360,6 +371,7 @@ class MediaPipeBackend @Inject constructor(
                 buildLocalSystemPrompt(config.systemPrompt, config.functionCalling, config.webSearch, config.jsonMode)
             newSession.addQueryChunk("Instrucciones: $fullSystemPrompt\n\n")
             session = newSession
+            lastLoadMs = SystemClock.elapsedRealtime() - loadStartedAt
             newSession
         }
 
@@ -371,6 +383,8 @@ class MediaPipeBackend @Inject constructor(
             session = null
         }
     }
+
+    override fun lastLoadTimeMs(): Long? = lastLoadMs
 
     override fun lastResponseTokens(): Int? =
         lastResponseText.takeIf { it.isNotEmpty() }?.let { llmInference?.sizeInTokens(it) }

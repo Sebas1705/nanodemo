@@ -5,8 +5,8 @@ import kotlinx.coroutines.awaitAll
 import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.withTimeoutOrNull
 
-// Presupuesto de contexto chico a propósito: MediaPipe tiene ~1024 tokens en total (prompt + respuesta)
-// y LiteRT-LM 2048, así que el bloque de búsqueda no puede pasar de unos ~600 tokens.
+// Presupuesto de contexto chico a propósito: MediaPipe tiene 1024 tokens en total (prompt + respuesta)
+// y LiteRT-LM 2048, así que el bloque de búsqueda tiene que ser corto (y MediaPipe usa el modo compacto).
 private const val PAGES_TO_READ = 2
 private const val PAGE_EXCERPT_CHARS = 700
 private const val DESCRIPTION_CHARS = 220
@@ -14,6 +14,14 @@ private const val PAGE_TIMEOUT_MS = 6_000L
 private const val QUERY_MAX_CHARS = 200
 private const val SHORT_QUESTION_CHARS = 25
 private const val QUESTION_LABEL = "Pregunta del usuario:"
+private const val COMPACT_RESULTS = 3
+private const val COMPACT_DESCRIPTION_CHARS = 160
+
+// Cuánto contexto suma, como mucho, UN turno con búsqueda (estimación en tokens, chars/4): 5 resultados de
+// ~280 chars + 2 extractos de 700 + instrucción de formato ≈ 3.4k chars. El compacto (3 resultados de ~220
+// chars + formato) ≈ 1.1k chars. Lo usa el medidor de contexto del Chat.
+const val SEARCH_CONTEXT_OVERHEAD_TOKENS = 850
+const val SEARCH_CONTEXT_OVERHEAD_TOKENS_COMPACT = 280
 
 /**
  * Cómo tiene que quedar la respuesta cuando se usó búsqueda: bien armada y en Markdown (la app lo renderiza).
@@ -40,16 +48,17 @@ data class SearchAugmentation(val marker: String, val prompt: String?, val sourc
  * busca en Brave, lee un extracto de las primeras páginas y devuelve el turno enriquecido + instrucciones de
  * síntesis y formato. Los 3 tiers locales usan esto en una sola pasada, así la respuesta también se ve en streaming.
  */
-suspend fun augmentWithWebSearch(userText: String, previousUserText: String?): SearchAugmentation {
+suspend fun augmentWithWebSearch(userText: String, previousUserText: String?, compact: Boolean = false): SearchAugmentation {
     val question = userText.substringAfterLast(QUESTION_LABEL).trim()
     val query = buildQuery(question, previousUserText?.substringAfterLast(QUESTION_LABEL)?.trim())
     val results = when (val outcome = WebSearchTool.search(query)) {
         is WebSearchOutcome.Unavailable ->
             return SearchAugmentation("🔧 búsqueda no disponible (${outcome.reason}) — respondo sin internet\n\n", null, null)
-        is WebSearchOutcome.Found -> outcome.results
+        is WebSearchOutcome.Found -> if (compact) outcome.results.take(COMPACT_RESULTS) else outcome.results
     }
 
-    val excerpts = coroutineScope {
+    // Modo compacto (contexto de ~1024 tokens, p.ej. MediaPipe): sin extractos de páginas y con menos texto.
+    val excerpts = if (compact) emptyList() else coroutineScope {
         results.take(PAGES_TO_READ).map { result ->
             async {
                 withTimeoutOrNull(PAGE_TIMEOUT_MS) { runCatching { fetchUrlText(result.url) }.getOrNull() }
@@ -62,7 +71,7 @@ suspend fun augmentWithWebSearch(userText: String, previousUserText: String?): S
     val prompt = buildString {
         appendLine("Resultados de búsqueda en internet para \"$query\":")
         results.forEachIndexed { index, result ->
-            appendLine("[${index + 1}] ${result.title} — ${result.description.take(DESCRIPTION_CHARS)}")
+            appendLine("[${index + 1}] ${result.title} — ${result.description.take(if (compact) COMPACT_DESCRIPTION_CHARS else DESCRIPTION_CHARS)}")
         }
         excerpts.forEachIndexed { index, excerpt ->
             if (excerpt != null) appendLine("Extracto de [${index + 1}]: $excerpt")

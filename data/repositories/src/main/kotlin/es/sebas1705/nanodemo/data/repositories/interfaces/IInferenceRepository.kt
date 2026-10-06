@@ -9,6 +9,7 @@ import es.sebas1705.nanodemo.domain.models.InferenceTier
 import es.sebas1705.nanodemo.domain.models.MediaPipeModelOption
 import es.sebas1705.nanodemo.domain.models.TierAvailability
 import es.sebas1705.nanodemo.domain.models.TierCapabilities
+import es.sebas1705.nanodemo.domain.models.VoteTally
 import kotlinx.coroutines.flow.StateFlow
 
 /**
@@ -34,6 +35,9 @@ interface IInferenceRepository {
     val compareStates: StateFlow<Map<InferenceTier, DemoState>>
     val metrics: StateFlow<List<GenerationMetric>>
 
+    /** Votos "esta fue la mejor" de Comparar, por motor (ver `VoteTally`). */
+    val votes: StateFlow<Map<InferenceTier, VoteTally>>
+
     /** Catálogo fijo de modelos que soporta el Tier B (MediaPipe) y cuál está seleccionado ahora. */
     val mediaPipeModels: List<MediaPipeModelOption>
     val selectedMediaPipeModel: StateFlow<MediaPipeModelOption>
@@ -48,6 +52,15 @@ interface IInferenceRepository {
     fun generate(prompt: String)
     fun generateCompare(prompt: String)
     fun exportMetricsCsv(): Uri?
+
+    /**
+     * Registra que `winner` fue la mejor respuesta de una ronda de Comparar en la que respondieron
+     * `participants`. `previousWinner` es el voto anterior de ESA misma ronda si el usuario cambió de opinión
+     * (la ronda no se cuenta dos veces). Ver `applyVote`.
+     */
+    fun voteBest(winner: InferenceTier, participants: Set<InferenceTier>, previousWinner: InferenceTier?)
+
+    fun clearVotes()
 
     /** Carga una conversación guardada del historial: fija tier/transcript y sigue agregando a partir de ella. */
     fun loadConversation(conversationId: Long)

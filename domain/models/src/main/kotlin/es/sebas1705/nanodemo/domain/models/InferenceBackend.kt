@@ -49,5 +49,12 @@ interface InferenceBackend {
      */
     fun lastResponseTokens(): Int? = null
 
+    /**
+     * Cuánto tardó cargar el motor/sesión del modelo en la ÚLTIMA generación, si esa llamada tuvo que
+     * cargarlo (MediaPipe, LiteRT-LM: la primera vez, o tras cambiar de tier/modelo). `null` = no hubo
+     * carga (motor ya listo) o este backend no carga nada (Nano, Cloud, Firebase).
+     */
+    fun lastLoadTimeMs(): Long? = null
+
     fun close()
 }

@@ -22,4 +22,11 @@ data class GenerationMetric(
      * tiers, no una medición absoluta de consumo.
      */
     val memoryDeltaBytes: Long,
+    /**
+     * Tiempo de cargar el motor/sesión del modelo en ESTE turno (solo MediaPipe y LiteRT-LM, y solo el
+     * primero tras abrir la app o cambiar de tier); `null` si no hubo carga. Ya está RESTADO de
+     * [firstChunkLatencyMs] y [totalDurationMs]: así comparar velocidades no mezcla "cargar el modelo" con
+     * "generar". Las corridas guardadas antes de existir este campo quedan en `null`.
+     */
+    val loadTimeMs: Long? = null,
 )

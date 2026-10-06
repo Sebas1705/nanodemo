@@ -8,12 +8,14 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Slider
 import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.ui.Alignment
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -32,6 +34,7 @@ import es.sebas1705.nanodemo.core.ui.readoutStyle
 import es.sebas1705.nanodemo.domain.models.GenerationConfig
 import es.sebas1705.nanodemo.domain.models.InferenceTier
 import java.util.Locale
+import kotlinx.coroutines.delay
 
 /**
  * Parámetros de generación (temperature/top-K/top-P/max tokens/system prompt). Cada uno de los
@@ -69,6 +72,20 @@ fun ConfigScreen(viewModel: ConfigViewModel = hiltViewModel()) {
         Text(
             "Editando ${selectedTier.label()} [${selectedTier.channelLetter()}]. En Comparar, " +
                 "cada tier aplica solo lo suyo (y solo lo que soporta, ver TierCapabilities).",
+            style = MaterialTheme.typography.bodySmall,
+            color = DemoColors.Muted,
+        )
+
+        var copied by remember(selectedTier) { mutableStateOf(false) }
+        LaunchedEffect(copied) { if (copied) { delay(2_500); copied = false } }
+        OutlinedButton(
+            onClick = { viewModel.applyToAll(selectedTier); copied = true },
+            modifier = Modifier.fillMaxWidth(),
+        ) {
+            Text(if (copied) "✓ Copiada a los demás motores" else "Usar esta configuración en todos los motores")
+        }
+        Text(
+            "Para comparar con parámetros iguales. Solo se copia lo que cada motor soporta; lo demás no se toca.",
             style = MaterialTheme.typography.bodySmall,
             color = DemoColors.Muted,
         )

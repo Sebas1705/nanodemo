@@ -27,6 +27,7 @@ import es.sebas1705.nanodemo.domain.models.MediaPipeModelOption
 import es.sebas1705.nanodemo.domain.models.Role
 import es.sebas1705.nanodemo.domain.models.TierAvailability
 import es.sebas1705.nanodemo.domain.models.TierCapabilities
+import es.sebas1705.nanodemo.domain.models.VoteTally
 import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CoroutineScope
@@ -113,6 +114,9 @@ class InferenceRepository @Inject constructor(
 
     private val _attachedUrl = MutableStateFlow<String?>(null)
     override val attachedUrl: StateFlow<String?> = _attachedUrl.asStateFlow()
+
+    private val _votes = MutableStateFlow(settings.loadVotes())
+    override val votes: StateFlow<Map<InferenceTier, VoteTally>> = _votes.asStateFlow()
 
     private val _compareStates = MutableStateFlow<Map<InferenceTier, DemoState>>(emptyMap())
     override val compareStates: StateFlow<Map<InferenceTier, DemoState>> = _compareStates.asStateFlow()
@@ -388,16 +392,27 @@ class InferenceRepository @Inject constructor(
         }
     }
 
+    override fun voteBest(winner: InferenceTier, participants: Set<InferenceTier>, previousWinner: InferenceTier?) {
+        _votes.update { applyVote(it, participants, winner, previousWinner) }
+        settings.saveVotes(_votes.value)
+        telemetry.feature(InferenceFeatures.COMPARE_VOTE, InferenceParams.TIER to winner.name)
+    }
+
+    override fun clearVotes() {
+        settings.clearVotes()
+        _votes.update { settings.loadVotes() }
+    }
+
     override fun exportMetricsCsv(): Uri? {
         val runs = _metrics.value
         if (runs.isEmpty()) return null
         val csv = buildString {
-            appendLine("tier,startedAtMs,success,firstChunkLatencyMs,totalDurationMs,promptChars,responseChars,responseTokens,responseTokensExact,memoryDeltaBytes")
+            appendLine("tier,startedAtMs,success,firstChunkLatencyMs,totalDurationMs,promptChars,responseChars,responseTokens,responseTokensExact,memoryDeltaBytes,loadTimeMs")
             runs.forEach { m ->
                 appendLine(
                     "${m.tier},${m.startedAtMs},${m.success},${m.firstChunkLatencyMs ?: ""}," +
                         "${m.totalDurationMs},${m.promptChars},${m.responseChars}," +
-                        "${m.responseTokens},${m.responseTokensExact},${m.memoryDeltaBytes}"
+                        "${m.responseTokens},${m.responseTokensExact},${m.memoryDeltaBytes},${m.loadTimeMs ?: ""}"
                 )
             }
         }
@@ -453,8 +468,10 @@ class InferenceRepository @Inject constructor(
                 onStateChange(DemoState.Generating(fullResponse))
             }
             Log.d(TAG, "runGeneration($tier): completado (${fullResponse.length} chars)")
-            onStateChange(DemoState.Result(fullResponse))
+            // La métrica se registra ANTES de publicar el resultado: así la UI, al ver `Result`, ya encuentra
+            // en `metrics` la de ESTA corrida (si fuera después, mostraría un instante la de la anterior).
             recordMetric(tier, history.last().text, fullResponse, startedAtMs, firstChunkLatencyMs, memoryBeforeBytes, success = true)
+            onStateChange(DemoState.Result(fullResponse))
             val metric = _metrics.value.last()
             telemetry.operation(
                 InferenceOperations.GENERATE, TelemetryResult.SUCCESS, metric.totalDurationMs,
@@ -506,18 +523,23 @@ class InferenceRepository @Inject constructor(
         success: Boolean,
     ) {
         val exactTokens = backends.getValue(tier).lastResponseTokens()
+        // Los backends que cargan el modelo en la primera llamada (MediaPipe, LiteRT-LM) lo incluyen en el tiempo
+        // medido acá; se resta y se guarda aparte para que la velocidad sea de generación pura.
+        val loadMs = backends.getValue(tier).lastLoadTimeMs()
+        val timing = excludeLoadTime(firstChunkLatencyMs, System.currentTimeMillis() - startedAtMs, loadMs)
         val approxTokens = if (response.isEmpty()) 0 else (response.length / 4).coerceAtLeast(1)
         val metric = GenerationMetric(
             tier = tier,
             startedAtMs = startedAtMs,
-            firstChunkLatencyMs = firstChunkLatencyMs,
-            totalDurationMs = System.currentTimeMillis() - startedAtMs,
+            firstChunkLatencyMs = timing.firstChunkLatencyMs,
+            totalDurationMs = timing.totalDurationMs,
             promptChars = prompt.length,
             responseChars = response.length,
             success = success,
             responseTokens = exactTokens ?: approxTokens,
             responseTokensExact = exactTokens != null,
             memoryDeltaBytes = usedMemoryBytes() - memoryBeforeBytes,
+            loadTimeMs = loadMs,
         )
         _metrics.update { it + metric } // la UI ve la corrida nueva al toque, sin esperar al disco.
         scope.launch {

@@ -5,6 +5,7 @@ import android.content.SharedPreferences
 import dagger.hilt.android.qualifiers.ApplicationContext
 import es.sebas1705.nanodemo.domain.models.GenerationConfig
 import es.sebas1705.nanodemo.domain.models.InferenceTier
+import es.sebas1705.nanodemo.domain.models.VoteTally
 import javax.inject.Inject
 import javax.inject.Singleton
 
@@ -89,6 +90,21 @@ class SettingsStore @Inject constructor(@ApplicationContext context: Context) {
     fun loadPreferredTier(): InferenceTier? =
         prefs.getString(PREFERRED_TIER_KEY, null)?.let { name -> InferenceTier.entries.firstOrNull { it.name == name } }
 
+    fun loadVotes(): Map<InferenceTier, VoteTally> = prefs.loadVotes()
+
+    fun saveVotes(votes: Map<InferenceTier, VoteTally>) {
+        prefs.edit().apply {
+            votes.forEach { (tier, tally) ->
+                putInt("${VOTES_PREFIX}${tier.name}.wins", tally.wins)
+                putInt("${VOTES_PREFIX}${tier.name}.appearances", tally.appearances)
+            }
+        }.apply()
+    }
+
+    fun clearVotes() {
+        prefs.edit().apply { prefs.all.keys.filter { it.startsWith(VOTES_PREFIX) }.forEach(::remove) }.apply()
+    }
+
     fun savePreferredTier(tier: InferenceTier) {
         prefs.edit().putString(PREFERRED_TIER_KEY, tier.name).apply()
     }
@@ -101,3 +117,14 @@ class SettingsStore @Inject constructor(@ApplicationContext context: Context) {
  */
 internal fun tierProbeOrder(preferred: InferenceTier?): List<InferenceTier> =
     if (preferred == null) InferenceTier.entries else listOf(preferred) + InferenceTier.entries.filter { it != preferred }
+
+private const val VOTES_PREFIX = "votes."
+
+/** Votos de Comparar (ver [VoteTally]): contadores simples por motor, `votes.<TIER>.wins` / `.appearances`. */
+internal fun SharedPreferences.loadVotes(): Map<InferenceTier, VoteTally> =
+    InferenceTier.entries.associateWith { tier ->
+        VoteTally(
+            wins = getInt("$VOTES_PREFIX${tier.name}.wins", 0),
+            appearances = getInt("$VOTES_PREFIX${tier.name}.appearances", 0),
+        )
+    }

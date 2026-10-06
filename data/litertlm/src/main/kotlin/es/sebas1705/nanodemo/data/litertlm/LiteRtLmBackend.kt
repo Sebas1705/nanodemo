@@ -4,6 +4,7 @@ import android.content.Context
 import android.graphics.Bitmap
 import android.graphics.BitmapFactory
 import android.net.Uri
+import android.os.SystemClock
 import android.util.Log
 import es.sebas1705.nanodemo.core.common.WebSearchTool
 import es.sebas1705.nanodemo.core.common.augmentWithWebSearch
@@ -99,11 +100,15 @@ class LiteRtLmBackend @Inject constructor(
         // A diferencia de las otras 2, SÍ depende de un secreto (Brave Search API) -- si no
         // está configurado, el toggle sale deshabilitado en vez de fallar en runtime.
         webSearch = WebSearchTool.isConfigured,
+        contextTokens = MAX_NUM_TOKENS,
     )
 
     private var engine: Engine? = null
     private var conversation: Conversation? = null
     private var visionEnabled = true
+
+    @Volatile
+    private var lastLoadMs: Long? = null
 
     private fun modelFile() = File(context.getExternalFilesDir(null), MODEL_FILE_NAME)
     private fun tempModelFile() = File(context.getExternalFilesDir(null), "$MODEL_FILE_NAME.part")
@@ -175,6 +180,7 @@ class LiteRtLmBackend @Inject constructor(
      * resultado de la herramienta como mensaje nuevo. Sin nada de eso: un solo `sendMessageAsync`, chunk a chunk.
      */
     override fun generateContentStream(history: List<ChatMessage>, config: GenerationConfig): Flow<String> = flow {
+        lastLoadMs = null
         val lastUserMessage = history.lastOrNull { it.role == Role.USER }
             ?: error("No hay turno de usuario para enviar")
         val activeConversation = getOrCreateConversation(history, config)
@@ -225,6 +231,8 @@ class LiteRtLmBackend @Inject constructor(
         if (cause != null) runCatching { conversation?.cancelProcess() }
     }
 
+    override fun lastLoadTimeMs(): Long? = lastLoadMs
+
     private fun extractText(message: Message): String =
         message.contents.contents.filterIsInstance<Content.Text>().joinToString("") { it.text }
 
@@ -246,6 +254,7 @@ class LiteRtLmBackend @Inject constructor(
     private suspend fun getOrCreateConversation(history: List<ChatMessage>, config: GenerationConfig): Conversation =
         withContext(Dispatchers.IO) {
             conversation?.let { return@withContext it }
+            val loadStartedAt = SystemClock.elapsedRealtime()
 
             val activeEngine = engine ?: createEngine().also { engine = it }
 
@@ -267,7 +276,10 @@ class LiteRtLmBackend @Inject constructor(
             conversationConfig = conversationConfig.copy(systemInstruction = Contents.of(fullSystemPrompt))
 
             Log.d(TAG, "getOrCreateConversation: config=$config, turnos previos=${previousTurns.size}")
-            activeEngine.createConversation(conversationConfig).also { conversation = it }
+            activeEngine.createConversation(conversationConfig).also {
+                conversation = it
+                lastLoadMs = SystemClock.elapsedRealtime() - loadStartedAt
+            }
         }
 
     private fun createEngine(): Engine {

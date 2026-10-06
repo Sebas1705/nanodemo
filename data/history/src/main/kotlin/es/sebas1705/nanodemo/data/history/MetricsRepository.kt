@@ -32,6 +32,7 @@ private fun MetricEntity.toDomain() = GenerationMetric(
     responseTokens = responseTokens,
     responseTokensExact = responseTokensExact,
     memoryDeltaBytes = memoryDeltaBytes,
+    loadTimeMs = loadTimeMs,
 )
 
 private fun GenerationMetric.toEntity() = MetricEntity(
@@ -45,4 +46,5 @@ private fun GenerationMetric.toEntity() = MetricEntity(
     responseTokens = responseTokens,
     responseTokensExact = responseTokensExact,
     memoryDeltaBytes = memoryDeltaBytes,
+    loadTimeMs = loadTimeMs,
 )

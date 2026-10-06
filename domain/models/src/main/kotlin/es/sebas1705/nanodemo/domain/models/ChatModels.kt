@@ -65,4 +65,26 @@ data class TierCapabilities(
     val functionCalling: Boolean = false,
     /** Puede buscar en Google antes de responder (grounding) — solo los tiers en la nube. */
     val webSearch: Boolean = false,
+    /**
+     * Presupuesto de contexto TOTAL del motor en tokens (prompt + respuesta, acumulado por conversación), si es
+     * un tope chico y conocido por nuestra propia config (MediaPipe 1024, LiteRT-LM 2048). `null` = no se mide:
+     * Nano y la nube tienen ventanas grandes o que no controlamos, y no inventamos un número.
+     */
+    val contextTokens: Int? = null,
+)
+
+/**
+ * Copia de [source] solo los ajustes que este tier soporta ([supported]) y deja los demás como estaban. Sirve
+ * para "usar la misma configuración en todos los motores" sin pisar con un valor inútil un campo que el motor
+ * ignora (p.ej. Nano no tiene top-P: su `topP` no se toca) ni activar algo que no puede hacer.
+ */
+fun GenerationConfig.withSupportedSettingsFrom(source: GenerationConfig, supported: TierCapabilities): GenerationConfig = copy(
+    temperature = if (supported.temperature) source.temperature else temperature,
+    topK = if (supported.topK) source.topK else topK,
+    topP = if (supported.topP) source.topP else topP,
+    maxOutputTokens = if (supported.maxOutputTokens) source.maxOutputTokens else maxOutputTokens,
+    systemPrompt = if (supported.systemPrompt) source.systemPrompt else systemPrompt,
+    jsonMode = if (supported.structuredOutput) source.jsonMode else jsonMode,
+    functionCalling = if (supported.functionCalling) source.functionCalling else functionCalling,
+    webSearch = if (supported.webSearch) source.webSearch else webSearch,
 )

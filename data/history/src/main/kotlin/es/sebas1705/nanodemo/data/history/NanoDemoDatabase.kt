@@ -12,7 +12,7 @@ import androidx.sqlite.db.SupportSQLiteDatabase
         MetricEntity::class,
         ConversationEmbeddingEntity::class,
     ],
-    version = 3,
+    version = 4,
     exportSchema = false,
 )
 abstract class NanoDemoDatabase : RoomDatabase() {
@@ -59,5 +59,15 @@ val MIGRATION_2_3 = object : Migration(2, 3) {
                 "`vector` BLOB NOT NULL, " +
                 "FOREIGN KEY(`conversationId`) REFERENCES `conversations`(`id`) ON UPDATE NO ACTION ON DELETE CASCADE)"
         )
+    }
+}
+
+/**
+ * v3 -> v4: agrega `metrics.loadTimeMs` (tiempo de carga del modelo aparte del de generación, ver
+ * [GenerationMetric.loadTimeMs]). Columna nullable sin default: las filas viejas quedan en NULL = "no se midió".
+ */
+val MIGRATION_3_4 = object : Migration(3, 4) {
+    override fun migrate(db: SupportSQLiteDatabase) {
+        db.execSQL("ALTER TABLE `metrics` ADD COLUMN `loadTimeMs` INTEGER")
     }
 }

@@ -41,6 +41,7 @@ internal object InferenceFeatures {
     const val CONVERSATION_DELETE = "conversation_delete"
     const val MEDIAPIPE_MODEL_SELECT = "mediapipe_model_select"
     const val COMPARE_RUN = "compare_run"
+    const val COMPARE_VOTE = "compare_vote"
     const val URL_ATTACH = "url_attach"
 }
 
