@@ -62,6 +62,7 @@ class InferenceRepository @Inject constructor(
     private val historyRepository: IHistoryRepository,
     private val metricsRepository: IMetricsRepository,
     private val telemetry: Telemetry,
+    private val settings: SettingsStore,
 ) : IInferenceRepository {
 
     private val scope = CoroutineScope(SupervisorJob() + Dispatchers.Main.immediate)
@@ -104,7 +105,7 @@ class InferenceRepository @Inject constructor(
     private val _conversation = MutableStateFlow<List<ChatMessage>>(emptyList())
     override val conversation: StateFlow<List<ChatMessage>> = _conversation.asStateFlow()
 
-    private val _configs = MutableStateFlow(InferenceTier.entries.associateWith { GenerationConfig() })
+    private val _configs = MutableStateFlow(settings.loadConfigs())
     override val configs: StateFlow<Map<InferenceTier, GenerationConfig>> = _configs.asStateFlow()
 
     private val _pendingImage = MutableStateFlow<Uri?>(null)
@@ -144,16 +145,18 @@ class InferenceRepository @Inject constructor(
     override fun capabilitiesOf(tier: InferenceTier): TierCapabilities = backends.getValue(tier).capabilities
 
     private fun autoSelectTier() {
-        Log.d(TAG, "autoSelectTier: probando tiers en orden ${InferenceTier.entries}")
+        val preferred = settings.loadPreferredTier()
+        val order = tierProbeOrder(preferred)
+        Log.d(TAG, "autoSelectTier: probando tiers en orden $order (guardado=$preferred)")
         scope.launch {
-            for (tier in InferenceTier.entries) {
+            for (tier in order) {
                 val result = checkTier(tier)
                 if (result != TierAvailability.UNAVAILABLE) {
                     Log.i(TAG, "autoSelectTier: usando $tier (resultado=$result)")
                     telemetry.event(
                         InferenceEvents.TIER_SELECTED,
                         InferenceParams.TIER to tier.name,
-                        InferenceParams.REASON to "auto",
+                        InferenceParams.REASON to if (tier == preferred) "restored" else "auto",
                     )
                     _activeTier.update { tier }
                     applyAvailabilityToState(result)
@@ -173,6 +176,7 @@ class InferenceRepository @Inject constructor(
 
     override fun selectTier(tier: InferenceTier) {
         Log.d(TAG, "selectTier: override manual a $tier")
+        settings.savePreferredTier(tier)
         telemetry.event(
             InferenceEvents.TIER_SELECTED,
             InferenceParams.TIER to tier.name,
@@ -262,6 +266,7 @@ class InferenceRepository @Inject constructor(
 
     override fun updateConfig(tier: InferenceTier, newConfig: GenerationConfig) {
         _configs.update { it + (tier to newConfig) }
+        settings.saveConfig(tier, newConfig)
     }
 
     override fun setPendingImage(uri: Uri?) {

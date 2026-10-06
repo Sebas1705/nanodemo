@@ -18,7 +18,7 @@ class ConfigViewModel @Inject constructor(
     val capabilitiesOf: CapabilitiesOfUseCase,
     private val updateConfigUseCase: UpdateConfigUseCase,
 ) : ViewModel() {
-    /** Un `GenerationConfig` por tier — cada uno se edita y persiste (en memoria) por separado. */
+    /** Un `GenerationConfig` por tier — cada uno se edita y se guarda (`SettingsStore`) por separado. */
     val configs: StateFlow<Map<InferenceTier, GenerationConfig>> = observeConfigs()
     val activeTier: StateFlow<InferenceTier> = observeActiveTier()
 
