@@ -5,6 +5,7 @@ plugins {
 dependencies {
     implementation(projects.domain.models)
     implementation(projects.domain.usescases.inference)
+    implementation(projects.core.common)
     implementation(projects.core.ui)
     implementation(projects.core.designsystem)
 }

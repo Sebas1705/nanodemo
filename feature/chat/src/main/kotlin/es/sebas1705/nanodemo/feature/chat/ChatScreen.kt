@@ -37,12 +37,15 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.unit.dp
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
+import es.sebas1705.nanodemo.core.common.buildLocalSystemPrompt
 import es.sebas1705.nanodemo.core.designsystem.ErrorCard
+import es.sebas1705.nanodemo.core.designsystem.MetricsLine
 import es.sebas1705.nanodemo.core.designsystem.ScreenPhase
 import es.sebas1705.nanodemo.core.designsystem.phase
 import es.sebas1705.nanodemo.core.ui.DemoColors
 import es.sebas1705.nanodemo.core.ui.readoutStyle
 import es.sebas1705.nanodemo.domain.models.DemoState
+import es.sebas1705.nanodemo.domain.models.GenerationMetric
 import es.sebas1705.nanodemo.domain.models.InferenceTier
 import es.sebas1705.nanodemo.domain.models.Role
 import es.sebas1705.nanodemo.domain.models.TierAvailability
@@ -88,6 +91,10 @@ fun ChatScreen(
     var promptText by remember { mutableStateOf(sharedText?.let { "Resume esto:\n\n$it" } ?: "") }
     var inFlight by remember { mutableStateOf<InFlightTurn?>(null) }
     var showTierSheet by remember { mutableStateOf(false) }
+    // Métricas de la última respuesta de ESTA sesión de chat (ver ResponseExtras). `metrics` es global y mezcla
+    // corridas de Comparar y otras conversaciones, así que se captura al terminar el turno en vez de leer la última.
+    val metrics by viewModel.metrics.collectAsState()
+    var shownMetric by remember { mutableStateOf<GenerationMetric?>(null) }
     var pinnedToBottom by remember { mutableStateOf(true) }
     val listState = rememberLazyListState()
 
@@ -130,6 +137,11 @@ fun ChatScreen(
     val itemCount = conversation.size + (if (inFlight != null) 2 else 0) + (if (errorMessage != null) 1 else 0)
     val streamedChars = streamingText?.length ?: 0
 
+    val finishedMetric = if (turnState is DemoState.Result) metrics.lastOrNull { it.tier == activeTier && it.success } else null
+    LaunchedEffect(finishedMetric) { if (finishedMetric != null) shownMetric = finishedMetric }
+    // "Nueva conversación" desde el menú lateral no recompone esta pantalla (la ruta es la misma): se limpia acá.
+    LaunchedEffect(conversation.isEmpty(), inFlight == null) { if (conversation.isEmpty() && inFlight == null) shownMetric = null }
+
     // "Pegado al final": mientras el usuario no scrollee hacia arriba, cada chunk nuevo lo sigue. Si sube a
     // leer algo, deja de seguirlo; al volver al final, lo retoma.
     // `autoScrolling` evita que nuestro propio scrollToItem/scrollBy (que pasa un instante por "todavía
@@ -164,6 +176,7 @@ fun ChatScreen(
             onOpenTierPicker = { showTierSheet = true },
             onStartOver = {
                 inFlight = null
+                shownMetric = null
                 viewModel.resetConversation()
             },
         )
@@ -196,10 +209,11 @@ fun ChatScreen(
                                 text = message.text,
                                 tier = activeTier,
                                 streaming = false,
-                                // Solo compara lo que pidió ESTE turno con jsonMode activo — un turno viejo de
-                                // antes de prenderlo no se marca como "inválido" retroactivamente.
-                                extra = if (config.jsonMode && index == lastModelIndex && inFlight == null) {
-                                    { JsonValidityBadge(message.text) }
+                                // Solo la última respuesta lleva métricas/validación: son las de ESTA corrida (no
+                                // se guardan por mensaje). Con jsonMode activo solo se compara lo que pidió ESTE
+                                // turno — un turno viejo de antes de prenderlo no se marca como "inválido".
+                                extra = if (index == lastModelIndex && inFlight == null && (shownMetric != null || config.jsonMode)) {
+                                    { ResponseExtras(shownMetric, message.text.takeIf { config.jsonMode }) }
                                 } else {
                                     null
                                 },
@@ -214,6 +228,11 @@ fun ChatScreen(
                                     text = streamingText.orEmpty(),
                                     tier = activeTier,
                                     streaming = turnState !is DemoState.Result,
+                                    extra = if (turnState is DemoState.Result && shownMetric != null) {
+                                        { ResponseExtras(shownMetric, turnState.text.takeIf { config.jsonMode }) }
+                                    } else {
+                                        null
+                                    },
                                 )
                             }
                         }
@@ -224,29 +243,47 @@ fun ChatScreen(
         }
 
         if (state.phase == ScreenPhase.READY_GROUP) {
-            ChatComposer(
-                value = promptText,
-                onValueChange = { promptText = it },
-                onSend = { send(promptText, fromComposer = true) },
-                isGenerating = isGenerating || (inFlight != null && turnState == null),
-                tier = activeTier,
-                imageSupported = capabilities.images,
-                pendingImageUri = pendingImage,
-                attachedUrl = attachedUrl,
-                onPickImage = {
-                    imagePicker.launch(
-                        PickVisualMediaRequest.Builder()
-                            .setMediaType(ActivityResultContracts.PickVisualMedia.ImageOnly)
-                            .build(),
+            // Antes AppNav le daba padding de la barra de navegación (y la consumía): imePadding solo
+            // suma lo que el teclado agrega por encima de eso.
+            Column(modifier = Modifier.imePadding()) {
+                capabilities.contextTokens?.let { maxTokens ->
+                    val systemChars = remember(config) {
+                        buildLocalSystemPrompt(config.systemPrompt, config.functionCalling, config.webSearch, config.jsonMode).length
+                    }
+                    val turnTexts = conversation.map { it.text } + listOfNotNull(inFlight?.text, streamingText)
+                    val userTurns = conversation.count { it.role == Role.USER } + (if (inFlight != null) 1 else 0)
+                    ContextMeter(
+                        usedTokens = estimateContextTokens(
+                            turnTexts = turnTexts,
+                            systemPromptChars = systemChars,
+                            userTurns = userTurns,
+                            searchOn = config.webSearch,
+                            compactSearch = activeTier == InferenceTier.MEDIAPIPE_LOCAL,
+                        ),
+                        maxTokens = maxTokens,
                     )
-                },
-                onClearImage = { viewModel.setPendingImage(null) },
-                onAttachUrl = { viewModel.setAttachedUrl(it) },
-                onClearUrl = { viewModel.setAttachedUrl(null) },
-                // Antes AppNav le daba padding de la barra de navegación (y la consumía): imePadding solo
-                // suma lo que el teclado agrega por encima de eso.
-                modifier = Modifier.imePadding(),
-            )
+                }
+                ChatComposer(
+                    value = promptText,
+                    onValueChange = { promptText = it },
+                    onSend = { send(promptText, fromComposer = true) },
+                    isGenerating = isGenerating || (inFlight != null && turnState == null),
+                    tier = activeTier,
+                    imageSupported = capabilities.images,
+                    pendingImageUri = pendingImage,
+                    attachedUrl = attachedUrl,
+                    onPickImage = {
+                        imagePicker.launch(
+                            PickVisualMediaRequest.Builder()
+                                .setMediaType(ActivityResultContracts.PickVisualMedia.ImageOnly)
+                                .build(),
+                        )
+                    },
+                    onClearImage = { viewModel.setPendingImage(null) },
+                    onAttachUrl = { viewModel.setAttachedUrl(it) },
+                    onClearUrl = { viewModel.setAttachedUrl(null) },
+                )
+            }
         }
     }
 
@@ -305,4 +342,13 @@ private fun JsonValidityBadge(responseText: String) {
         style = readoutStyle,
         color = if (isValidJson) DemoColors.TierA else DemoColors.Danger,
     )
+}
+
+/** Lo que va bajo la última respuesta: sus métricas (tiempos, velocidad, tokens) y, con Modo JSON, si es JSON válido. */
+@Composable
+private fun ResponseExtras(metric: GenerationMetric?, jsonText: String?) {
+    Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+        metric?.let { MetricsLine(it) }
+        jsonText?.let { JsonValidityBadge(it) }
+    }
 }

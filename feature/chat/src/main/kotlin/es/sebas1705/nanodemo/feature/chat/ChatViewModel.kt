@@ -6,6 +6,7 @@ import androidx.lifecycle.viewModelScope
 import es.sebas1705.nanodemo.domain.models.ChatMessage
 import es.sebas1705.nanodemo.domain.models.DemoState
 import es.sebas1705.nanodemo.domain.models.GenerationConfig
+import es.sebas1705.nanodemo.domain.models.GenerationMetric
 import es.sebas1705.nanodemo.domain.models.InferenceTier
 import es.sebas1705.nanodemo.domain.models.MediaPipeModelOption
 import es.sebas1705.nanodemo.domain.models.TierAvailability
@@ -19,6 +20,7 @@ import es.sebas1705.nanodemo.domain.usescases.inference.ObserveAttachedUrlUseCas
 import es.sebas1705.nanodemo.domain.usescases.inference.ObserveAvailabilityUseCase
 import es.sebas1705.nanodemo.domain.usescases.inference.ObserveConfigsUseCase
 import es.sebas1705.nanodemo.domain.usescases.inference.ObserveConversationUseCase
+import es.sebas1705.nanodemo.domain.usescases.inference.ObserveMetricsUseCase
 import es.sebas1705.nanodemo.domain.usescases.inference.ObservePendingImageUseCase
 import es.sebas1705.nanodemo.domain.usescases.inference.ObserveSelectedMediaPipeModelUseCase
 import es.sebas1705.nanodemo.domain.usescases.inference.ObserveStateUseCase
@@ -46,6 +48,7 @@ class ChatViewModel @Inject constructor(
     observeConversation: ObserveConversationUseCase,
     observeConfigs: ObserveConfigsUseCase,
     observeState: ObserveStateUseCase,
+    observeMetrics: ObserveMetricsUseCase,
     observeActiveTier: ObserveActiveTierUseCase,
     observeAvailability: ObserveAvailabilityUseCase,
     observePendingImage: ObservePendingImageUseCase,
@@ -65,6 +68,7 @@ class ChatViewModel @Inject constructor(
 
     val conversation: StateFlow<List<ChatMessage>> = observeConversation()
     val state: StateFlow<DemoState> = observeState()
+    val metrics: StateFlow<List<GenerationMetric>> = observeMetrics()
     val activeTier: StateFlow<InferenceTier> = observeActiveTier()
 
     /** Cada tier tiene su propio `GenerationConfig` — acá se resuelve el del tier activo de Chat. */

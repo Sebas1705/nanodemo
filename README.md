@@ -151,6 +151,29 @@ Models framework de Apple).
     (`SettingsStore`, SharedPreferences). Al abrir, se prueba primero ese
     motor y, si ya no anda (modelo borrado, sin red), se sigue con el orden
     A → E de siempre; el contador de uso ya se guardaba aparte.
+21. **Métricas en cada respuesta** (Chat y Comparar): bajo la respuesta, una
+    línea con ⚡ tiempo hasta el primer token, ⏱ total, tokens/s y tokens
+    (`MetricsLine`, `core:designsystem`). El **tiempo de carga** del modelo
+    (MediaPipe/LiteRT-LM cargan el modelo en la primera generación) se mide
+    aparte (`loadTimeMs`, "carga X") y se **descuenta** de los tiempos, para que
+    la primera respuesta no parezca más lenta que las siguientes
+    (`excludeLoadTime`). Estadísticas muestra el promedio de carga y el CSV
+    exportado trae la columna `loadTimeMs`.
+22. **Misma configuración en todos los motores** (Parámetros → "Usar esta
+    configuración en todos los motores"): copia los parámetros del tier activo a
+    los demás, pero solo lo que cada uno soporta
+    (`GenerationConfig.withSupportedSettingsFrom`). Cada tier sigue teniendo sus
+    ajustes propios; esto es para comparar con parámetros iguales.
+23. **Votar la mejor respuesta** (Comparar): tras una ronda, elegís cuál
+    respondió mejor (se puede cambiar el voto). Estadísticas acumula victorias y
+    porcentaje de victorias por motor (`VoteTally`), con botón para reiniciar.
+24. **Medidor de contexto** (Chat, MediaPipe y LiteRT-LM): una barra "~620 / 1024
+    tokens" sobre el campo de texto, en ámbar al 80% y rojo al llenarse. Es una
+    estimación (~4 caracteres por token + system prompt + bloque de búsqueda por
+    turno) porque el motor no expone su conteo. Hallazgo: el bloque de búsqueda
+    normal (~850 tokens) no entra en los 1024 de MediaPipe, por eso en ese tier
+    la búsqueda usa un modo **compacto** (3 resultados, descripciones de 160
+    caracteres, ~280 tokens).
 
 ## Arquitectura (multi-módulo, clean architecture)
 
