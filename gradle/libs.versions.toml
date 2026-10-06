@@ -8,6 +8,7 @@ agp = "9.4.1"
 kotlin = "2.3.21"
 ksp = "2.3.7"
 detekt = "1.23.8"
+junit = "4.13.2"
 
 # Tier A/B/C: librerías de inferencia (ya usadas y confirmadas en nanodemo)
 mlkitGenaiPrompt = "1.0.0-beta4"
@@ -117,6 +118,9 @@ kotlinx-serialization-json = { group = "org.jetbrains.kotlinx", name = "kotlinx-
 room-runtime = { group = "androidx.room", name = "room-runtime", version.ref = "room" }
 room-ktx = { group = "androidx.room", name = "room-ktx", version.ref = "room" }
 room-compiler = { group = "androidx.room", name = "room-compiler", version.ref = "room" }
+
+# Tests unitarios (JVM) de la lógica pura — ver los src/test de cada módulo.
+junit = { group = "junit", name = "junit", version.ref = "junit" }
 
 # Gradle plugins consumidos desde build-logic/convention/build.gradle.kts
 android-gradle-plugin = { group = "com.android.tools.build", name = "gradle", version.ref = "agp" }

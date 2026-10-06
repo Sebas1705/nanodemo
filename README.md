@@ -145,6 +145,12 @@ Models framework de Apple).
     el grounding con Google Search de Cloud/Firebase AI **no** está en el plan
     gratis de Gemini. El contador es solo de esta app/dispositivo; no reemplaza
     los topes de gasto de las consolas.
+20. **Ajustes que se guardan**: los parámetros de cada tier (temperature,
+    top-K/P, system prompt, Modo JSON, Herramientas, Búsqueda) y el último
+    motor que elegiste a mano sobreviven al cierre de la app
+    (`SettingsStore`, SharedPreferences). Al abrir, se prueba primero ese
+    motor y, si ya no anda (modelo borrado, sin red), se sigue con el orden
+    A → E de siempre; el contador de uso ya se guardaba aparte.
 
 ## Arquitectura (multi-módulo, clean architecture)
 
@@ -431,6 +437,21 @@ Firebase desde los secretos de Doppler.
 el envío. Límites conocidos: los crashes nativos (MediaPipe / LiteRT-LM) y las muertes por falta
 de RAM no generan reporte; para estas últimas queda el evento `memory_trim` y las claves de
 memoria como pista.
+
+## Tests y CI
+
+Los tests unitarios (JUnit, JVM, sin dispositivo) cubren la lógica pura: parseo de Markdown, armado
+del system prompt y la herramienta de hora emulada, la consulta/limpieza de la búsqueda, el cálculo de
+cuota, el agrupado por fecha del historial y la (de)serialización de los ajustes guardados.
+
+```bash
+./gradlew testDebugUnitTest            # todos los módulos
+./gradlew :core:common:testDebugUnitTest
+```
+
+`.github/workflows/ci.yml` compila el APK debug y corre esos tests en cada push a `master` y en cada
+pull request (sin Doppler ni secretos: las keys de los tiers son opcionales en el build). Es
+independiente de `release-apk.yml`, que solo corre al empujar un tag y arma el APK firmado.
 
 ## Distribución
 

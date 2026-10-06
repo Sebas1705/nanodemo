@@ -91,7 +91,7 @@ object WebSearchTool {
     }
 
     /** Brave devuelve `<strong>` en los snippets y entidades HTML: se limpian para no ensuciar el prompt. */
-    private fun cleanHtml(raw: String): String = raw
+    internal fun cleanHtml(raw: String): String = raw
         .replace(Regex("<[^>]+>"), "")
         .replace("&amp;", "&").replace("&quot;", "\"").replace("&#x27;", "'").replace("&#39;", "'")
         .replace("&lt;", "<").replace("&gt;", ">").replace("&nbsp;", " ")

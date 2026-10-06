@@ -143,7 +143,7 @@ fun HistoryScreen(
     }
 }
 
-private fun dateGroup(updatedAtMs: Long, today: LocalDate): String {
+internal fun dateGroup(updatedAtMs: Long, today: LocalDate): String {
     val date = Instant.ofEpochMilli(updatedAtMs).atZone(ZoneId.systemDefault()).toLocalDate()
     return when (ChronoUnit.DAYS.between(date, today)) {
         in Long.MIN_VALUE..0L -> "Hoy"

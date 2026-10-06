@@ -86,7 +86,7 @@ suspend fun augmentWithWebSearch(userText: String, previousUserText: String?): S
 }
 
 /** La consulta sale de la pregunta; si es muy corta ("¿y en Madrid?") se le suma la anterior para darle contexto. */
-private fun buildQuery(question: String, previousQuestion: String?): String {
+internal fun buildQuery(question: String, previousQuestion: String?): String {
     val base = if (question.length < SHORT_QUESTION_CHARS && !previousQuestion.isNullOrBlank()) {
         "$previousQuestion $question"
     } else {
