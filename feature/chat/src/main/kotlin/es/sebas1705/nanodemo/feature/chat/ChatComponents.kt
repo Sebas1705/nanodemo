@@ -100,6 +100,7 @@ import es.sebas1705.nanodemo.core.ui.DemoColors
 import es.sebas1705.nanodemo.core.ui.readoutStyle
 import es.sebas1705.nanodemo.domain.models.DemoState
 import es.sebas1705.nanodemo.domain.models.InferenceTier
+import es.sebas1705.nanodemo.domain.models.LiteRtLmAccelerator
 import es.sebas1705.nanodemo.domain.models.MediaPipeModelOption
 import es.sebas1705.nanodemo.domain.models.TierAvailability
 
@@ -169,6 +170,8 @@ internal fun TierPickerSheet(
     selectedMediaPipeModel: MediaPipeModelOption,
     onSelectTier: (InferenceTier) -> Unit,
     onSelectMediaPipeModel: (MediaPipeModelOption) -> Unit,
+    liteRtLmAccelerator: LiteRtLmAccelerator,
+    onSelectLiteRtLmAccelerator: (LiteRtLmAccelerator) -> Unit,
     onDismiss: () -> Unit,
 ) {
     ModalBottomSheet(
@@ -191,13 +194,16 @@ internal fun TierPickerSheet(
                     availability = availability[tier] ?: TierAvailability.UNKNOWN,
                     onClick = {
                         onSelectTier(tier)
-                        // MediaPipe deja la hoja abierta: justo abajo aparece el selector de modelo.
-                        if (tier != InferenceTier.MEDIAPIPE_LOCAL) onDismiss()
+                        // MediaPipe y LiteRT-LM dejan la hoja abierta: justo abajo aparece su selector (modelo / CPU-GPU).
+                        if (tier != InferenceTier.MEDIAPIPE_LOCAL && tier != InferenceTier.LITERT_LM_LOCAL) onDismiss()
                     },
                 )
             }
             if (activeTier == InferenceTier.MEDIAPIPE_LOCAL) {
                 MediaPipeModelRow(mediaPipeModels, selectedMediaPipeModel, onSelectMediaPipeModel)
+            }
+            if (activeTier == InferenceTier.LITERT_LM_LOCAL) {
+                LiteRtLmAcceleratorRow(liteRtLmAccelerator, onSelectLiteRtLmAccelerator)
             }
         }
     }
@@ -571,4 +577,29 @@ private fun UrlDialog(onDismiss: () -> Unit, onConfirm: (String) -> Unit) {
         },
         dismissButton = { TextButton(onClick = onDismiss) { Text("Cancelar") } },
     )
+}
+
+/** CPU o GPU para LiteRT-LM: cambiarlo recrea el motor (y reinicia la charla). Si la GPU no inicializa, vuelve a CPU sola. */
+@Composable
+private fun LiteRtLmAcceleratorRow(
+    selected: LiteRtLmAccelerator,
+    onSelect: (LiteRtLmAccelerator) -> Unit,
+) {
+    Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+        SectionLabel("Acelerador")
+        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+            LiteRtLmAccelerator.entries.forEach { option ->
+                FilterChip(
+                    selected = option == selected,
+                    onClick = { onSelect(option) },
+                    label = { Text(option.displayName) },
+                )
+            }
+        }
+        Text(
+            "Cambiarlo recarga el modelo y empieza una conversación nueva. GPU suele ser más rápida pero no anda en todos los dispositivos; si falla, vuelve a CPU.",
+            style = MaterialTheme.typography.labelSmall,
+            color = DemoColors.Muted,
+        )
+    }
 }

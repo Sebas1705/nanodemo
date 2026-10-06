@@ -4,6 +4,7 @@ import android.net.Uri
 import es.sebas1705.nanodemo.data.repositories.interfaces.IInferenceRepository
 import es.sebas1705.nanodemo.domain.models.GenerationConfig
 import es.sebas1705.nanodemo.domain.models.InferenceTier
+import es.sebas1705.nanodemo.domain.models.LiteRtLmAccelerator
 import es.sebas1705.nanodemo.domain.models.MediaPipeModelOption
 import es.sebas1705.nanodemo.domain.models.TierCapabilities
 import javax.inject.Inject
@@ -68,4 +69,8 @@ class VoteBestUseCase @Inject constructor(private val repository: IInferenceRepo
 
 class ClearVotesUseCase @Inject constructor(private val repository: IInferenceRepository) {
     operator fun invoke() = repository.clearVotes()
+}
+
+class SelectLiteRtLmAcceleratorUseCase @Inject constructor(private val repository: IInferenceRepository) {
+    operator fun invoke(option: LiteRtLmAccelerator) = repository.selectLiteRtLmAccelerator(option)
 }

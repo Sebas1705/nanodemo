@@ -174,6 +174,14 @@ Models framework de Apple).
     normal (~850 tokens) no entra en los 1024 de MediaPipe, por eso en ese tier
     la búsqueda usa un modo **compacto** (3 resultados, descripciones de 160
     caracteres, ~280 tokens).
+25. **CPU / GPU en LiteRT-LM** (Chat → selector de motor, con el Tier D activo):
+    un selector de acelerador para correr Gemma 4 E2B en CPU (por defecto, el
+    que no depende del dispositivo) o GPU (`Backend.GPU()`). Cambiarlo recrea el
+    motor y empieza una conversación nueva; si la GPU no inicializa, se vuelve a
+    CPU sola y el selector lo refleja. La elección se guarda
+    (`SettingsStore`) y el nombre del acelerador aparece en la píldora del
+    motor. Sirve para medir la diferencia real con las métricas de cada
+    respuesta (⚡ primer token, tok/s).
 
 ## Arquitectura (multi-módulo, clean architecture)
 

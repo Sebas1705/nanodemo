@@ -6,6 +6,7 @@ import es.sebas1705.nanodemo.domain.models.DemoState
 import es.sebas1705.nanodemo.domain.models.GenerationConfig
 import es.sebas1705.nanodemo.domain.models.GenerationMetric
 import es.sebas1705.nanodemo.domain.models.InferenceTier
+import es.sebas1705.nanodemo.domain.models.LiteRtLmAccelerator
 import es.sebas1705.nanodemo.domain.models.MediaPipeModelOption
 import es.sebas1705.nanodemo.domain.models.TierAvailability
 import es.sebas1705.nanodemo.domain.models.TierCapabilities
@@ -42,6 +43,9 @@ interface IInferenceRepository {
     val mediaPipeModels: List<MediaPipeModelOption>
     val selectedMediaPipeModel: StateFlow<MediaPipeModelOption>
 
+    /** CPU/GPU del Tier D (LiteRT-LM); vuelve a CPU solo si la GPU no inicializa. */
+    val liteRtLmAccelerator: StateFlow<LiteRtLmAccelerator>
+
     fun capabilitiesOf(tier: InferenceTier): TierCapabilities
     fun selectTier(tier: InferenceTier)
     fun downloadModel()
@@ -74,4 +78,5 @@ interface IInferenceRepository {
 
     /** Cambia el modelo del Tier B (MediaPipe) — recomprueba disponibilidad para ese tier. */
     fun selectMediaPipeModel(option: MediaPipeModelOption)
+    fun selectLiteRtLmAccelerator(option: LiteRtLmAccelerator)
 }

@@ -8,6 +8,7 @@ import es.sebas1705.nanodemo.domain.models.DemoState
 import es.sebas1705.nanodemo.domain.models.GenerationConfig
 import es.sebas1705.nanodemo.domain.models.GenerationMetric
 import es.sebas1705.nanodemo.domain.models.InferenceTier
+import es.sebas1705.nanodemo.domain.models.LiteRtLmAccelerator
 import es.sebas1705.nanodemo.domain.models.MediaPipeModelOption
 import es.sebas1705.nanodemo.domain.models.TierAvailability
 import es.sebas1705.nanodemo.domain.usescases.inference.CapabilitiesOfUseCase
@@ -26,6 +27,8 @@ import es.sebas1705.nanodemo.domain.usescases.inference.ObserveSelectedMediaPipe
 import es.sebas1705.nanodemo.domain.usescases.inference.ObserveStateUseCase
 import es.sebas1705.nanodemo.domain.usescases.inference.ResetConversationUseCase
 import es.sebas1705.nanodemo.domain.usescases.inference.SelectMediaPipeModelUseCase
+import es.sebas1705.nanodemo.domain.usescases.inference.SelectLiteRtLmAcceleratorUseCase
+import es.sebas1705.nanodemo.domain.usescases.inference.ObserveLiteRtLmAcceleratorUseCase
 import es.sebas1705.nanodemo.domain.usescases.inference.SelectTierUseCase
 import es.sebas1705.nanodemo.domain.usescases.inference.SetAttachedUrlUseCase
 import es.sebas1705.nanodemo.domain.usescases.inference.SetPendingImageUseCase
@@ -55,6 +58,7 @@ class ChatViewModel @Inject constructor(
     observeAttachedUrl: ObserveAttachedUrlUseCase,
     observeSelectedMediaPipeModel: ObserveSelectedMediaPipeModelUseCase,
     getMediaPipeModels: GetMediaPipeModelsUseCase,
+    observeLiteRtLmAccelerator: ObserveLiteRtLmAcceleratorUseCase,
     val capabilitiesOf: CapabilitiesOfUseCase,
     val selectTier: SelectTierUseCase,
     val generate: GenerateUseCase,
@@ -63,6 +67,7 @@ class ChatViewModel @Inject constructor(
     val setAttachedUrl: SetAttachedUrlUseCase,
     val resetConversation: ResetConversationUseCase,
     val selectMediaPipeModel: SelectMediaPipeModelUseCase,
+    val selectLiteRtLmAccelerator: SelectLiteRtLmAcceleratorUseCase,
     private val loadConversation: LoadConversationUseCase,
 ) : ViewModel() {
 
@@ -81,6 +86,7 @@ class ChatViewModel @Inject constructor(
     val attachedUrl: StateFlow<String?> = observeAttachedUrl()
     val selectedMediaPipeModel: StateFlow<MediaPipeModelOption> = observeSelectedMediaPipeModel()
     val mediaPipeModels: List<MediaPipeModelOption> = getMediaPipeModels()
+    val liteRtLmAccelerator: StateFlow<LiteRtLmAccelerator> = observeLiteRtLmAccelerator()
 
     /** Se llama una vez al entrar a Chat con un `conversationId` (reapertura desde Historial). */
     fun openConversation(conversationId: Long) = loadConversation(conversationId)

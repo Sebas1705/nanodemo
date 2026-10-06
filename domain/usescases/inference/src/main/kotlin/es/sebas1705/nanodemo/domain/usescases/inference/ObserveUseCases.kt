@@ -7,6 +7,7 @@ import es.sebas1705.nanodemo.domain.models.DemoState
 import es.sebas1705.nanodemo.domain.models.GenerationConfig
 import es.sebas1705.nanodemo.domain.models.GenerationMetric
 import es.sebas1705.nanodemo.domain.models.InferenceTier
+import es.sebas1705.nanodemo.domain.models.LiteRtLmAccelerator
 import es.sebas1705.nanodemo.domain.models.MediaPipeModelOption
 import es.sebas1705.nanodemo.domain.models.TierAvailability
 import es.sebas1705.nanodemo.domain.models.VoteTally
@@ -66,4 +67,8 @@ class GetMediaPipeModelsUseCase @Inject constructor(private val repository: IInf
 
 class ObserveSelectedMediaPipeModelUseCase @Inject constructor(private val repository: IInferenceRepository) {
     operator fun invoke(): StateFlow<MediaPipeModelOption> = repository.selectedMediaPipeModel
+}
+
+class ObserveLiteRtLmAcceleratorUseCase @Inject constructor(private val repository: IInferenceRepository) {
+    operator fun invoke(): StateFlow<LiteRtLmAccelerator> = repository.liteRtLmAccelerator
 }

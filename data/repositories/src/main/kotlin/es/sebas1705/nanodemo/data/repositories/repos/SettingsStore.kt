@@ -5,12 +5,14 @@ import android.content.SharedPreferences
 import dagger.hilt.android.qualifiers.ApplicationContext
 import es.sebas1705.nanodemo.domain.models.GenerationConfig
 import es.sebas1705.nanodemo.domain.models.InferenceTier
+import es.sebas1705.nanodemo.domain.models.LiteRtLmAccelerator
 import es.sebas1705.nanodemo.domain.models.VoteTally
 import javax.inject.Inject
 import javax.inject.Singleton
 
 private const val PREFS = "app_settings"
 private const val PREFERRED_TIER_KEY = "preferred_tier"
+private const val LITERTLM_ACCELERATOR_KEY = "litertlm_accelerator"
 
 /**
  * Traduce un [GenerationConfig] a pares clave/valor planos (y de vuelta), para guardarlo en
@@ -103,6 +105,15 @@ class SettingsStore @Inject constructor(@ApplicationContext context: Context) {
 
     fun clearVotes() {
         prefs.edit().apply { prefs.all.keys.filter { it.startsWith(VOTES_PREFIX) }.forEach(::remove) }.apply()
+    }
+
+    fun loadLiteRtLmAccelerator(): LiteRtLmAccelerator =
+        prefs.getString(LITERTLM_ACCELERATOR_KEY, null)
+            ?.let { name -> LiteRtLmAccelerator.entries.firstOrNull { it.name == name } }
+            ?: LiteRtLmAccelerator.CPU
+
+    fun saveLiteRtLmAccelerator(option: LiteRtLmAccelerator) {
+        prefs.edit().putString(LITERTLM_ACCELERATOR_KEY, option.name).apply()
     }
 
     fun savePreferredTier(tier: InferenceTier) {

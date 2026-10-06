@@ -23,6 +23,7 @@ import es.sebas1705.nanodemo.domain.models.GenerationConfig
 import es.sebas1705.nanodemo.domain.models.GenerationMetric
 import es.sebas1705.nanodemo.domain.models.InferenceBackend
 import es.sebas1705.nanodemo.domain.models.InferenceTier
+import es.sebas1705.nanodemo.domain.models.LiteRtLmAccelerator
 import es.sebas1705.nanodemo.domain.models.MediaPipeModelOption
 import es.sebas1705.nanodemo.domain.models.Role
 import es.sebas1705.nanodemo.domain.models.TierAvailability
@@ -58,7 +59,7 @@ class InferenceRepository @Inject constructor(
     mlKitNanoBackend: MlKitNanoBackend,
     private val mediaPipeBackend: MediaPipeBackend,
     cloudGeminiBackend: CloudGeminiBackend,
-    liteRtLmBackend: LiteRtLmBackend,
+    private val liteRtLmBackend: LiteRtLmBackend,
     firebaseAiBackend: FirebaseAiBackend,
     private val historyRepository: IHistoryRepository,
     private val metricsRepository: IMetricsRepository,
@@ -85,6 +86,7 @@ class InferenceRepository @Inject constructor(
 
     override val mediaPipeModels: List<MediaPipeModelOption> = mediaPipeBackend.availableModels
     override val selectedMediaPipeModel: StateFlow<MediaPipeModelOption> = mediaPipeBackend.selectedModel
+    override val liteRtLmAccelerator: StateFlow<LiteRtLmAccelerator> = liteRtLmBackend.accelerator
 
     /** Conversación actualmente persistida (null hasta el primer turno, o tras "Nueva conversación"). */
     private var currentConversationId: Long? = null
@@ -125,6 +127,9 @@ class InferenceRepository @Inject constructor(
         // Contexto técnico que acompaña a cualquier crash o error no fatal (sin contenido del usuario).
         scope.launch { _activeTier.collect { telemetry.setContext("active_tier", it.name) } }
         scope.launch { mediaPipeBackend.selectedModel.collect { telemetry.setContext("mediapipe_model", it.name) } }
+        // Se restaura el acelerador guardado y se persiste cualquier cambio, incluida la caída automática GPU → CPU.
+        liteRtLmBackend.setAccelerator(settings.loadLiteRtLmAccelerator())
+        scope.launch { liteRtLmBackend.accelerator.collect { settings.saveLiteRtLmAccelerator(it) } }
         // Antes las corridas de generate() solo vivían en `_metrics` (memoria, se perdían al matar el
         // proceso). Se recuperan las persistidas una vez al arrancar; `recordMetric()` sigue actualizando
         // este StateFlow al toque en cada turno (la UI no espera al disco) y las persiste en paralelo.
@@ -304,6 +309,19 @@ class InferenceRepository @Inject constructor(
         scope.launch {
             val result = checkTier(InferenceTier.MEDIAPIPE_LOCAL)
             if (wasActive) applyAvailabilityToState(result)
+        }
+    }
+
+    override fun selectLiteRtLmAccelerator(option: LiteRtLmAccelerator) {
+        Log.d(TAG, "selectLiteRtLmAccelerator: $option")
+        telemetry.feature(InferenceFeatures.LITERTLM_ACCELERATOR_SELECT, InferenceParams.MODEL to option.name)
+        // El motor se recrea con el acelerador nuevo: la charla en curso se pierde, igual que al cambiar de modelo.
+        val wasActive = _activeTier.value == InferenceTier.LITERT_LM_LOCAL
+        liteRtLmBackend.setAccelerator(option)
+        if (wasActive) {
+            currentConversationId = null
+            _conversation.update { emptyList() }
+            _pendingImage.update { null }
         }
     }
 

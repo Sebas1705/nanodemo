@@ -14,6 +14,7 @@ import es.sebas1705.nanodemo.core.common.resolveLocalToolCall
 import es.sebas1705.nanodemo.domain.models.ChatMessage
 import es.sebas1705.nanodemo.domain.models.GenerationConfig
 import es.sebas1705.nanodemo.domain.models.InferenceBackend
+import es.sebas1705.nanodemo.domain.models.LiteRtLmAccelerator
 import es.sebas1705.nanodemo.domain.models.Role
 import es.sebas1705.nanodemo.domain.models.TierAvailability
 import es.sebas1705.nanodemo.domain.models.TierCapabilities
@@ -29,6 +30,9 @@ import com.google.ai.edge.litertlm.SamplerConfig
 import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.flow.flowOn
 import kotlinx.coroutines.flow.onCompletion
@@ -63,8 +67,9 @@ private const val MAX_IMAGE_SIDE_PX = 1024
  * `sendMessageAsync(...)` que devuelve un `Flow<Message>` en streaming.
  *
  * Decisiones:
- * - Backend CPU: es el que no depende del hardware/driver. La guía también permite
- *   GPU/NPU, que requieren libs nativas del sistema declaradas en el manifest.
+ * - Backend CPU por defecto: es el que no depende del hardware/driver. Se puede elegir GPU
+ *   ([setAccelerator]); si no inicializa, se vuelve a CPU solo. NPU no se ofrece (requiere
+ *   libs nativas del sistema declaradas en el manifest).
  * - Como MediaPipe, los parámetros de muestreo se fijan al crear la conversación:
  *   cambiarlos a mitad de charla requiere "Nueva conversación".
  * - Al crear la conversación se le pasa el historial previo como `initialMessages`,
@@ -106,6 +111,19 @@ class LiteRtLmBackend @Inject constructor(
     private var engine: Engine? = null
     private var conversation: Conversation? = null
     private var visionEnabled = true
+
+    private val _accelerator = MutableStateFlow(LiteRtLmAccelerator.CPU)
+
+    /** Acelerador elegido; vuelve a CPU solo si la GPU no pudo inicializar (así la UI refleja lo que corre de verdad). */
+    val accelerator: StateFlow<LiteRtLmAccelerator> = _accelerator.asStateFlow()
+
+    /** Cambia CPU/GPU. Cierra motor y conversación (se recrean con el acelerador nuevo al generar). */
+    fun setAccelerator(option: LiteRtLmAccelerator) {
+        if (_accelerator.value == option) return
+        Log.d(TAG, "setAccelerator: $option")
+        close()
+        _accelerator.value = option
+    }
 
     @Volatile
     private var lastLoadMs: Long? = null
@@ -282,14 +300,27 @@ class LiteRtLmBackend @Inject constructor(
             }
         }
 
+    /** GPU si se pidió; si no inicializa (driver/hardware), cae a CPU y lo deja reflejado en [accelerator]. */
     private fun createEngine(): Engine {
+        if (_accelerator.value == LiteRtLmAccelerator.GPU) {
+            try {
+                return createEngine(Backend.GPU())
+            } catch (e: Exception) {
+                Log.w(TAG, "createEngine: la GPU no inicializó, vuelvo a CPU", e)
+                _accelerator.value = LiteRtLmAccelerator.CPU
+            }
+        }
+        return createEngine(Backend.CPU())
+    }
+
+    private fun createEngine(backend: Backend): Engine {
         val path = modelFile().absolutePath
         val cache = context.cacheDir.absolutePath
-        Log.d(TAG, "createEngine: cargando $path (puede tardar ~10s)")
+        Log.d(TAG, "createEngine: cargando $path con ${backend.name} (puede tardar ~10s)")
         val withVision = Engine(
             EngineConfig(
                 modelPath = path,
-                backend = Backend.CPU(),
+                backend = backend,
                 visionBackend = Backend.CPU(),
                 maxNumTokens = MAX_NUM_TOKENS,
                 maxNumImages = 1,
@@ -307,7 +338,7 @@ class LiteRtLmBackend @Inject constructor(
             Engine(
                 EngineConfig(
                     modelPath = path,
-                    backend = Backend.CPU(),
+                    backend = backend,
                     maxNumTokens = MAX_NUM_TOKENS,
                     cacheDir = cache,
                 )

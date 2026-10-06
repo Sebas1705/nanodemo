@@ -47,6 +47,7 @@ import es.sebas1705.nanodemo.core.ui.readoutStyle
 import es.sebas1705.nanodemo.domain.models.DemoState
 import es.sebas1705.nanodemo.domain.models.GenerationMetric
 import es.sebas1705.nanodemo.domain.models.InferenceTier
+import es.sebas1705.nanodemo.domain.models.LiteRtLmAccelerator
 import es.sebas1705.nanodemo.domain.models.Role
 import es.sebas1705.nanodemo.domain.models.TierAvailability
 
@@ -83,6 +84,7 @@ fun ChatScreen(
     val pendingImage by viewModel.pendingImage.collectAsState()
     val attachedUrl by viewModel.attachedUrl.collectAsState()
     val selectedMediaPipeModel by viewModel.selectedMediaPipeModel.collectAsState()
+    val liteRtLmAccelerator by viewModel.liteRtLmAccelerator.collectAsState()
     val capabilities = viewModel.capabilitiesOf(activeTier)
 
     // Compartir desde otra app precarga el prompt (con una instrucción, no el texto pelado) en vez de
@@ -171,7 +173,11 @@ fun ChatScreen(
         ChatHeader(
             tier = activeTier,
             availability = availability[activeTier] ?: TierAvailability.UNKNOWN,
-            modelName = selectedMediaPipeModel.displayName.takeIf { activeTier == InferenceTier.MEDIAPIPE_LOCAL },
+            modelName = when (activeTier) {
+                InferenceTier.MEDIAPIPE_LOCAL -> selectedMediaPipeModel.displayName
+                InferenceTier.LITERT_LM_LOCAL -> liteRtLmAccelerator.displayName
+                else -> null
+            },
             canStartOver = conversation.isNotEmpty() || inFlight != null,
             onOpenTierPicker = { showTierSheet = true },
             onStartOver = {
@@ -295,6 +301,8 @@ fun ChatScreen(
             selectedMediaPipeModel = selectedMediaPipeModel,
             onSelectTier = { tier -> viewModel.selectTier(tier) },
             onSelectMediaPipeModel = { viewModel.selectMediaPipeModel(it) },
+            liteRtLmAccelerator = liteRtLmAccelerator,
+            onSelectLiteRtLmAccelerator = { viewModel.selectLiteRtLmAccelerator(it) },
             onDismiss = { showTierSheet = false },
         )
     }
