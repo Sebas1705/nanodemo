@@ -18,8 +18,8 @@
     <application
         android:name=".NanoDemoApplication"
         android:allowBackup="true"
-        android:icon="@mipmap/ic_launcher"
-        android:roundIcon="@mipmap/ic_launcher_round"
+        android:icon="@mipmap/ic_launcher_static"
+        android:roundIcon="@mipmap/ic_launcher_static_round"
         android:label="@string/app_name"
         android:theme="@android:style/Theme.Material.Light.NoActionBar">
 
@@ -28,9 +28,14 @@
         <meta-data android:name="google_analytics_adid_collection_enabled" android:value="false" />
         <meta-data android:name="google_analytics_ssaid_collection_enabled" android:value="false" />
 
+        <!-- El icono de <application> es un PNG porque Firebase App Tester solo muestra iconos en
+             imagen, y con minSdk >= 26 el XML adaptativo siempre gana a los PNG por densidad. El
+             launcher usa el icono de la actividad, así que el adaptativo se queda aquí. -->
         <activity
             android:name=".MainActivity"
             android:exported="true"
+            android:icon="@mipmap/ic_launcher"
+            android:roundIcon="@mipmap/ic_launcher_round"
             android:windowSoftInputMode="adjustResize">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
