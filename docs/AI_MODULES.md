@@ -54,8 +54,9 @@ ni de ninguna feature: se instancian a mano en `InferenceRepository`.
 - **Dependencia**: `com.google.mediapipe:tasks-genai:0.10.35` (Google la marca
   *maintenance-only*; el sucesor es LiteRT-LM, ver Tier D).
 - **Secretos / BuildConfig**: `MEDIAPIPE_MODEL_URL_GEMMA_3_1B`,
-  `MEDIAPIPE_MODEL_URL_GEMMA_2_2B_PART1/PART2`, `MEDIAPIPE_MODEL_TOKEN` (Doppler →
-  `local.properties`; vacío = ese modelo `UNAVAILABLE`, no crashea).
+  `MEDIAPIPE_MODEL_URL_GEMMA_2_2B_PART1/PART2`, `MEDIAPIPE_MODEL_TOKEN` (opcional,
+  solo para un repo privado; Doppler → `local.properties`; sin URLs = ese modelo
+  `UNAVAILABLE`, no crashea).
 - **Requisitos**: ≥ 4 GB de RAM (`hasEnoughRamForMediaPipe`).
 - **Particularidades**: catálogo de modelos (`MediaPipeModelOption`, `selectModel()`);
   descarga con `HttpURLConnection` + progreso, con soporte de **modelo partido en 2 partes**
@@ -191,5 +192,5 @@ object AiModule {
 - Las APIs de LiteRT-LM, ML Kit GenAI y Firebase AI están en beta / evolución rápida: los
   nombres usados se verificaron contra el `.aar` real de cada versión fijada, no contra un
   rango de versiones.
-- `GEMINI_API_KEY` y `MEDIAPIPE_MODEL_TOKEN` acaban dentro del APK (ver
+- `GEMINI_API_KEY`, `BRAVE_SEARCH_API_KEY` y las claves de Firebase acaban dentro del APK (ver
   [DISTRIBUTION.md](DISTRIBUTION.md#secretos-dentro-del-apk)).

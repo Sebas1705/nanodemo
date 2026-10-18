@@ -33,7 +33,7 @@ runs:
         doppler run -- bash -c '
           missing=0
           for name in GEMINI_API_KEY FIREBASE_API_KEY FIREBASE_APP_ID FIREBASE_PROJECT_ID \
-                      MEDIAPIPE_MODEL_TOKEN MEDIAPIPE_MODEL_URL \
+                      MEDIAPIPE_MODEL_URL \
                       MEDIAPIPE_MODEL_URL_GEMMA_2_2B_PART1 MEDIAPIPE_MODEL_URL_GEMMA_2_2B_PART2 \
                       SIGNING_KEYSTORE_BASE64 SIGNING_STORE_PASSWORD SIGNING_KEY_ALIAS SIGNING_KEY_PASSWORD \
                       $EXTRA_SECRETS; do

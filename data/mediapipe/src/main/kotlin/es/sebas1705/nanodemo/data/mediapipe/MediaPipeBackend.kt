@@ -72,11 +72,11 @@ private const val MAX_CONTEXT_TOKENS = 1024
  *
  * Cada modelo `.task` requiere aceptar su licencia (Gemma en Hugging Face),
  * algo que no se puede automatizar por Gradle. Se acepta una vez con una
- * cuenta y se resube como asset de un GitHub Release privado de este mismo
+ * cuenta y se resube como asset de un GitHub Release de este mismo
  * repo — la URL de cada uno (endpoint de la API de assets, no el link
  * público) se configura en `local.properties` (ver
- * `data/mediapipe/build.gradle.kts`), y como el repo es privado hace falta
- * además un token de solo lectura compartido en `MEDIAPIPE_MODEL_TOKEN`.
+ * `data/mediapipe/build.gradle.kts`). El repo es público, así que la descarga no
+ * necesita token; `MEDIAPIPE_MODEL_TOKEN` queda como opcional (solo para un fork privado).
  *
  * Referencia: https://developers.google.com/edge/mediapipe/solutions/genai/llm_inference/android
  */

@@ -314,9 +314,9 @@ tag:NanoDemo
       Gemini Nano) y lo guarda en el almacenamiento propio de la app, por
       separado de los demás modelos del catálogo.
 
-   Si en algún momento el repo pasa a ser público, cada `MEDIAPIPE_MODEL_URL*`
-   puede apuntar directo al link público del release en vez del endpoint de
-   la API, y `MEDIAPIPE_MODEL_TOKEN` puede quedar vacío.
+   El repo es público: la descarga de `models-v1` no necesita token, así que
+   `MEDIAPIPE_MODEL_TOKEN` se deja vacío (o se omite). Solo haría falta en un
+   fork privado, con un token de grano fino de solo lectura.
 
    **Alternativa para pruebas locales sin storage propio**: podés poner el
    archivo directamente con `adb push` (sirve igual, la app solo comprueba
@@ -357,10 +357,11 @@ tag:NanoDemo
   licencia de Gemma en Hugging Face no se puede aceptar por API, por eso ese
   paso sigue siendo manual (una vez, del lado del desarrollador). El storage
   elegido es un asset de GitHub Release de este mismo repo (no requiere una
-  cuenta de storage externa); al ser el repo privado, la descarga usa el
-  endpoint `.../releases/assets/{id}` con `Accept: application/octet-stream`
-  y un `Authorization: Bearer` con un token de grano fino de solo lectura
-  (`MEDIAPIPE_MODEL_TOKEN`) — nunca el token amplio de `gh auth token`.
+  cuenta de storage externa); la descarga usa el endpoint
+  `.../releases/assets/{id}` con `Accept: application/octet-stream`. Mientras el repo
+  fue privado llevaba además un `Authorization: Bearer` con un token de grano fino de
+  solo lectura (`MEDIAPIPE_MODEL_TOKEN`, nunca el token amplio de `gh auth token`); con
+  el repo público ya no hace falta y el código solo lo envía si no está vacío.
 - **Tier C**: se probó primero con el SDK oficial
   `com.google.genai:google-genai-kotlin:1.1.0`, pero en un dispositivo real
   ese SDK **bloquea en runtime** construir un `Client` con API key en
@@ -411,7 +412,7 @@ ids de Firebase, y para CI el keystore y la cuenta de servicio) viven en un proy
 |---|---|
 | `GEMINI_API_KEY` | Tier C |
 | `FIREBASE_API_KEY`, `FIREBASE_APP_ID`, `FIREBASE_PROJECT_ID` | Tier E (y `FIREBASE_APP_ID` también sube a App Distribution) |
-| `MEDIAPIPE_MODEL_TOKEN`, `MEDIAPIPE_MODEL_URL`, `MEDIAPIPE_MODEL_URL_GEMMA_2_2B_PART1`, `MEDIAPIPE_MODEL_URL_GEMMA_2_2B_PART2` | Tier B |
+| `MEDIAPIPE_MODEL_URL`, `MEDIAPIPE_MODEL_URL_GEMMA_2_2B_PART1`, `MEDIAPIPE_MODEL_URL_GEMMA_2_2B_PART2` (y `MEDIAPIPE_MODEL_TOKEN`, opcional, solo para un fork privado) | Tier B |
 | `LITERTLM_MODEL_URL` (opcional) | Tier D, para apuntar a otro modelo |
 | `BRAVE_SEARCH_API_KEY` (opcional) | Búsqueda en internet emulada de los tiers A/B/D (Brave Search API) — `TierCapabilities.webSearch` de esos 3 tiers refleja si está configurado: si falta, el toggle sale deshabilitado en vez de fallar en runtime |
 | `CRASHLYTICS_ENABLED`, `ANALYTICS_ENABLED` (opcionales, por defecto `true`) | `false` apaga el envío a Crashlytics / Analytics (útil en `dev`) |
@@ -505,9 +506,10 @@ instalarse encima del anterior; en local sigue en 1. La preparación de una sola
 (keystore fijo, cuenta de servicio, grupo de testers, `DOPPLER_TOKEN`), los detalles de cada
 vía y cómo llevarlas al template están en **[docs/DISTRIBUTION.md](docs/DISTRIBUTION.md)**.
 
-**Ojo con los secretos dentro del APK**: `GEMINI_API_KEY` y `MEDIAPIPE_MODEL_TOKEN` se
-compilan en `BuildConfig`, así que cualquiera con el APK puede extraerlos (el token de
-MediaPipe da lectura al repo privado). Repartilo solo a gente de confianza.
+**Ojo con los secretos dentro del APK**: `GEMINI_API_KEY`, `BRAVE_SEARCH_API_KEY` y las
+claves de Firebase se compilan en `BuildConfig`, así que cualquiera con el APK puede
+extraerlas. Repartilo solo a gente de confianza (por eso solo va por Firebase App
+Distribution).
 
 ## Fuentes usadas para este código
 

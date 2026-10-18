@@ -75,14 +75,14 @@ APK llevaban claves reales); los tags se conservan.
 
 ## Secretos dentro del APK
 
-`GEMINI_API_KEY`, `BRAVE_SEARCH_API_KEY`, `MEDIAPIPE_MODEL_TOKEN` y las claves de Firebase se
+`GEMINI_API_KEY`, `BRAVE_SEARCH_API_KEY` y las claves de Firebase se
 compilan en `BuildConfig`: cualquiera con el APK puede extraerlos. Doppler protege dónde viven
 los secretos, no lo que acaba dentro del APK. Por eso el repo (público) **no** publica APK en
 GitHub Releases ni como artefacto de Actions: el APK solo va a Firebase App Distribution, a
 gente de confianza. Aun así, un tester puede extraer las claves: restríngelas en sus consolas
 (Gemini/Firebase por app y paquete, topes de gasto) y rótalas si un APK se filtra. Como el repo
-ya es público, `MEDIAPIPE_MODEL_TOKEN` (lectura de un repo privado) ya no hace falta para
-descargar `models-v1` y conviene revocarlo.
+ya es público, `MEDIAPIPE_MODEL_TOKEN` ya no hace falta para descargar `models-v1` (se quitó de
+Doppler y de los secretos que exige la acción; el código lo trata como opcional).
 
 ## Llevarlo al template
 
