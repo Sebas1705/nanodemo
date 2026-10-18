@@ -5,7 +5,7 @@ probando cinco motores de IA (tiers) en orden y cayendo automáticamente
 al siguiente si el dispositivo (o la configuración) no soporta el anterior.
 Cada motor es un módulo Gradle reutilizable — ver
 [docs/AI_MODULES.md](docs/AI_MODULES.md) para llevarlos a otra app — y el APK
-se distribuye con dos vías (Firebase App Distribution y GitHub Release) — ver
+se distribuye solo por Firebase App Distribution (no hay GitHub Releases: el APK lleva claves) — ver
 [docs/DISTRIBUTION.md](docs/DISTRIBUTION.md). Los tres primeros, de más a menos
 exigente:
 
@@ -491,10 +491,10 @@ secretos desde Doppler — en GitHub solo hace falta `DOPPLER_TOKEN`):
 
 | Workflow | Cuándo corre | Resultado |
 |---|---|---|
-| `.github/workflows/release-apk.yml` | tag `vX.Y.Z` / manual con versión | GitHub Release con `AIMobiDemo-vX.Y.Z.apk`, su `.sha256` y notas generadas — y ese mismo APK también a Firebase App Distribution, con `versionName` sin sufijo |
+| `.github/workflows/release-apk.yml` | tag `vX.Y.Z` / manual con versión | El APK firmado a Firebase App Distribution, con `versionName` sin sufijo. Sin GitHub Release: el repo es público y el APK lleva claves reales |
 
 ```bash
-git tag v1.2.0 && git push origin v1.2.0   # publica la GitHub Release y la sube a Firebase App Distribution
+git tag v1.2.0 && git push origin v1.2.0   # compila y sube el APK a Firebase App Distribution
 ```
 
 Solo lo que se marca con un tag llega a los testers — no hay build continuo sin versión en

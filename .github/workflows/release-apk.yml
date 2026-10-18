@@ -1,9 +1,12 @@
 name: Release APK
 
 # Única vía de distribución: al empujar un tag `vX.Y.Z` (o al disparar el workflow a mano
-# indicando la versión) compila el APK release firmado, crea una GitHub Release con el APK
-# adjunto, su SHA-256 y las notas generadas a partir de los PRs/commits desde el tag anterior, y
-# sube ese mismo APK a Firebase App Distribution con el versionName limpio (sin sufijo "-dev").
+# indicando la versión) compila el APK release firmado y lo sube a Firebase App Distribution con
+# el versionName limpio (sin sufijo "-dev").
+#
+# NO crea una GitHub Release ni sube el APK como artefacto: el repo es público y el APK lleva
+# compiladas en BuildConfig las claves reales (Gemini, Brave, token de modelos, Firebase), así que
+# cualquier copia descargable desde GitHub las expondría. Los testers lo reciben solo por Firebase.
 # Antes había una segunda vía (distribute.yml) que subía un build "-dev.N" a Firebase en cada push
 # a master; se sacó a propósito para no repartir builds sin tag — solo lo que se decide marcar
 # como versión llega a los testers. Solo necesita Doppler (DOPPLER_TOKEN).
@@ -18,7 +21,7 @@ on:
         type: string
 
 permissions:
-  contents: write
+  contents: read
 
 # Nunca cancelar una release a medias: dos tags seguidos se encolan.
 concurrency:
@@ -31,7 +34,6 @@ jobs:
     timeout-minutes: 45
     env:
       DOPPLER_TOKEN: ${{ secrets.DOPPLER_TOKEN }}
-      GH_TOKEN: ${{ github.token }}
     steps:
       - uses: actions/checkout@v7
         with:
@@ -50,43 +52,17 @@ jobs:
             exit 1
           fi
           TAG="v$VERSION"
-          if [ "$EVENT" = "workflow_dispatch" ] && gh release view "$TAG" >/dev/null 2>&1; then
-            echo "::error::Ya existe la release $TAG. Elegí otra versión."
+          if [ "$EVENT" = "workflow_dispatch" ] && git rev-parse -q --verify "refs/tags/$TAG" >/dev/null; then
+            echo "::error::Ya existe el tag $TAG. Elegí otra versión."
             exit 1
           fi
           echo "version=$VERSION" >> "$GITHUB_OUTPUT"
           echo "tag=$TAG" >> "$GITHUB_OUTPUT"
-          case "$VERSION" in *-*) echo "prerelease=--prerelease" >> "$GITHUB_OUTPUT" ;; *) echo "prerelease=" >> "$GITHUB_OUTPUT" ;; esac
 
       - uses: ./.github/actions/build-release-apk
         with:
           version-name: ${{ steps.ver.outputs.version }}
           extra-secrets: FIREBASE_SERVICE_ACCOUNT_JSON
-
-      - name: Preparar los archivos de la release
-        id: assets
-        env:
-          TAG: ${{ steps.ver.outputs.tag }}
-        run: |
-          APK="AIMobiDemo-$TAG.apk"
-          cp app/build/outputs/apk/release/app-release.apk "$RUNNER_TEMP/$APK"
-          (cd "$RUNNER_TEMP" && sha256sum "$APK" > "$APK.sha256")
-          echo "apk=$RUNNER_TEMP/$APK" >> "$GITHUB_OUTPUT"
-          echo "sha=$RUNNER_TEMP/$APK.sha256" >> "$GITHUB_OUTPUT"
-
-      # Con un tag ya empujado la release se cuelga de él (--verify-tag); con disparo manual `gh`
-      # crea el tag sobre el commit del run (--target).
-      - name: Crear la GitHub Release
-        env:
-          EVENT: ${{ github.event_name }}
-          TAG: ${{ steps.ver.outputs.tag }}
-          PRERELEASE: ${{ steps.ver.outputs.prerelease }}
-          APK: ${{ steps.assets.outputs.apk }}
-          SHA: ${{ steps.assets.outputs.sha }}
-        run: |
-          if [ "$EVENT" = "workflow_dispatch" ]; then REF_FLAG="--target $GITHUB_SHA"; else REF_FLAG="--verify-tag"; fi
-          # shellcheck disable=SC2086
-          gh release create "$TAG" "$APK" "$SHA" --title "$TAG" --generate-notes $PRERELEASE $REF_FLAG
 
       - name: Subir a Firebase App Distribution
         env:

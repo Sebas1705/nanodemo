@@ -2,8 +2,8 @@ name: Compilar APK release firmado
 description: >
   Compila `:app:assembleRelease` firmado con el keystore fijo. Todos los secretos salen de Doppler
   (el job tiene que exportar DOPPLER_TOKEN y haber hecho checkout antes). El APK queda en
-  app/build/outputs/apk/release/app-release.apk. Lo comparten las dos vías de distribución
-  (Firebase App Distribution y GitHub Release) para no duplicar el build.
+  app/build/outputs/apk/release/app-release.apk. Ya solo la usa el workflow de Firebase App
+  Distribution: no se publica en GitHub Releases porque el APK lleva claves reales.
 
 inputs:
   version-name:

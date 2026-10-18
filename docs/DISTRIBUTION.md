@@ -1,15 +1,16 @@
 # Distribución del APK
 
 Una sola vía, disparada solo por un tag `vX.Y.Z` (o el workflow a mano indicando la versión):
-compila el APK release firmado (`.github/actions/build-release-apk`), crea una GitHub Release
-con el APK adjunto, su `.sha256` y notas generadas, y sube ese mismo APK a Firebase App
-Distribution con el `versionName` limpio (sin sufijo).
+compila el APK release firmado (`.github/actions/build-release-apk`) y lo sube a Firebase App
+Distribution con el `versionName` limpio (sin sufijo). **No se publica ninguna GitHub Release ni
+artefacto**: el repo es público y el APK lleva claves reales compiladas (ver "Secretos dentro del
+APK"), así que solo se reparte por Firebase a los testers.
 
 | | |
 |---|---|
 | Workflow | `.github/workflows/release-apk.yml` |
 | Disparador | tag `vX.Y.Z` / manual (con versión) |
-| Resultado | GitHub Release con el APK, su `.sha256` y notas generadas — y la misma release en Firebase App Distribution |
+| Resultado | El APK en Firebase App Distribution (grupo `testers`, o la variable `FIREBASE_TESTER_GROUP`). Sin GitHub Release |
 | `versionName` | la versión del tag, sin sufijo |
 | `versionCode` | `<run_number>` |
 | Secretos extra | `FIREBASE_SERVICE_ACCOUNT_JSON` |
@@ -62,24 +63,26 @@ git tag v1.2.0
 git push origin v1.2.0
 ```
 
-o Actions → **Release APK** → *Run workflow* con `1.2.0` (crea el tag sobre el commit del
-run). Versiones con sufijo (`1.2.0-beta.1`) se publican como *pre-release*. El workflow
-valida el formato, rechaza una versión que ya tiene release y adjunta
-`AIMobiDemo-vX.Y.Z.apk` y `AIMobiDemo-vX.Y.Z.apk.sha256`. Además sube ese mismo APK a Firebase
-App Distribution con `versionName` = la versión del tag, sin sufijo `-dev`.
+o Actions → **Release APK** → *Run workflow* con `1.2.0` (no crea el tag: solo compila y
+distribuye; el tag lo pones tú si quieres marcar el commit). El workflow valida el formato
+(`X.Y.Z` o `X.Y.Z-sufijo`), rechaza una versión cuyo tag ya existe y sube el APK a Firebase
+App Distribution con `versionName` = la versión, sin sufijo `-dev`.
 
-Requiere `DOPPLER_TOKEN`, `FIREBASE_SERVICE_ACCOUNT_JSON` y permiso `contents: write` (ya
-declarado en el workflow). El tag `models-v1` (modelos de MediaPipe) no dispara este workflow:
-el patrón es `v*`.
+Requiere `DOPPLER_TOKEN` y `FIREBASE_SERVICE_ACCOUNT_JSON`; el workflow solo pide permiso
+`contents: read`. El tag `models-v1` (modelos de MediaPipe) no dispara este workflow: el
+patrón es `v*`. Las GitHub Releases `v0.1.0`–`v0.9.0` se borraron al hacer público el repo (sus
+APK llevaban claves reales); los tags se conservan.
 
 ## Secretos dentro del APK
 
-`GEMINI_API_KEY` y `MEDIAPIPE_MODEL_TOKEN` se compilan en `BuildConfig`: cualquiera con el
-APK puede extraerlos, y el token de MediaPipe da lectura al repo privado. Repartir solo a
-gente de confianza, o sacar esos secretos del build (p. ej. modelos en un origen público,
-como el Tier D). Doppler protege dónde viven los secretos, no lo que acaba dentro del APK. En
-una release **pública** de GitHub esto es más grave que en Firebase: el APK queda descargable
-para cualquiera con acceso al repo.
+`GEMINI_API_KEY`, `BRAVE_SEARCH_API_KEY`, `MEDIAPIPE_MODEL_TOKEN` y las claves de Firebase se
+compilan en `BuildConfig`: cualquiera con el APK puede extraerlos. Doppler protege dónde viven
+los secretos, no lo que acaba dentro del APK. Por eso el repo (público) **no** publica APK en
+GitHub Releases ni como artefacto de Actions: el APK solo va a Firebase App Distribution, a
+gente de confianza. Aun así, un tester puede extraer las claves: restríngelas en sus consolas
+(Gemini/Firebase por app y paquete, topes de gasto) y rótalas si un APK se filtra. Como el repo
+ya es público, `MEDIAPIPE_MODEL_TOKEN` (lectura de un repo privado) ya no hace falta para
+descargar `models-v1` y conviene revocarlo.
 
 ## Llevarlo al template
 
@@ -88,11 +91,11 @@ y Doppler):
 
 ```
 .github/actions/build-release-apk/action.yml   # build + firma
-.github/workflows/release-apk.yml              # release + distribución
+.github/workflows/release-apk.yml              # build + distribución (Firebase)
 ```
 
-Al copiarlos hay que cambiar: el nombre `AIMobiDemo` en el nombre del asset
-(`release-apk.yml`), la lista de secretos que verifica la acción (`action.yml`) y el
+Al copiarlos hay que cambiar: el nombre de la app (si lo usas en notas),
+la lista de secretos que verifica la acción (`action.yml`) y el
 `VERSION_CODE` / `VERSION_NAME` que lee `app/build.gradle.kts` (ver su cabecera). El template
 ya tiene un `release.yml` propio para releases de la plantilla (`vYYYY.MM.PATCH` + CHANGELOG):
 no se pisa, el APK usa `release-apk.yml`. Por eso sus tags también coinciden con `v*`; si el
