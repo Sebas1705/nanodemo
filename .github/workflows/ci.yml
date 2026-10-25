@@ -1,13 +1,13 @@
 name: CI
 
-# Compila y corre los tests unitarios en cada push a master y en cada pull request. Existe aparte de
+# Compila y corre los tests unitarios en cada push a main y en cada pull request. Existe aparte de
 # release-apk.yml porque ese solo corre al empujar un tag: sin esto, un error de compilación se vería
 # recién al publicar una versión. No usa Doppler ni ningún secreto — las keys de los tiers son opcionales
 # en el build (ver `secret()` en build.gradle.kts: si faltan quedan vacías), así que también funciona
 # en PRs de forks. El APK firmado de verdad lo arma release-apk.yml.
 on:
   push:
-    branches: [master]
+    branches: [main]
   pull_request:
 
 permissions:

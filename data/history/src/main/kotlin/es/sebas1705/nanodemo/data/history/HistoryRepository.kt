@@ -69,7 +69,7 @@ class HistoryRepository @Inject constructor(
     /**
      * Best-effort: si el modelo de embeddings no está descargado o falla, la conversación se
      * guarda igual — solo no aparece en la búsqueda semántica hasta la próxima vez. Se re-embebe
-     * con TODO el texto de usuario acumulado (no solo el turno nuevo), así la búsqueda mejora a
+     * con todo el texto de usuario acumulado (no solo el turno nuevo), así la búsqueda mejora a
      * medida que la charla avanza.
      */
     private suspend fun reindexForSearch(conversationId: Long) {
