@@ -8,7 +8,7 @@ name: Release APK
 # compiladas en BuildConfig las claves reales (Gemini, Brave, token de modelos, Firebase), así que
 # cualquier copia descargable desde GitHub las expondría. Los testers lo reciben solo por Firebase.
 # Antes había una segunda vía (distribute.yml) que subía un build "-dev.N" a Firebase en cada push
-# a master; se sacó a propósito para no repartir builds sin tag — solo lo que se decide marcar
+# a main; se sacó a propósito para no repartir builds sin tag — solo lo que se decide marcar
 # como versión llega a los testers. Solo necesita Doppler (DOPPLER_TOKEN).
 on:
   push:

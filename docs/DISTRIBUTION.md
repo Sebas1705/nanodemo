@@ -16,7 +16,7 @@ APK"), así que solo se reparte por Firebase a los testers.
 | Secretos extra | `FIREBASE_SERVICE_ACCOUNT_JSON` |
 
 Antes había una segunda vía (`distribute.yml`) que subía un build a Firebase en cada push a
-`master`, con `versionName` `<último tag>-dev.<run_number>` — se sacó a propósito: solo lo que
+`main`, con `versionName` `<último tag>-dev.<run_number>` — se sacó a propósito: solo lo que
 se decide marcar con un tag llega a los testers, nunca un build de paso sin versión.
 
 ## Secretos en Doppler

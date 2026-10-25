@@ -21,8 +21,9 @@ mediapipeTasksText = "1.0.0"
 coreKtx = "1.17.0"
 activityCompose = "1.9.2"
 
-# Compose (vía BOM, no versiones individuales)
-composeBom = "2024.09.00"
+# Compose (vía BOM, no versiones individuales). 2026.06.01 = Compose 1.11.4 / Material3 1.4.0, la última
+# serie que compila contra compileSdk 36: desde 2026.08.00 (Compose 1.12) los AAR exigen compileSdk 37.
+composeBom = "2026.06.01"
 
 # Lifecycle — 2.10.0 en todos los artefactos (alineado con lifecycle-viewmodel-navigation3,
 # que solo existe estable desde 2.10.0; ver verificación contra maven-metadata.xml)
