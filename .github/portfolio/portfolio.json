@@ -1,0 +1,11 @@
+{
+  "accent": "#1B4332",
+  "icon_alt": {
+    "en": "AIMobiDemo app icon: five coloured dots (green, amber, blue, violet, pink) descending a stepped path on a dark grid",
+    "es": "Icono de la app AIMobiDemo: cinco puntos de colores (verde, ámbar, azul, violeta, rosa) bajando por un camino escalonado sobre una cuadrícula oscura"
+  },
+  "banner_alt": {
+    "en": "AIMobiDemo banner: the app icon, the tagline \"On-device and cloud generative AI on Android\" and the stack (Kotlin, Jetpack Compose, Gemini Nano, MediaPipe, LiteRT)",
+    "es": "Banner de AIMobiDemo: el icono de la app, el lema \"IA generativa on-device y en la nube en Android\" y el stack (Kotlin, Jetpack Compose, Gemini Nano, MediaPipe, LiteRT)"
+  }
+}
