@@ -72,7 +72,7 @@ for LiteRT-LM. The full list is in the [Spanish README](README.es.md#qué-hace).
 ## Requirements
 
 - Android Studio (recent stable) with JDK 21.
-- Android SDK: `compileSdk`/`targetSdk` 36, `minSdk` 31.
+- Android SDK: `compileSdk` 37, `targetSdk` 36, `minSdk` 31.
 - A **physical device**. Tier A needs a 2026 flagship with Gemini Nano v3;
   Tier B a mid-range phone with ~4 GB+ RAM; Tier D ~6 GB+ RAM; Tiers C and E any
   device with internet.

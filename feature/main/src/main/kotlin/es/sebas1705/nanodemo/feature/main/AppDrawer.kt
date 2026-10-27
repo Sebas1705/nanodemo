@@ -59,7 +59,7 @@ internal fun DrawerContent(
         ) {
             TierAvatar(activeTier, 40.dp)
             Column {
-                Text("AIMobiDemo", style = MaterialTheme.typography.titleMedium, color = DemoColors.Ink)
+                Text("nanodemo", style = MaterialTheme.typography.titleMedium, color = DemoColors.Ink)
                 Text("Motor: ${activeTier.label()}", style = MaterialTheme.typography.labelSmall, color = DemoColors.Muted)
             }
         }
