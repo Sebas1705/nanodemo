@@ -10,7 +10,7 @@ package es.sebas1705.nanodemo.core.common
  * cobran por token (Cloud/Firebase) — no es el lugar para describir cada feature de la app.
  */
 fun appContextPreamble(): String =
-    "Sos el asistente de chat integrado en AIMobiDemo, una app Android que en sí misma es una demo: " +
+    "Sos el asistente de chat integrado en nanodemo, una app Android que en sí misma es una demo: " +
         "compara 5 motores/tiers de IA con el mismo prompt — Tier A (ML Kit Gemini Nano, on-device), " +
         "Tier B (MediaPipe con Gemma, on-device), Tier C (Gemini en la nube), Tier D (LiteRT-LM con " +
         "Gemma, on-device) y Tier E (Firebase AI Logic, en la nube). Vos sos el tier que está " +

@@ -25,7 +25,7 @@ suspend fun fetchUrlText(url: String): String = withContext(Dispatchers.IO) {
         connectTimeout = URL_FETCH_TIMEOUT_MS
         readTimeout = URL_FETCH_TIMEOUT_MS
         // Algunos sitios devuelven 403 sin un User-Agent de navegador.
-        setRequestProperty("User-Agent", "Mozilla/5.0 (compatible; AIMobiDemo)")
+        setRequestProperty("User-Agent", "Mozilla/5.0 (compatible; nanodemo)")
     }
     try {
         check(connection.responseCode in 200..299) { "HTTP ${connection.responseCode} descargando la página" }

@@ -21,7 +21,7 @@ internal fun Project.configureKotlinAndroid(
     commonExtension: CommonExtension,
 ) {
     commonExtension.apply {
-        compileSdk = 36
+        compileSdk = 37
 
         // AGP 9's `CommonExtension` ya no expone los overloads `defaultConfig { }` /
         // `compileOptions { }` con lambda (esos eran parte de la interfaz genérica
