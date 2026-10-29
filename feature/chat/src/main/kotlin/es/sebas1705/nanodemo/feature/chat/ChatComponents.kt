@@ -2,6 +2,7 @@ package es.sebas1705.nanodemo.feature.chat
 
 import android.graphics.BitmapFactory
 import android.net.Uri
+import androidx.annotation.StringRes
 import androidx.compose.animation.core.RepeatMode
 import androidx.compose.animation.core.animateFloat
 import androidx.compose.animation.core.infiniteRepeatable
@@ -76,6 +77,7 @@ import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalClipboardManager
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
@@ -88,9 +90,9 @@ import es.sebas1705.nanodemo.core.designsystem.MarkdownText
 import es.sebas1705.nanodemo.core.designsystem.PromptBar
 import es.sebas1705.nanodemo.core.designsystem.SectionLabel
 import es.sebas1705.nanodemo.core.designsystem.StatusIndicator
-import es.sebas1705.nanodemo.core.designsystem.TypingDots
 import es.sebas1705.nanodemo.core.designsystem.TierAvatar
 import es.sebas1705.nanodemo.core.designsystem.TierChannelRow
+import es.sebas1705.nanodemo.core.designsystem.TypingDots
 import es.sebas1705.nanodemo.core.designsystem.channelLetter
 import es.sebas1705.nanodemo.core.designsystem.downloadableMessage
 import es.sebas1705.nanodemo.core.designsystem.label
@@ -186,7 +188,7 @@ internal fun TierPickerSheet(
                 .padding(start = 16.dp, end = 16.dp, bottom = 16.dp),
             verticalArrangement = Arrangement.spacedBy(8.dp),
         ) {
-            Text("Elegí con qué motor hablar", style = MaterialTheme.typography.titleMedium, color = DemoColors.Ink)
+            Text(stringResource(R.string.chat_pick_engine), style = MaterialTheme.typography.titleMedium, color = DemoColors.Ink)
             InferenceTier.entries.forEach { tier ->
                 TierChannelRow(
                     tier = tier,
@@ -217,13 +219,13 @@ private fun MediaPipeModelRow(
     onSelect: (MediaPipeModelOption) -> Unit,
 ) {
     Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
-        SectionLabel("Modelo")
+        SectionLabel(stringResource(R.string.chat_model))
         LazyRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
             items(models) { model ->
                 FilterChip(
                     selected = model == selected,
                     onClick = { onSelect(model) },
-                    label = { Text("${model.displayName} (${model.sizeHint})") },
+                    label = { Text(stringResource(R.string.chat_model_size, model.displayName, stringResource(model.sizeHintRes()))) },
                 )
             }
         }
@@ -250,7 +252,7 @@ internal fun UserBubble(text: String, imageUri: Uri?, url: String?, tier: Infere
             bitmap?.let {
                 Image(
                     bitmap = it,
-                    contentDescription = "Imagen adjunta",
+                    contentDescription = stringResource(R.string.chat_attached_image),
                     contentScale = ContentScale.Crop,
                     modifier = Modifier.size(180.dp).clip(RoundedCornerShape(12.dp)),
                 )
@@ -318,7 +320,7 @@ internal fun AssistantMessage(
                 ) {
                     Icon(
                         Icons.Filled.ContentCopy,
-                        contentDescription = "Copiar respuesta",
+                        contentDescription = stringResource(R.string.chat_copy_answer),
                         tint = DemoColors.Muted,
                         modifier = Modifier.size(16.dp),
                     )
@@ -365,13 +367,13 @@ internal fun AttachmentPill(
 // Estados vacíos / no listo
 // ---------------------------------------------------------------------------------------------
 
-private data class Suggestion(val icon: ImageVector, val text: String)
+private data class Suggestion(val icon: ImageVector, @StringRes val textRes: Int)
 
 private val SUGGESTIONS = listOf(
-    Suggestion(Icons.Filled.Info, "¿Qué es esta app y qué tiers tiene?"),
-    Suggestion(Icons.Filled.Schedule, "¿Qué hora es ahora en Tokio?"),
-    Suggestion(Icons.Filled.Code, "Dame un JSON con 3 países y sus capitales"),
-    Suggestion(Icons.Filled.Lightbulb, "Explícame en una frase qué es un agente de IA"),
+    Suggestion(Icons.Filled.Info, R.string.chat_suggestion_about),
+    Suggestion(Icons.Filled.Schedule, R.string.chat_suggestion_time),
+    Suggestion(Icons.Filled.Code, R.string.chat_suggestion_json),
+    Suggestion(Icons.Filled.Lightbulb, R.string.chat_suggestion_agent),
 )
 
 /** Pantalla de bienvenida: saludo + sugerencias que de paso muestran las features (contexto, herramientas, JSON). */
@@ -387,15 +389,16 @@ internal fun EmptyChat(tier: InferenceTier, onSuggestion: (String) -> Unit) {
     ) {
         TierAvatar(tier, 64.dp)
         Spacer(Modifier.size(8.dp))
-        Text("¿En qué te ayudo?", style = MaterialTheme.typography.headlineSmall, color = DemoColors.Ink)
+        Text(stringResource(R.string.chat_how_can_i_help), style = MaterialTheme.typography.headlineSmall, color = DemoColors.Ink)
         Text(
-            "Hablando con ${tier.label()}",
+            stringResource(R.string.chat_talking_to, tier.label()),
             style = MaterialTheme.typography.bodyMedium,
             color = DemoColors.Muted,
             textAlign = TextAlign.Center,
         )
         Spacer(Modifier.size(16.dp))
         SUGGESTIONS.forEach { suggestion ->
+            val suggestionText = stringResource(suggestion.textRes)
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
@@ -403,13 +406,13 @@ internal fun EmptyChat(tier: InferenceTier, onSuggestion: (String) -> Unit) {
                     .clip(RoundedCornerShape(16.dp))
                     .background(DemoColors.Panel)
                     .border(1.dp, Color.White.copy(alpha = 0.08f), RoundedCornerShape(16.dp))
-                    .clickable { onSuggestion(suggestion.text) }
+                    .clickable { onSuggestion(suggestionText) }
                     .padding(horizontal = 14.dp, vertical = 14.dp),
                 verticalAlignment = Alignment.CenterVertically,
                 horizontalArrangement = Arrangement.spacedBy(12.dp),
             ) {
                 Icon(suggestion.icon, contentDescription = null, tint = tier.signalColor, modifier = Modifier.size(20.dp))
-                Text(suggestion.text, style = MaterialTheme.typography.bodyMedium, color = DemoColors.Ink)
+                Text(suggestionText, style = MaterialTheme.typography.bodyMedium, color = DemoColors.Ink)
             }
         }
     }
@@ -429,26 +432,26 @@ internal fun TierStatusPanel(state: DemoState, tier: InferenceTier, onDownload: 
         TierAvatar(tier, 56.dp)
         when (state) {
             is DemoState.CheckingAvailability -> {
-                Text("Comprobando disponibilidad de ${tier.label()}…", color = DemoColors.Ink, textAlign = TextAlign.Center)
+                Text(stringResource(R.string.chat_checking_availability, tier.label()), color = DemoColors.Ink, textAlign = TextAlign.Center)
                 CircularProgressIndicator(color = tier.signalColor)
             }
             is DemoState.Unavailable ->
                 Text(tier.unavailableMessage(), color = DemoColors.Ink, textAlign = TextAlign.Center)
             is DemoState.Downloadable -> {
                 Text(tier.downloadableMessage(), color = DemoColors.Ink, textAlign = TextAlign.Center)
-                Button(onClick = onDownload) { Text("Descargar modelo") }
+                Button(onClick = onDownload) { Text(stringResource(R.string.chat_download_model)) }
             }
             is DemoState.Downloading -> {
                 val percent = state.progressPercent
                 if (percent != null) {
-                    Text("Descargando ${tier.label()}… $percent%", color = DemoColors.Ink)
+                    Text(stringResource(R.string.chat_downloading, tier.label(), percent), color = DemoColors.Ink)
                     LinearProgressIndicator(
                         progress = { percent / 100f },
                         color = tier.signalColor,
                         modifier = Modifier.fillMaxWidth().widthIn(max = 320.dp),
                     )
                 } else {
-                    Text("Preparando ${tier.label()}… (puede tardar)", color = DemoColors.Ink)
+                    Text(stringResource(R.string.chat_preparing, tier.label()), color = DemoColors.Ink)
                     CircularProgressIndicator(color = tier.signalColor)
                 }
             }
@@ -491,7 +494,7 @@ internal fun ChatComposer(
         onSend = onSend,
         accent = tier.signalColor,
         isBusy = isGenerating,
-        placeholder = "Escribe un mensaje…",
+        placeholder = stringResource(R.string.chat_message_placeholder),
         modifier = modifier,
         topContent = if (thumbnail != null || attachedUrl != null) {
             {
@@ -504,7 +507,7 @@ internal fun ChatComposer(
                         Box {
                             Image(
                                 bitmap = it,
-                                contentDescription = "Imagen a adjuntar",
+                                contentDescription = stringResource(R.string.chat_image_to_attach),
                                 contentScale = ContentScale.Crop,
                                 modifier = Modifier.size(56.dp).clip(RoundedCornerShape(12.dp)),
                             )
@@ -515,7 +518,7 @@ internal fun ChatComposer(
                                     .size(22.dp)
                                     .background(Color.Black.copy(alpha = 0.6f), CircleShape),
                             ) {
-                                Icon(Icons.Filled.Close, contentDescription = "Quitar imagen", tint = Color.White, modifier = Modifier.size(14.dp))
+                                Icon(Icons.Filled.Close, contentDescription = stringResource(R.string.chat_remove_image), tint = Color.White, modifier = Modifier.size(14.dp))
                             }
                         }
                     }
@@ -528,18 +531,18 @@ internal fun ChatComposer(
         leading = {
             Box {
                 IconButton(onClick = { menuOpen = true }) {
-                    Icon(Icons.Filled.Add, contentDescription = "Adjuntar", tint = DemoColors.Ink)
+                    Icon(Icons.Filled.Add, contentDescription = stringResource(R.string.chat_attach), tint = DemoColors.Ink)
                 }
                 DropdownMenu(expanded = menuOpen, onDismissRequest = { menuOpen = false }) {
                     if (imageSupported) {
                         DropdownMenuItem(
-                            text = { Text("Adjuntar imagen") },
+                            text = { Text(stringResource(R.string.chat_attach_image)) },
                             leadingIcon = { Icon(Icons.Filled.Image, contentDescription = null) },
                             onClick = { menuOpen = false; onPickImage() },
                         )
                     }
                     DropdownMenuItem(
-                        text = { Text("Pegar un link") },
+                        text = { Text(stringResource(R.string.chat_paste_link)) },
                         leadingIcon = { Icon(Icons.Filled.Link, contentDescription = null) },
                         onClick = { menuOpen = false; urlDialogOpen = true },
                     )
@@ -562,7 +565,7 @@ private fun UrlDialog(onDismiss: () -> Unit, onConfirm: (String) -> Unit) {
     var input by remember { mutableStateOf("") }
     AlertDialog(
         onDismissRequest = onDismiss,
-        title = { Text("Pegar un link") },
+        title = { Text(stringResource(R.string.chat_paste_link)) },
         text = {
             OutlinedTextField(
                 value = input,
@@ -573,9 +576,9 @@ private fun UrlDialog(onDismiss: () -> Unit, onConfirm: (String) -> Unit) {
             )
         },
         confirmButton = {
-            TextButton(onClick = { onConfirm(input.trim()) }, enabled = input.isNotBlank()) { Text("Adjuntar") }
+            TextButton(onClick = { onConfirm(input.trim()) }, enabled = input.isNotBlank()) { Text(stringResource(R.string.chat_attach_confirm)) }
         },
-        dismissButton = { TextButton(onClick = onDismiss) { Text("Cancelar") } },
+        dismissButton = { TextButton(onClick = onDismiss) { Text(stringResource(R.string.chat_cancel)) } },
     )
 }
 
@@ -586,7 +589,7 @@ private fun LiteRtLmAcceleratorRow(
     onSelect: (LiteRtLmAccelerator) -> Unit,
 ) {
     Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
-        SectionLabel("Acelerador")
+        SectionLabel(stringResource(R.string.chat_accelerator))
         Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
             LiteRtLmAccelerator.entries.forEach { option ->
                 FilterChip(
@@ -597,9 +600,15 @@ private fun LiteRtLmAcceleratorRow(
             }
         }
         Text(
-            "Cambiarlo recarga el modelo y empieza una conversación nueva. GPU suele ser más rápida pero no anda en todos los dispositivos; si falla, vuelve a CPU.",
+            stringResource(R.string.chat_accelerator_hint),
             style = MaterialTheme.typography.labelSmall,
             color = DemoColors.Muted,
         )
     }
+}
+
+@StringRes
+private fun MediaPipeModelOption.sizeHintRes(): Int = when (this) {
+    MediaPipeModelOption.GEMMA_3_1B -> R.string.chat_model_hint_gemma3_1b
+    MediaPipeModelOption.GEMMA_2_2B -> R.string.chat_model_hint_gemma2_2b
 }

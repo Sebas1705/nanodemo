@@ -1,0 +1,22 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="history_empty_title">No conversations yet</string>
+    <string name="history_empty_message">Start chatting: every conversation is saved here automatically and you can pick it up whenever you want.</string>
+    <string name="history_no_matches_title">No matches</string>
+    <string name="history_no_matches_message">No conversation looks like \"%1$s\".</string>
+    <string name="history_group_today">Today</string>
+    <string name="history_group_yesterday">Yesterday</string>
+    <string name="history_group_this_week">This week</string>
+    <string name="history_group_this_month">This month</string>
+    <string name="history_group_earlier">Earlier</string>
+    <string name="history_search_placeholder">Search by meaning…</string>
+    <string name="history_clear_search">Clear search</string>
+    <string name="history_search_needs_model">Searching by meaning (not exact text) needs a separate model, ~6MB.</string>
+    <string name="history_download_search_model">Download search model</string>
+    <string name="history_downloading_search_model_percent">Downloading search model… %1$d%%</string>
+    <string name="history_downloading_search_model">Downloading search model…</string>
+    <string name="history_error">Error: %1$s</string>
+    <string name="history_retry_download">Retry download</string>
+    <string name="history_row_meta">%1$s · %2$s · %3$d messages</string>
+    <string name="history_delete_conversation">Delete conversation</string>
+</resources>

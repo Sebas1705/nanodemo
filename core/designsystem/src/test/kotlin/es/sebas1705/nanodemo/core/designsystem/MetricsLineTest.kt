@@ -66,7 +66,7 @@ class MetricsLineTest {
 
     @Test
     fun `la carga del modelo aparece aparte al final solo si la hubo`() {
-        assertEquals("carga 9.8s", metric(load = 9_800).displayParts().last())
-        assertTrue(metric(load = null).displayParts().none { it.startsWith("carga") })
+        assertEquals("load 9.8s", metric(load = 9_800).displayParts().last())
+        assertTrue(metric(load = null).displayParts().none { it.startsWith("load") })
     }
 }

@@ -1,5 +1,6 @@
 package es.sebas1705.nanodemo.feature.compare
 
+import androidx.annotation.StringRes
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -34,6 +35,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
@@ -54,7 +56,6 @@ import es.sebas1705.nanodemo.core.ui.DemoColors
 import es.sebas1705.nanodemo.domain.models.DemoState
 import es.sebas1705.nanodemo.domain.models.GenerationMetric
 import es.sebas1705.nanodemo.domain.models.InferenceTier
-import es.sebas1705.nanodemo.domain.models.PROMPT_BANK
 
 /**
  * Comparar: el mismo prompt en los 5 motores a la vez. Mismo esquema que el Chat — respuestas arriba (una
@@ -107,7 +108,7 @@ fun CompareScreen(
                     PromptBubble(prompt)
                     if (canVote && votedTier == null) {
                         Text(
-                            "¿Cuál respondió mejor? Elegila abajo: suma a las victorias de Estadísticas.",
+                            stringResource(R.string.compare_vote_hint),
                             style = MaterialTheme.typography.bodySmall,
                             color = DemoColors.Muted,
                         )
@@ -142,7 +143,7 @@ fun CompareScreen(
             onSend = ::run,
             accent = DemoColors.TierA,
             isBusy = isBusy,
-            placeholder = "Mismo prompt a los ${InferenceTier.entries.size} motores…",
+            placeholder = stringResource(R.string.compare_prompt_placeholder, InferenceTier.entries.size),
             modifier = Modifier.imePadding(),
             leading = { RecommendedPrompts(onPick = { promptText = it }) },
         )
@@ -156,17 +157,18 @@ private fun RecommendedPrompts(onPick: (String) -> Unit) {
     Box {
         TextButton(onClick = { open = true }) {
             Icon(Icons.Filled.Lightbulb, contentDescription = null, modifier = Modifier.size(18.dp))
-            Text("  Prompts recomendados", style = MaterialTheme.typography.labelLarge)
+            Text("  " + stringResource(R.string.compare_recommended_prompts), style = MaterialTheme.typography.labelLarge)
             Icon(Icons.Filled.ArrowDropDown, contentDescription = null, modifier = Modifier.size(18.dp))
         }
         DropdownMenu(expanded = open, onDismissRequest = { open = false }) {
             PROMPT_BANK.forEach { preset ->
+                val presetText = stringResource(preset.textRes)
                 DropdownMenuItem(
                     text = {
                         Column(modifier = Modifier.widthIn(max = 280.dp)) {
-                            Text(preset.name, style = MaterialTheme.typography.bodyLarge, fontWeight = FontWeight.SemiBold)
+                            Text(stringResource(preset.nameRes), style = MaterialTheme.typography.bodyLarge, fontWeight = FontWeight.SemiBold)
                             Text(
-                                preset.text,
+                                presetText,
                                 style = MaterialTheme.typography.bodySmall,
                                 color = DemoColors.Muted,
                                 maxLines = 2,
@@ -176,7 +178,7 @@ private fun RecommendedPrompts(onPick: (String) -> Unit) {
                     },
                     onClick = {
                         open = false
-                        onPick(preset.text)
+                        onPick(presetText)
                     },
                 )
             }
@@ -199,15 +201,13 @@ private fun EmptyCompare() {
             InferenceTier.entries.forEach { tier -> TierAvatar(tier, 40.dp) }
         }
         Text(
-            "Compará los ${InferenceTier.entries.size} motores",
+            stringResource(R.string.compare_title, InferenceTier.entries.size),
             style = MaterialTheme.typography.headlineSmall,
             color = DemoColors.Ink,
             modifier = Modifier.padding(top = 12.dp),
         )
         Text(
-            "Mandá el mismo prompt a todos a la vez y mirá cuál responde mejor y más rápido. " +
-                "Escribí el tuyo o elegí uno de los prompts recomendados. Cada motor usa sus propios " +
-                "parámetros: con «Usar esta configuración en todos» (en Parámetros) los igualás para una comparación justa.",
+            stringResource(R.string.compare_intro),
             style = MaterialTheme.typography.bodyMedium,
             color = DemoColors.Muted,
             textAlign = TextAlign.Center,
@@ -252,8 +252,8 @@ private fun CompareCard(
                 modifier = Modifier.weight(1f),
             )
             val status = when (tierState) {
-                is DemoState.Generating -> "escribiendo…"
-                is DemoState.Result -> "listo"
+                is DemoState.Generating -> stringResource(R.string.compare_status_writing)
+                is DemoState.Result -> stringResource(R.string.compare_status_done)
                 else -> null
             }
             status?.let { Text(it, style = MaterialTheme.typography.labelSmall, color = tier.signalColor) }
@@ -262,7 +262,7 @@ private fun CompareCard(
             Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
                 badges.forEach { badge ->
                     Text(
-                        if (badge == CompareBadge.FASTEST) "⚡ más rápido" else "🚀 más tokens/s",
+                        stringResource(if (badge == CompareBadge.FASTEST) R.string.compare_badge_fastest else R.string.compare_badge_tokens),
                         style = MaterialTheme.typography.labelSmall,
                         color = tier.signalColor,
                         modifier = Modifier
@@ -282,18 +282,32 @@ private fun CompareCard(
                 if (voteStatus != VoteStatus.NOT_VOTABLE) {
                     TextButton(onClick = onVote, contentPadding = PaddingValues(horizontal = 8.dp)) {
                         Text(
-                            if (voteStatus == VoteStatus.CHOSEN) "★ Mejor respuesta" else "☆ Elegir como la mejor",
+                            stringResource(if (voteStatus == VoteStatus.CHOSEN) R.string.compare_best_answer else R.string.compare_pick_best),
                             color = if (voteStatus == VoteStatus.CHOSEN) tier.signalColor else DemoColors.Muted,
                         )
                     }
                 }
             }
-            is DemoState.Error -> Text("Error: ${tierState.message}", style = MaterialTheme.typography.bodyMedium, color = DemoColors.Danger)
-            is DemoState.Unavailable -> Text("No disponible", style = MaterialTheme.typography.bodyMedium, color = DemoColors.Muted)
-            else -> Text("Esperando…", style = MaterialTheme.typography.bodyMedium, color = DemoColors.Muted)
+            is DemoState.Error -> Text(stringResource(R.string.compare_error, tierState.message), style = MaterialTheme.typography.bodyMedium, color = DemoColors.Danger)
+            is DemoState.Unavailable -> Text(stringResource(R.string.compare_unavailable), style = MaterialTheme.typography.bodyMedium, color = DemoColors.Muted)
+            else -> Text(stringResource(R.string.compare_waiting), style = MaterialTheme.typography.bodyMedium, color = DemoColors.Muted)
         }
     }
 }
 
 /** Si esta tarjeta se puede votar (la ronda ya terminó y hay con qué comparar) y si es la elegida. */
 private enum class VoteStatus { NOT_VOTABLE, VOTABLE, CHOSEN }
+
+/** A recommended test prompt: its title and the text loaded into the prompt field. */
+private data class PromptPreset(@StringRes val nameRes: Int, @StringRes val textRes: Int)
+
+private val PROMPT_BANK = listOf(
+    PromptPreset(R.string.prompt_summary_name, R.string.prompt_summary_text),
+    PromptPreset(R.string.prompt_code_name, R.string.prompt_code_text),
+    PromptPreset(R.string.prompt_translation_name, R.string.prompt_translation_text),
+    PromptPreset(R.string.prompt_reasoning_name, R.string.prompt_reasoning_text),
+    PromptPreset(R.string.prompt_extraction_name, R.string.prompt_extraction_text),
+    PromptPreset(R.string.prompt_creativity_name, R.string.prompt_creativity_text),
+    PromptPreset(R.string.prompt_classification_name, R.string.prompt_classification_text),
+    PromptPreset(R.string.prompt_instructions_name, R.string.prompt_instructions_text),
+)

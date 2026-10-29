@@ -11,9 +11,9 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.WindowInsets
-import androidx.compose.foundation.layout.ime
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.ime
 import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
@@ -35,6 +35,7 @@ import androidx.compose.runtime.snapshotFlow
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import es.sebas1705.nanodemo.core.common.buildLocalSystemPrompt
@@ -90,7 +91,8 @@ fun ChatScreen(
     // Compartir desde otra app precarga el prompt (con una instrucción, no el texto pelado) en vez de
     // mandarlo solo: el usuario lo revisa/edita antes de enviar, nunca se envía sin que lo vea — ver el
     // intent-filter ACTION_SEND en AndroidManifest.xml y MainActivity.
-    var promptText by remember { mutableStateOf(sharedText?.let { "Resume esto:\n\n$it" } ?: "") }
+    val summarizePrefix = stringResource(R.string.chat_summarize_this)
+    var promptText by remember { mutableStateOf(sharedText?.let { "$summarizePrefix\n\n$it" } ?: "") }
     var inFlight by remember { mutableStateOf<InFlightTurn?>(null) }
     var showTierSheet by remember { mutableStateOf(false) }
     // Métricas de la última respuesta de ESTA sesión de chat (ver ResponseExtras). `metrics` es global y mezcla
@@ -326,7 +328,7 @@ private fun ChatHeader(
         IconButton(onClick = onStartOver, enabled = canStartOver) {
             Icon(
                 Icons.Filled.EditNote,
-                contentDescription = "Nueva conversación",
+                contentDescription = stringResource(R.string.chat_new_conversation),
                 tint = if (canStartOver) DemoColors.Ink else DemoColors.Muted.copy(alpha = 0.4f),
             )
         }
@@ -346,7 +348,7 @@ private fun JsonValidityBadge(responseText: String) {
         runCatching { org.json.JSONTokener(responseText.trim()).nextValue() }.isSuccess
     }
     Text(
-        if (isValidJson) "✓ JSON válido" else "✗ no es JSON válido",
+        stringResource(if (isValidJson) R.string.chat_json_valid else R.string.chat_json_invalid),
         style = readoutStyle,
         color = if (isValidJson) DemoColors.TierA else DemoColors.Danger,
     )

@@ -56,7 +56,7 @@ class HistoryViewModel @Inject constructor(
                 }
                 _searchState.update { SemanticSearchState.Ready }
             } catch (e: Exception) {
-                _searchState.update { SemanticSearchState.Error(e.message ?: "Error descargando el modelo de búsqueda") }
+                _searchState.update { SemanticSearchState.Error(e.message ?: "Could not download the search model") }
             }
         }
     }

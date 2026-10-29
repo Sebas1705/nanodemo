@@ -1,0 +1,29 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="device_cap_temperature">Temperature</string>
+    <string name="device_cap_top_k">Top-K</string>
+    <string name="device_cap_top_p">Top-P</string>
+    <string name="device_cap_max_tokens">Max output tokens</string>
+    <string name="device_cap_system_prompt">System prompt</string>
+    <string name="device_cap_multi_turn">Multi-turn</string>
+    <string name="device_cap_images">Images</string>
+    <string name="device_availability_available">Available</string>
+    <string name="device_availability_downloadable">Downloadable</string>
+    <string name="device_availability_unavailable">Unavailable</string>
+    <string name="device_availability_checking">Checking…</string>
+    <string name="device_availability_unknown">Not checked</string>
+    <string name="device_total_ram">Total RAM</string>
+    <string name="device_enough_for_mediapipe">Enough for MediaPipe (~4GB+)?</string>
+    <string name="device_yes">Yes</string>
+    <string name="device_no">No</string>
+    <string name="device_connectivity">Connectivity</string>
+    <string name="device_online">Online</string>
+    <string name="device_offline">Offline</string>
+    <string name="device_current_availability">Current availability</string>
+    <string name="device_what_each_supports">What each engine supports</string>
+    <string name="device_diagnostics">Diagnostics (Crashlytics and Analytics)</string>
+    <string name="device_diagnostics_hint">To check that events and errors reach the Firebase console. The real crash is sent the next time you open the app.</string>
+    <string name="device_send_test_event">Send a test analytics event</string>
+    <string name="device_send_test_non_fatal">Send a test non-fatal error</string>
+    <string name="device_force_test_crash">Force a test crash</string>
+</resources>

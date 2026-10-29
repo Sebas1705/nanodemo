@@ -4,6 +4,7 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.res.stringResource
 import es.sebas1705.nanodemo.core.ui.DemoColors
 import es.sebas1705.nanodemo.domain.models.GenerationMetric
 import java.util.Locale
@@ -29,19 +30,19 @@ private fun seconds(ms: Long) = String.format(Locale.US, "%.1fs", ms / 1000.0)
  * modelo. El "primer texto" incluye la búsqueda/herramienta cuando las hay, porque lo primero que se emite es
  * el aviso de ese paso. Los tokens van con "~" cuando son aproximados (caracteres/4) y no reales.
  */
-fun GenerationMetric.displayParts(): List<String> = buildList {
+fun GenerationMetric.displayParts(loadLabel: String = "load"): List<String> = buildList {
     firstChunkLatencyMs?.let { add("⚡ ${seconds(it)}") }
     add("⏱ ${seconds(totalDurationMs)}")
     tokensPerSecond()?.let { add(String.format(Locale.US, "%.0f tok/s", it)) }
     if (responseTokens > 0) add("${if (responseTokensExact) "" else "~"}$responseTokens tok")
-    loadTimeMs?.let { add("carga ${seconds(it)}") }
+    loadTimeMs?.let { add("$loadLabel ${seconds(it)}") }
 }
 
 /** Línea chica con las métricas de una respuesta, bajo el texto — en Chat y en cada tarjeta de Comparar. */
 @Composable
 fun MetricsLine(metric: GenerationMetric, modifier: Modifier = Modifier) {
     Text(
-        metric.displayParts().joinToString("  ·  "),
+        metric.displayParts(stringResource(R.string.metrics_load)).joinToString("  ·  "),
         style = MaterialTheme.typography.labelSmall,
         color = DemoColors.Muted,
         modifier = modifier,

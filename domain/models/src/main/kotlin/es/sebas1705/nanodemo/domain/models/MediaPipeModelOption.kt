@@ -9,7 +9,7 @@ package es.sebas1705.nanodemo.domain.models
  * `MediaPipeBackend.kt`) — subir el archivo real a cada URL sigue siendo un
  * paso manual del usuario (mismo mecanismo que el modelo original).
  */
-enum class MediaPipeModelOption(val id: String, val displayName: String, val sizeHint: String) {
-    GEMMA_3_1B("gemma3-1b", "Gemma 3 1B", "~530 MB · más rápido"),
-    GEMMA_2_2B("gemma2-2b", "Gemma 2 2B", "~2.7 GB · más capaz"),
+enum class MediaPipeModelOption(val id: String, val displayName: String) {
+    GEMMA_3_1B("gemma3-1b", "Gemma 3 1B"),
+    GEMMA_2_2B("gemma2-2b", "Gemma 2 2B"),
 }

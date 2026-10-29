@@ -39,6 +39,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.SolidColor
 import androidx.compose.ui.graphics.compositeOver
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.Dp
@@ -248,7 +249,7 @@ fun PromptBar(
                 } else {
                     Icon(
                         Icons.Filled.ArrowUpward,
-                        contentDescription = "Enviar",
+                        contentDescription = stringResource(R.string.ds_send),
                         tint = if (canSend) DemoColors.Background else DemoColors.Muted,
                     )
                 }

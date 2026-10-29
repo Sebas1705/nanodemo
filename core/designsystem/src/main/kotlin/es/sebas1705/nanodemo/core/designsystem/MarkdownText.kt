@@ -23,10 +23,11 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalClipboardManager
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.text.LinkAnnotation
-import androidx.compose.ui.text.TextLinkStyles
 import androidx.compose.ui.text.SpanStyle
+import androidx.compose.ui.text.TextLinkStyles
 import androidx.compose.ui.text.buildAnnotatedString
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontStyle
@@ -202,14 +203,14 @@ private fun CodeBlock(block: MdBlock.Code) {
             horizontalArrangement = Arrangement.SpaceBetween,
         ) {
             Text(
-                block.language.ifBlank { "código" },
+                block.language.ifBlank { stringResource(R.string.ds_code) },
                 style = MaterialTheme.typography.labelSmall,
                 color = DemoColors.Muted,
             )
             IconButton(onClick = { clipboard.setText(AnnotatedString(block.code)) }, modifier = Modifier.size(36.dp)) {
                 Icon(
                     Icons.Filled.ContentCopy,
-                    contentDescription = "Copiar código",
+                    contentDescription = stringResource(R.string.ds_copy_code),
                     tint = DemoColors.Muted,
                     modifier = Modifier.size(16.dp),
                 )

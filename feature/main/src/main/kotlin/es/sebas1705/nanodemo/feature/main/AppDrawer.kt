@@ -24,6 +24,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
@@ -60,7 +61,7 @@ internal fun DrawerContent(
             TierAvatar(activeTier, 40.dp)
             Column {
                 Text("nanodemo", style = MaterialTheme.typography.titleMedium, color = DemoColors.Ink)
-                Text("Motor: ${activeTier.label()}", style = MaterialTheme.typography.labelSmall, color = DemoColors.Muted)
+                Text(stringResource(R.string.drawer_engine, activeTier.label()), style = MaterialTheme.typography.labelSmall, color = DemoColors.Muted)
             }
         }
 
@@ -75,7 +76,7 @@ internal fun DrawerContent(
         ) {
             Icon(Icons.Filled.EditNote, contentDescription = null, tint = activeTier.signalColor)
             Text(
-                "Nueva conversación",
+                stringResource(R.string.drawer_new_conversation),
                 style = MaterialTheme.typography.bodyLarge,
                 fontWeight = FontWeight.SemiBold,
                 color = DemoColors.Ink,
@@ -84,7 +85,7 @@ internal fun DrawerContent(
 
         Destination.entries.forEach { destination ->
             NavigationDrawerItem(
-                label = { Text(destination.label) },
+                label = { Text(stringResource(destination.labelRes)) },
                 icon = { Icon(destination.icon, contentDescription = null) },
                 selected = destination == currentDestination,
                 onClick = { onNavigate(destination) },
@@ -95,7 +96,7 @@ internal fun DrawerContent(
 
         if (recents.isNotEmpty()) {
             HorizontalDivider(modifier = Modifier.padding(vertical = 8.dp), color = DemoColors.Outline)
-            SectionLabel("Recientes", Modifier.padding(start = 16.dp, bottom = 4.dp))
+            SectionLabel(stringResource(R.string.drawer_recents), Modifier.padding(start = 16.dp, bottom = 4.dp))
         }
         // Recientes ocupa el espacio que sobre (y scrollea si no entra): así Ajustes queda siempre al pie.
         LazyColumn(modifier = Modifier.weight(1f)) {
@@ -123,7 +124,7 @@ internal fun DrawerContent(
 
         HorizontalDivider(modifier = Modifier.padding(vertical = 8.dp), color = DemoColors.Outline)
         NavigationDrawerItem(
-            label = { Text("Ajustes") },
+            label = { Text(stringResource(R.string.drawer_settings)) },
             icon = { Icon(Icons.Filled.Settings, contentDescription = null) },
             selected = false,
             onClick = onOpenSettings,

@@ -1,5 +1,6 @@
 package es.sebas1705.nanodemo.feature.main
 
+import androidx.annotation.StringRes
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.BarChart
 import androidx.compose.material.icons.filled.Chat
@@ -13,11 +14,11 @@ import androidx.compose.ui.graphics.vector.ImageVector
  * usan a diario. `label` es también el título que muestra la barra superior compartida
  * (`ChannelTopBar` en `AppNav.kt`) para esa pantalla — una sola fuente para los dos.
  */
-enum class Destination(val label: String, val icon: ImageVector) {
-    Chat("Chat", Icons.Filled.Chat),
-    Compare("Comparar", Icons.Filled.Science),
-    History("Historial", Icons.Filled.History),
-    Stats("Estadísticas", Icons.Filled.BarChart),
+enum class Destination(@StringRes val labelRes: Int, val icon: ImageVector) {
+    Chat(R.string.destination_chat, Icons.Filled.Chat),
+    Compare(R.string.destination_compare, Icons.Filled.Science),
+    History(R.string.destination_history, Icons.Filled.History),
+    Stats(R.string.destination_stats, Icons.Filled.BarChart),
 }
 
 fun Destination.toRoute(): AppGraph = when (this) {

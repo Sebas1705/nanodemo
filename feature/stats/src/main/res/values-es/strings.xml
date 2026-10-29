@@ -1,0 +1,28 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="stats_reset_votes">Reiniciar votos</string>
+    <string name="stats_export_csv">Exportar CSV</string>
+    <string name="stats_empty_title">Todavía no hay métricas</string>
+    <string name="stats_empty_message">Prueba un prompt en Chat o en Comparar y acá vas a ver la latencia, velocidad y costo de cada motor.</string>
+    <string name="stats_help_title">¿Qué significa cada métrica?</string>
+    <string name="stats_help_latency">Latencia prom.</string>
+    <string name="stats_help_latency_desc">Tiempo total promedio desde que se envía el prompt hasta que llega la última palabra de la respuesta.</string>
+    <string name="stats_help_percentiles">p50 / p95</string>
+    <string name="stats_help_percentiles_desc" formatted="false">Percentiles: p50 = la mitad de las corridas fueron más rápidas que este valor. p95 = el 95% lo fueron. Sirven para ver consistencia, no solo el promedio (un tier con p95 mucho más alto que su p50 es \"impredecible\").</string>
+    <string name="stats_help_speed">Velocidad</string>
+    <string name="stats_help_speed_desc">Caracteres de la respuesta generados por segundo, en promedio.</string>
+    <string name="stats_help_tokens">Tokens</string>
+    <string name="stats_help_tokens_desc">Cantidad de tokens (unidades de texto que procesa el modelo, no exactamente palabras) de la respuesta. Real cuando el backend lo expone (MediaPipe, Cloud); aproximado (caracteres/4) en ML Kit Nano.</string>
+    <string name="stats_help_success">Éxito</string>
+    <string name="stats_help_success_desc">Cuántas de las corridas contra este tier terminaron sin error, sobre el total.</string>
+    <string name="stats_help_load">Carga del modelo</string>
+    <string name="stats_help_load_desc">Solo MediaPipe y LiteRT-LM: lo que tarda en cargar el modelo la primera vez tras abrir la app o cambiar de motor. Va aparte y NO está sumado a la latencia ni a la velocidad, para que comparar velocidades no mezcle \"cargar\" con \"generar\" (las corridas guardadas antes de esta versión sí lo traen sumado, sin separar).</string>
+    <string name="stats_help_best">Mejor respuesta</string>
+    <string name="stats_help_best_desc">En Comparar puedes elegir cuál respondió mejor. Acá se ve en cuántas rondas votadas ganó cada motor, de las que participó: es tu preferencia, el complemento de las métricas objetivas.</string>
+    <string name="stats_help_cost">Costo (estimado)</string>
+    <string name="stats_help_cost_desc">Solo Cloud y Firebase AI (los tiers en la nube) lo muestran — los on-device no llaman a ninguna API paga, cuestan $0. Se calcula con el precio público de Gemini Flash (entrada/salida) y una aproximación de tokens del prompt (caracteres/4, no hay conteo exacto de entrada); trátalo como orden de magnitud, no como factura real.</string>
+    <string name="stats_share_title">Compartir estadísticas</string>
+    <string name="stats_avg_latency_short">latencia prom.</string>
+    <string name="stats_approx">(aprox.)</string>
+    <string name="stats_best_value">%1$d de %2$d (%3$d%%)</string>
+</resources>

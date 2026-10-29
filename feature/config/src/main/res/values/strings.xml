@@ -1,0 +1,49 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="config_intro">Each engine keeps its own parameters — pick one to view or change them.</string>
+    <string name="config_editing">Editing %1$s [%2$s]. In Compare, each tier applies only its own (and only what it supports, see TierCapabilities).</string>
+    <string name="config_copied_to_all">✓ Copied to the other engines</string>
+    <string name="config_apply_to_all">Use this configuration on all engines</string>
+    <string name="config_apply_to_all_hint">To compare with identical parameters. Only what each engine supports is copied; the rest is left untouched.</string>
+    <string name="config_section_generation">Generation</string>
+    <string name="config_temperature">Temperature</string>
+    <string name="config_temperature_desc">Randomness of the answer. Close to 0: always picks the most likely word (predictable, repetitive). Close to 2: tries less likely options (more creative, but may ramble).</string>
+    <string name="config_top_k">Top-K</string>
+    <string name="config_top_k_desc">At each word, the model can only choose among the K most likely options. Low K (e.g. 5) = more conservative answers; high K = more variety.</string>
+    <string name="config_top_p">Top-P</string>
+    <string name="config_top_p_desc" formatted="false">Similar to Top-K, but instead of a fixed number of options it cuts off when the cumulative probability reaches P (e.g. 0.95 = the options that add up to 95% probability). Many backends combine Top-K and Top-P.</string>
+    <string name="config_max_tokens">Max output tokens</string>
+    <string name="config_max_tokens_desc">Cap on the length of the answer, in tokens (~4 characters each, approximate). The model may finish earlier on its own; this is a ceiling, not a target.</string>
+    <string name="config_section_instructions">Instructions</string>
+    <string name="config_system_prompt">System prompt</string>
+    <string name="config_system_prompt_unsupported">System prompt (not supported on this tier)</string>
+    <string name="config_system_prompt_desc">Instruction given to the model before each prompt, to set its role or answer style (e.g. \"Always answer in 2 sentences\"). It is added to a fixed context that already tells the model what nanodemo is, on all 5 tiers.</string>
+    <string name="config_section_capabilities">Capabilities</string>
+    <string name="config_json_mode">JSON mode</string>
+    <string name="config_json_mode_desc">Asks the model to return JSON instead of free text. Cloud and Firebase AI guarantee it (the API\'s responseMimeType); Nano/MediaPipe/LiteRT-LM emulate it through the prompt (no syntactic guarantee, it depends on the model complying). Chat flags whether the answer ended up being valid JSON, on all 5 tiers.</string>
+    <string name="config_tools">Tools</string>
+    <string name="config_tools_desc">Lets the model ask for the current time in a time zone instead of making it up — it has no clock of its own. Cloud and Firebase AI do it natively (the API has real tool-calling); Nano/MediaPipe/LiteRT-LM emulate it through the prompt (less reliable: it depends on the model following the requested format). Chat shows when it was used.</string>
+    <string name="config_web_search">Web search</string>
+    <string name="config_web_search_desc">Searches the internet before answering, for current questions the model cannot know. Cloud/Firebase AI use native grounding (the API\'s own Google Search; the model decides when). Nano/MediaPipe/LiteRT-LM have no network of their own: with this on, the app ALWAYS searches (Brave Search API), reads an excerpt of the first pages and hands it to the model, which answers with formatting, citing [1], [2] and with a clickable list of sources below. BRAVE_SEARCH_API_KEY must be configured, otherwise it stays disabled. If you also turned on Tools, this one wins (they were not tested together).</string>
+    <string name="config_unsupported_tier">%1$s (not supported on this tier)</string>
+    <string name="config_unsupported">%1$s (not supported)</string>
+    <string name="usage_intro">Local counter of what you spend on each free plan. It only covers this app and this device: it does not replace the spending caps in the Google/Brave consoles.</string>
+    <string name="usage_note_unlimited">No limit: Nano, MediaPipe and LiteRT-LM (on-device), pasting a link and the semantic search of the history run on the phone and use no quota.</string>
+    <string name="usage_note_grounding">Web search on Cloud/Firebase AI (grounding with Google Search): not included in the Gemini free plan — a paid plan is required (5,000 searches/month free, then $14 per 1,000). Without a paid plan, turning that toggle on for those tiers may fail.</string>
+    <string name="usage_limit_blocked">Limit reached — blocked until %1$s.</string>
+    <string name="usage_limit_warn_only">Limit reached (warning only: blocking is turned off).</string>
+    <string name="usage_period_resets">%1$s · resets %2$s.</string>
+    <string name="usage_block_at_limit">Block when the limit is reached</string>
+    <string name="usage_limit_label">Limit %1$s</string>
+    <string name="usage_reset_counter">Reset counter</string>
+    <string name="quota_gemini_cloud_label">Gemini API · Tier C (Cloud)</string>
+    <string name="quota_gemini_cloud_note">Free plan: limits per PROJECT (not per key), no card. Every HTTP call counts (a turn with tools or search makes 2). No grounding on the free plan.</string>
+    <string name="quota_gemini_firebase_label">Firebase AI Logic · Tier E</string>
+    <string name="quota_gemini_firebase_note">Gemini Developer API through Firebase (Spark plan, no card). If the Tier C key belongs to the SAME project, they share quota: split the limit between the two. Linking billing (Blaze) makes everything paid.</string>
+    <string name="quota_brave_label">Brave Search · search for the local tiers</string>
+    <string name="quota_brave_note">$5 monthly credit ≈ 1000 searches; beyond that Brave charges $5 per 1000.</string>
+    <string name="quota_per_day">per day</string>
+    <string name="quota_per_month">per month</string>
+    <string name="quota_reset_day">at midnight Pacific time</string>
+    <string name="quota_reset_month">next month</string>
+</resources>

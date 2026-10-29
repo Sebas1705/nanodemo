@@ -18,6 +18,7 @@
     <application
         android:name=".NanoDemoApplication"
         android:allowBackup="true"
+        android:supportsRtl="true"
         android:icon="@mipmap/ic_launcher_static"
         android:roundIcon="@mipmap/ic_launcher_static_round"
         android:label="@string/app_name"

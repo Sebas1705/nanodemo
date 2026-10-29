@@ -1,5 +1,6 @@
 package es.sebas1705.nanodemo.feature.history
 
+import androidx.annotation.StringRes
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Arrangement
@@ -40,6 +41,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.SolidColor
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.unit.dp
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
@@ -93,16 +95,16 @@ fun HistoryScreen(
             conversations.isEmpty() && !isSearchActive -> Box(Modifier.weight(1f).fillMaxWidth(), contentAlignment = Alignment.Center) {
                 EmptyState(
                     icon = Icons.Filled.ChatBubbleOutline,
-                    title = "Todavía no hay conversaciones",
-                    message = "Empezá a chatear: cada conversación se guarda sola acá y la podés retomar cuando quieras.",
+                    title = stringResource(R.string.history_empty_title),
+                    message = stringResource(R.string.history_empty_message),
                 )
             }
 
             isSearchActive && shownConversations.isEmpty() -> Box(Modifier.weight(1f).fillMaxWidth(), contentAlignment = Alignment.Center) {
                 EmptyState(
                     icon = Icons.Filled.SearchOff,
-                    title = "Sin coincidencias",
-                    message = "Ninguna conversación se parece a \"$query\".",
+                    title = stringResource(R.string.history_no_matches_title),
+                    message = stringResource(R.string.history_no_matches_message, query),
                 )
             }
 
@@ -111,7 +113,7 @@ fun HistoryScreen(
                 // en una búsqueda el orden es por parecido, y los encabezados de fecha no tendrían sentido.
                 val groups = remember(shownConversations, isSearchActive) {
                     if (isSearchActive) {
-                        listOf<Pair<String?, List<Conversation>>>(null to shownConversations)
+                        listOf<Pair<DateGroup?, List<Conversation>>>(null to shownConversations)
                     } else {
                         val today = LocalDate.now()
                         shownConversations.groupBy { dateGroup(it.updatedAtMs, today) }.toList()
@@ -126,7 +128,7 @@ fun HistoryScreen(
                 ) {
                     groups.forEach { (header, items) ->
                         if (header != null) {
-                            item(key = "header-$header") { SectionLabel(header, Modifier.padding(top = 8.dp, start = 4.dp)) }
+                            item(key = "header-$header") { SectionLabel(stringResource(header.labelRes), Modifier.padding(top = 8.dp, start = 4.dp)) }
                         }
                         items(items, key = { it.id }) { conversation ->
                             ConversationRow(
@@ -143,14 +145,23 @@ fun HistoryScreen(
     }
 }
 
-internal fun dateGroup(updatedAtMs: Long, today: LocalDate): String {
+/** The age bucket a conversation is listed under in the chronological view. */
+internal enum class DateGroup(@StringRes val labelRes: Int) {
+    TODAY(R.string.history_group_today),
+    YESTERDAY(R.string.history_group_yesterday),
+    THIS_WEEK(R.string.history_group_this_week),
+    THIS_MONTH(R.string.history_group_this_month),
+    EARLIER(R.string.history_group_earlier),
+}
+
+internal fun dateGroup(updatedAtMs: Long, today: LocalDate): DateGroup {
     val date = Instant.ofEpochMilli(updatedAtMs).atZone(ZoneId.systemDefault()).toLocalDate()
     return when (ChronoUnit.DAYS.between(date, today)) {
-        in Long.MIN_VALUE..0L -> "Hoy"
-        1L -> "Ayer"
-        in 2L..6L -> "Esta semana"
-        in 7L..29L -> "Este mes"
-        else -> "Antes"
+        in Long.MIN_VALUE..0L -> DateGroup.TODAY
+        1L -> DateGroup.YESTERDAY
+        in 2L..6L -> DateGroup.THIS_WEEK
+        in 7L..29L -> DateGroup.THIS_MONTH
+        else -> DateGroup.EARLIER
     }
 }
 
@@ -197,7 +208,7 @@ private fun SemanticSearchBar(
                     decorationBox = { inner ->
                         Box {
                             if (query.isEmpty()) {
-                                Text("Buscar por significado…", style = MaterialTheme.typography.bodyLarge, color = DemoColors.Muted)
+                                Text(stringResource(R.string.history_search_placeholder), style = MaterialTheme.typography.bodyLarge, color = DemoColors.Muted)
                             }
                             inner()
                         }
@@ -205,7 +216,7 @@ private fun SemanticSearchBar(
                 )
                 if (isSearchActive || query.isNotEmpty()) {
                     IconButton(onClick = onClear) {
-                        Icon(Icons.Filled.Close, contentDescription = "Limpiar búsqueda", tint = DemoColors.Muted)
+                        Icon(Icons.Filled.Close, contentDescription = stringResource(R.string.history_clear_search), tint = DemoColors.Muted)
                     }
                 }
             }
@@ -213,29 +224,29 @@ private fun SemanticSearchBar(
 
         SemanticSearchState.NotDownloaded -> AppCard(modifier = modifier.fillMaxWidth()) {
             Text(
-                "Buscar por significado (no por texto exacto) necesita un modelo aparte, ~6MB.",
+                stringResource(R.string.history_search_needs_model),
                 style = MaterialTheme.typography.bodyMedium,
                 color = DemoColors.Muted,
             )
-            Button(onClick = onDownloadModel) { Text("Descargar modelo de búsqueda") }
+            Button(onClick = onDownloadModel) { Text(stringResource(R.string.history_download_search_model)) }
         }
 
         is SemanticSearchState.Downloading -> AppCard(modifier = modifier.fillMaxWidth()) {
             val percent = searchState.progressPercent
             if (percent != null) {
-                Text("Descargando modelo de búsqueda… $percent%", style = MaterialTheme.typography.bodyMedium, color = DemoColors.Ink)
+                Text(stringResource(R.string.history_downloading_search_model_percent, percent), style = MaterialTheme.typography.bodyMedium, color = DemoColors.Ink)
                 LinearProgressIndicator(progress = { percent / 100f }, modifier = Modifier.fillMaxWidth())
             } else {
                 Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(10.dp)) {
                     CircularProgressIndicator(modifier = Modifier.size(20.dp), strokeWidth = 2.dp)
-                    Text("Descargando modelo de búsqueda…", style = MaterialTheme.typography.bodyMedium, color = DemoColors.Ink)
+                    Text(stringResource(R.string.history_downloading_search_model), style = MaterialTheme.typography.bodyMedium, color = DemoColors.Ink)
                 }
             }
         }
 
         is SemanticSearchState.Error -> AppCard(modifier = modifier.fillMaxWidth()) {
-            Text("Error: ${searchState.message}", style = MaterialTheme.typography.bodyMedium, color = DemoColors.Danger)
-            Button(onClick = onDownloadModel) { Text("Reintentar descarga") }
+            Text(stringResource(R.string.history_error, searchState.message), style = MaterialTheme.typography.bodyMedium, color = DemoColors.Danger)
+            Button(onClick = onDownloadModel) { Text(stringResource(R.string.history_retry_download)) }
         }
     }
 }
@@ -262,14 +273,18 @@ private fun ConversationRow(
             Column(modifier = Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(2.dp)) {
                 Text(conversation.title, color = DemoColors.Ink, style = MaterialTheme.typography.bodyLarge, maxLines = 2)
                 Text(
-                    "${conversation.tier.label()} · " +
-                        "${(if (showDay) DATE_FORMATTER else TIME_FORMATTER).format(time)} · ${conversation.messageCount} mensajes",
+                    stringResource(
+                        R.string.history_row_meta,
+                        conversation.tier.label(),
+                        (if (showDay) DATE_FORMATTER else TIME_FORMATTER).format(time),
+                        conversation.messageCount,
+                    ),
                     style = MaterialTheme.typography.bodySmall,
                     color = DemoColors.Muted,
                 )
             }
             IconButton(onClick = onDelete) {
-                Icon(Icons.Filled.Delete, contentDescription = "Borrar conversación", tint = DemoColors.Muted)
+                Icon(Icons.Filled.Delete, contentDescription = stringResource(R.string.history_delete_conversation), tint = DemoColors.Muted)
             }
         }
     }

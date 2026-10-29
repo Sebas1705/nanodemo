@@ -1,0 +1,49 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="config_intro">Cada motor guarda sus propios parámetros — elige uno para ver o cambiar los suyos.</string>
+    <string name="config_editing">Editando %1$s [%2$s]. En Comparar, cada tier aplica solo lo suyo (y solo lo que soporta, ver TierCapabilities).</string>
+    <string name="config_copied_to_all">✓ Copiada a los demás motores</string>
+    <string name="config_apply_to_all">Usar esta configuración en todos los motores</string>
+    <string name="config_apply_to_all_hint">Para comparar con parámetros iguales. Solo se copia lo que cada motor soporta; lo demás no se toca.</string>
+    <string name="config_section_generation">Generación</string>
+    <string name="config_temperature">Temperature</string>
+    <string name="config_temperature_desc">Aleatoriedad de la respuesta. Cerca de 0: siempre elige la palabra más probable (predecible, repetitivo). Cerca de 2: se anima con opciones menos probables (más creativo, pero puede desvariar).</string>
+    <string name="config_top_k">Top-K</string>
+    <string name="config_top_k_desc">En cada palabra, el modelo solo puede elegir entre las K opciones más probables. K bajo (ej. 5) = respuestas más conservadoras; K alto = más variedad.</string>
+    <string name="config_top_p">Top-P</string>
+    <string name="config_top_p_desc" formatted="false">Parecido a Top-K, pero en vez de un número fijo de opciones, corta cuando la probabilidad acumulada llega a P (ej. 0.95 = las opciones que suman el 95% de probabilidad). Muchos backends combinan Top-K y Top-P a la vez.</string>
+    <string name="config_max_tokens">Max output tokens</string>
+    <string name="config_max_tokens_desc">Tope de longitud de la respuesta, en tokens (~4 caracteres cada uno, aproximado). El modelo puede terminar antes solo; esto es un techo, no un objetivo.</string>
+    <string name="config_section_instructions">Instrucciones</string>
+    <string name="config_system_prompt">System prompt</string>
+    <string name="config_system_prompt_unsupported">System prompt (no soportado en este tier)</string>
+    <string name="config_system_prompt_desc">Instrucción que se le da al modelo antes de cada prompt, para fijar su rol o estilo de respuesta (ej. \"Responde siempre en 2 oraciones\"). Se suma a un contexto fijo que ya le cuenta al modelo qué es nanodemo, en los 5 tiers.</string>
+    <string name="config_section_capabilities">Capacidades</string>
+    <string name="config_json_mode">Modo JSON</string>
+    <string name="config_json_mode_desc">Le pide al modelo que devuelva JSON en vez de texto libre. Cloud y Firebase AI lo garantizan (responseMimeType del API); Nano/MediaPipe/LiteRT-LM lo emulan por prompt (sin garantía sintáctica, depende de que el modelo lo respete). En Chat se marca si la respuesta terminó siendo JSON válido o no, en los 5 tiers.</string>
+    <string name="config_tools">Herramientas</string>
+    <string name="config_tools_desc">Deja que el modelo pida la hora actual en una zona horaria en vez de inventarla — no tiene reloj propio. Cloud y Firebase AI lo hacen nativo (la API tiene tool-calling real); Nano/MediaPipe/LiteRT-LM lo emulan por prompt (menos confiable: depende de que el modelo respete el formato pedido). En Chat se ve cuándo la usó.</string>
+    <string name="config_web_search">Búsqueda en internet</string>
+    <string name="config_web_search_desc">Busca en internet antes de responder, para preguntas actuales que el modelo no puede saber. Cloud/Firebase AI usan grounding nativo (Google Search de la propia API; el modelo decide cuándo). Nano/MediaPipe/LiteRT-LM no tienen red propia: con esto activo la app SIEMPRE busca (Brave Search API), lee un extracto de las primeras páginas y se lo pasa al modelo, que responde con formato, citando [1], [2] y con la lista de fuentes clickeable abajo. Hace falta configurar BRAVE_SEARCH_API_KEY, si no queda deshabilitada. Si también prendiste Herramientas, esta gana (no se probaron juntas).</string>
+    <string name="config_unsupported_tier">%1$s (no soportado en este tier)</string>
+    <string name="config_unsupported">%1$s (no soportado)</string>
+    <string name="usage_intro">Contador local de lo que gastas de cada plan gratis. Es solo de esta app y de este dispositivo: no reemplaza los topes de gasto de las consolas de Google/Brave.</string>
+    <string name="usage_note_unlimited">Sin límite: Nano, MediaPipe y LiteRT-LM (on-device), pegar un link y la búsqueda semántica del historial corren en el teléfono y no gastan cuota.</string>
+    <string name="usage_note_grounding">Búsqueda en internet en Cloud/Firebase AI (grounding con Google Search): no está incluida en el plan gratis de Gemini — hace falta plan pago (5.000 búsquedas/mes gratis, después $14 cada 1.000). Sin plan pago, prender ese toggle en esos tiers puede fallar.</string>
+    <string name="usage_limit_blocked">Límite alcanzado — bloqueado hasta %1$s.</string>
+    <string name="usage_limit_warn_only">Límite alcanzado (solo aviso: el bloqueo está desactivado).</string>
+    <string name="usage_period_resets">%1$s · se reinicia %2$s.</string>
+    <string name="usage_block_at_limit">Bloquear al llegar al límite</string>
+    <string name="usage_limit_label">Límite %1$s</string>
+    <string name="usage_reset_counter">Reiniciar contador</string>
+    <string name="quota_gemini_cloud_label">Gemini API · Tier C (Cloud)</string>
+    <string name="quota_gemini_cloud_note">Plan gratis: límites por PROYECTO (no por key), sin tarjeta. Cada llamada HTTP cuenta (un turno con herramientas o búsqueda hace 2). Sin grounding en el plan gratis.</string>
+    <string name="quota_gemini_firebase_label">Firebase AI Logic · Tier E</string>
+    <string name="quota_gemini_firebase_note">Gemini Developer API vía Firebase (plan Spark, sin tarjeta). Si la key del Tier C es del MISMO proyecto, comparten cuota: reparte el límite entre los dos. Vincular facturación (Blaze) vuelve todo de pago.</string>
+    <string name="quota_brave_label">Brave Search · búsqueda de los tiers locales</string>
+    <string name="quota_brave_note">$5 de crédito mensual ≈ 1000 búsquedas; pasado eso Brave cobra $5 cada 1000.</string>
+    <string name="quota_per_day">por día</string>
+    <string name="quota_per_month">por mes</string>
+    <string name="quota_reset_day">a la medianoche del Pacífico</string>
+    <string name="quota_reset_month">el mes que viene</string>
+</resources>

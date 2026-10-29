@@ -1,0 +1,28 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="stats_reset_votes">Reset votes</string>
+    <string name="stats_export_csv">Export CSV</string>
+    <string name="stats_empty_title">No metrics yet</string>
+    <string name="stats_empty_message">Try a prompt in Chat or Compare and you will see the latency, speed and cost of each engine here.</string>
+    <string name="stats_help_title">What does each metric mean?</string>
+    <string name="stats_help_latency">Avg. latency</string>
+    <string name="stats_help_latency_desc">Average total time from sending the prompt until the last word of the answer arrives.</string>
+    <string name="stats_help_percentiles">p50 / p95</string>
+    <string name="stats_help_percentiles_desc" formatted="false">Percentiles: p50 = half of the runs were faster than this value. p95 = 95% of them were. They show consistency, not just the average (a tier with a p95 much higher than its p50 is \"unpredictable\").</string>
+    <string name="stats_help_speed">Speed</string>
+    <string name="stats_help_speed_desc">Characters of the answer generated per second, on average.</string>
+    <string name="stats_help_tokens">Tokens</string>
+    <string name="stats_help_tokens_desc">Number of tokens (units of text the model processes, not exactly words) in the answer. Real when the backend exposes it (MediaPipe, Cloud); approximate (characters/4) on ML Kit Nano.</string>
+    <string name="stats_help_success">Success</string>
+    <string name="stats_help_success_desc">How many of the runs against this tier finished without error, out of the total.</string>
+    <string name="stats_help_load">Model load</string>
+    <string name="stats_help_load_desc">MediaPipe and LiteRT-LM only: how long the model takes to load the first time after opening the app or switching engines. It is kept separate and is NOT added to latency or speed, so that comparing speeds does not mix \"loading\" with \"generating\" (runs saved before this version do have it added in, unseparated).</string>
+    <string name="stats_help_best">Best answer</string>
+    <string name="stats_help_best_desc">In Compare you can pick which one answered best. Here you see in how many voted rounds each engine won, out of those it took part in: it is your preference, the complement to the objective metrics.</string>
+    <string name="stats_help_cost">Cost (estimated)</string>
+    <string name="stats_help_cost_desc">Only Cloud and Firebase AI (the cloud tiers) show it — on-device ones call no paid API, they cost $0. It is computed with the public Gemini Flash price (input/output) and an approximation of prompt tokens (characters/4, there is no exact input count); treat it as an order of magnitude, not a real bill.</string>
+    <string name="stats_share_title">Share statistics</string>
+    <string name="stats_avg_latency_short">avg. latency</string>
+    <string name="stats_approx">(approx.)</string>
+    <string name="stats_best_value">%1$d of %2$d (%3$d%%)</string>
+</resources>

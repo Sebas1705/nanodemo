@@ -1,0 +1,33 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="compare_vote_hint">¿Cuál respondió mejor? Elígela abajo: suma a las victorias de Estadísticas.</string>
+    <string name="compare_prompt_placeholder">Mismo prompt a los %1$d motores…</string>
+    <string name="compare_recommended_prompts">Prompts recomendados</string>
+    <string name="compare_title">Compara los %1$d motores</string>
+    <string name="compare_intro">Manda el mismo prompt a todos a la vez y mira cuál responde mejor y más rápido. Escribe el tuyo o elige uno de los prompts recomendados. Cada motor usa sus propios parámetros: con «Usar esta configuración en todos» (en Parámetros) los igualas para una comparación justa.</string>
+    <string name="compare_status_writing">escribiendo…</string>
+    <string name="compare_status_done">listo</string>
+    <string name="compare_badge_fastest">⚡ más rápido</string>
+    <string name="compare_badge_tokens">🚀 más tokens/s</string>
+    <string name="compare_best_answer">★ Mejor respuesta</string>
+    <string name="compare_pick_best">☆ Elegir como la mejor</string>
+    <string name="compare_error">Error: %1$s</string>
+    <string name="compare_unavailable">No disponible</string>
+    <string name="compare_waiting">Esperando…</string>
+    <string name="prompt_summary_name">Resumen</string>
+    <string name="prompt_summary_text">Resume en 3 viñetas qué es la computación cuántica.</string>
+    <string name="prompt_code_name">Código</string>
+    <string name="prompt_code_text">Escribe una función en Kotlin que invierta una lista enlazada.</string>
+    <string name="prompt_translation_name">Traducción</string>
+    <string name="prompt_translation_text">Traduce al inglés: «La inteligencia artificial en el dispositivo cambia las reglas del juego.»</string>
+    <string name="prompt_reasoning_name">Razonamiento</string>
+    <string name="prompt_reasoning_text">Si un tren sale a las 14:00 a 80km/h y otro a las 14:30 a 100km/h en la misma dirección, ¿cuándo se alcanzan?</string>
+    <string name="prompt_extraction_name">Extracción</string>
+    <string name="prompt_extraction_text">Extrae nombre, fecha y monto de: \"Juan Pérez pagó $4500 el 12/03/2026.\"</string>
+    <string name="prompt_creativity_name">Creatividad</string>
+    <string name="prompt_creativity_text">Escribe un microcuento de 3 líneas sobre un robot que aprende a soñar.</string>
+    <string name="prompt_classification_name">Clasificación</string>
+    <string name="prompt_classification_text">Clasifica este mensaje como spam o no spam: \"Ganaste un premio, haz click aquí ya!!!\"</string>
+    <string name="prompt_instructions_name">Instrucciones</string>
+    <string name="prompt_instructions_text">Explica paso a paso cómo cambiar una rueda de auto.</string>
+</resources>

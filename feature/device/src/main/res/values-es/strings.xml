@@ -1,0 +1,29 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="device_cap_temperature">Temperature</string>
+    <string name="device_cap_top_k">Top-K</string>
+    <string name="device_cap_top_p">Top-P</string>
+    <string name="device_cap_max_tokens">Max output tokens</string>
+    <string name="device_cap_system_prompt">System prompt</string>
+    <string name="device_cap_multi_turn">Multi-turno</string>
+    <string name="device_cap_images">Imágenes</string>
+    <string name="device_availability_available">Disponible</string>
+    <string name="device_availability_downloadable">Descargable</string>
+    <string name="device_availability_unavailable">No disponible</string>
+    <string name="device_availability_checking">Comprobando…</string>
+    <string name="device_availability_unknown">Sin comprobar</string>
+    <string name="device_total_ram">RAM total</string>
+    <string name="device_enough_for_mediapipe">¿Alcanza para MediaPipe (~4GB+)?</string>
+    <string name="device_yes">Sí</string>
+    <string name="device_no">No</string>
+    <string name="device_connectivity">Conectividad</string>
+    <string name="device_online">Con internet</string>
+    <string name="device_offline">Sin conexión</string>
+    <string name="device_current_availability">Disponibilidad actual</string>
+    <string name="device_what_each_supports">Qué soporta cada motor</string>
+    <string name="device_diagnostics">Diagnóstico (Crashlytics y Analytics)</string>
+    <string name="device_diagnostics_hint">Para comprobar que los eventos y errores llegan a la consola de Firebase. El crash real se envía la próxima vez que abras la app.</string>
+    <string name="device_send_test_event">Enviar evento de analytics de prueba</string>
+    <string name="device_send_test_non_fatal">Enviar error no fatal de prueba</string>
+    <string name="device_force_test_crash">Forzar crash de prueba</string>
+</resources>
