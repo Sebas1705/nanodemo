@@ -1,0 +1,33 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="compare_vote_hint">Which one answered best? Pick it below: it adds to the wins in Statistics.</string>
+    <string name="compare_prompt_placeholder">Same prompt to all %1$d engines…</string>
+    <string name="compare_recommended_prompts">Recommended prompts</string>
+    <string name="compare_title">Compare the %1$d engines</string>
+    <string name="compare_intro">Send the same prompt to all of them at once and see which answers better and faster. Write your own or pick one of the recommended prompts. Each engine uses its own parameters: with “Use this configuration on all” (in Parameters) you equalize them for a fair comparison.</string>
+    <string name="compare_status_writing">writing…</string>
+    <string name="compare_status_done">done</string>
+    <string name="compare_badge_fastest">⚡ fastest</string>
+    <string name="compare_badge_tokens">🚀 most tokens/s</string>
+    <string name="compare_best_answer">★ Best answer</string>
+    <string name="compare_pick_best">☆ Pick as the best</string>
+    <string name="compare_error">Error: %1$s</string>
+    <string name="compare_unavailable">Unavailable</string>
+    <string name="compare_waiting">Waiting…</string>
+    <string name="prompt_summary_name">Summary</string>
+    <string name="prompt_summary_text">Summarize what quantum computing is in 3 bullet points.</string>
+    <string name="prompt_code_name">Code</string>
+    <string name="prompt_code_text">Write a Kotlin function that reverses a linked list.</string>
+    <string name="prompt_translation_name">Translation</string>
+    <string name="prompt_translation_text">Translate into Spanish: \"On-device artificial intelligence changes the rules of the game.\"</string>
+    <string name="prompt_reasoning_name">Reasoning</string>
+    <string name="prompt_reasoning_text">If a train leaves at 14:00 at 80 km/h and another leaves at 14:30 at 100 km/h in the same direction, when does the second catch up?</string>
+    <string name="prompt_extraction_name">Extraction</string>
+    <string name="prompt_extraction_text">Extract name, date and amount from: \"John Smith paid $4500 on 03/12/2026.\"</string>
+    <string name="prompt_creativity_name">Creativity</string>
+    <string name="prompt_creativity_text">Write a 3-line micro-story about a robot that learns to dream.</string>
+    <string name="prompt_classification_name">Classification</string>
+    <string name="prompt_classification_text">Classify this message as spam or not spam: \"You won a prize, click here now!!!\"</string>
+    <string name="prompt_instructions_name">Instructions</string>
+    <string name="prompt_instructions_text">Explain step by step how to change a car wheel.</string>
+</resources>

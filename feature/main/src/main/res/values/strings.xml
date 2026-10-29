@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="destination_chat">Chat</string>
+    <string name="destination_compare">Compare</string>
+    <string name="destination_history">History</string>
+    <string name="destination_stats">Statistics</string>
+    <string name="drawer_engine">Engine: %1$s</string>
+    <string name="drawer_new_conversation">New conversation</string>
+    <string name="drawer_recents">Recent</string>
+    <string name="drawer_settings">Settings</string>
+    <string name="nav_menu">Menu</string>
+    <string name="settings_device">Device</string>
+    <string name="settings_parameters">Parameters</string>
+    <string name="settings_usage">Usage and limits</string>
+</resources>

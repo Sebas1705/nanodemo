@@ -1,5 +1,6 @@
 package es.sebas1705.nanodemo.feature.device
 
+import androidx.annotation.StringRes
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -14,6 +15,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
@@ -35,22 +37,23 @@ import es.sebas1705.nanodemo.domain.models.TierCapabilities
 import java.util.Locale
 
 /** Lo que sabemos de este dispositivo en concreto, para interpretar los resultados con contexto. */
-private val CAPABILITY_ROWS: List<Pair<String, (TierCapabilities) -> Boolean>> = listOf(
-    "Temperature" to { it.temperature },
-    "Top-K" to { it.topK },
-    "Top-P" to { it.topP },
-    "Max output tokens" to { it.maxOutputTokens },
-    "System prompt" to { it.systemPrompt },
-    "Multi-turno" to { it.multiTurn },
-    "Imágenes" to { it.images },
+private val CAPABILITY_ROWS: List<Pair<Int, (TierCapabilities) -> Boolean>> = listOf(
+    R.string.device_cap_temperature to { it.temperature },
+    R.string.device_cap_top_k to { it.topK },
+    R.string.device_cap_top_p to { it.topP },
+    R.string.device_cap_max_tokens to { it.maxOutputTokens },
+    R.string.device_cap_system_prompt to { it.systemPrompt },
+    R.string.device_cap_multi_turn to { it.multiTurn },
+    R.string.device_cap_images to { it.images },
 )
 
-private fun TierAvailability.displayText(): String = when (this) {
-    TierAvailability.AVAILABLE -> "Disponible"
-    TierAvailability.DOWNLOADABLE -> "Descargable"
-    TierAvailability.UNAVAILABLE -> "No disponible"
-    TierAvailability.CHECKING -> "Comprobando…"
-    TierAvailability.UNKNOWN -> "Sin comprobar"
+@StringRes
+private fun TierAvailability.displayTextRes(): Int = when (this) {
+    TierAvailability.AVAILABLE -> R.string.device_availability_available
+    TierAvailability.DOWNLOADABLE -> R.string.device_availability_downloadable
+    TierAvailability.UNAVAILABLE -> R.string.device_availability_unavailable
+    TierAvailability.CHECKING -> R.string.device_availability_checking
+    TierAvailability.UNKNOWN -> R.string.device_availability_unknown
 }
 
 /**
@@ -70,12 +73,12 @@ fun DeviceScreen(viewModel: DeviceViewModel = hiltViewModel()) {
         verticalArrangement = Arrangement.spacedBy(12.dp),
     ) {
         AppCard(modifier = Modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-            InfoRow("RAM total", String.format(Locale.US, "%.1f GB", ramGb))
-            InfoRow("¿Alcanza para MediaPipe (~4GB+)?", if (ramGb >= 4.0) "Sí" else "No")
-            InfoRow("Conectividad", if (hasInternet) "Con internet" else "Sin conexión")
+            InfoRow(stringResource(R.string.device_total_ram), String.format(Locale.US, "%.1f GB", ramGb))
+            InfoRow(stringResource(R.string.device_enough_for_mediapipe), stringResource(if (ramGb >= 4.0) R.string.device_yes else R.string.device_no))
+            InfoRow(stringResource(R.string.device_connectivity), stringResource(if (hasInternet) R.string.device_online else R.string.device_offline))
         }
 
-        SectionLabel("Disponibilidad actual")
+        SectionLabel(stringResource(R.string.device_current_availability))
         AppCard(modifier = Modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(10.dp)) {
             InferenceTier.entries.forEach { tier ->
                 val tierAvailability = availability[tier] ?: TierAvailability.UNKNOWN
@@ -92,7 +95,7 @@ fun DeviceScreen(viewModel: DeviceViewModel = hiltViewModel()) {
                         modifier = Modifier.weight(1f),
                     )
                     Text(
-                        tierAvailability.displayText(),
+                        stringResource(tierAvailability.displayTextRes()),
                         style = MaterialTheme.typography.bodyMedium,
                         color = if (tierAvailability == TierAvailability.AVAILABLE) tier.signalColor else DemoColors.Muted,
                     )
@@ -100,25 +103,24 @@ fun DeviceScreen(viewModel: DeviceViewModel = hiltViewModel()) {
             }
         }
 
-        SectionLabel("Qué soporta cada motor")
+        SectionLabel(stringResource(R.string.device_what_each_supports))
         CapabilitiesTable(viewModel)
 
-        SectionLabel("Diagnóstico (Crashlytics y Analytics)")
+        SectionLabel(stringResource(R.string.device_diagnostics))
         AppCard(modifier = Modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(8.dp)) {
             Text(
-                "Para comprobar que los eventos y errores llegan a la consola de Firebase. El crash " +
-                    "real se envía la próxima vez que abras la app.",
+                stringResource(R.string.device_diagnostics_hint),
                 style = MaterialTheme.typography.bodySmall,
                 color = DemoColors.Muted,
             )
             OutlinedButton(onClick = viewModel::sendTestEvent, modifier = Modifier.fillMaxWidth()) {
-                Text("Enviar evento de analytics de prueba")
+                Text(stringResource(R.string.device_send_test_event))
             }
             OutlinedButton(onClick = viewModel::sendTestNonFatal, modifier = Modifier.fillMaxWidth()) {
-                Text("Enviar error no fatal de prueba")
+                Text(stringResource(R.string.device_send_test_non_fatal))
             }
             OutlinedButton(onClick = { viewModel.forceTestCrash() }, modifier = Modifier.fillMaxWidth()) {
-                Text("Forzar crash de prueba")
+                Text(stringResource(R.string.device_force_test_crash))
             }
         }
     }
@@ -150,7 +152,7 @@ private fun CapabilitiesTable(viewModel: DeviceViewModel) {
             CAPABILITY_ROWS.forEach { (label, supports) ->
                 val supported = supports(capabilities)
                 Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
-                    Text(label, style = MaterialTheme.typography.bodyMedium, color = DemoColors.Ink)
+                    Text(stringResource(label), style = MaterialTheme.typography.bodyMedium, color = DemoColors.Ink)
                     Text(
                         if (supported) "✓" else "✗",
                         style = readoutStyle,

@@ -1,0 +1,36 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="chat_pick_engine">Choose which engine to talk to</string>
+    <string name="chat_model">Model</string>
+    <string name="chat_model_size">%1$s (%2$s)</string>
+    <string name="chat_model_hint_gemma3_1b">~530 MB · faster</string>
+    <string name="chat_model_hint_gemma2_2b">~2.7 GB · more capable</string>
+    <string name="chat_attached_image">Attached image</string>
+    <string name="chat_copy_answer">Copy answer</string>
+    <string name="chat_suggestion_about">What is this app and which tiers does it have?</string>
+    <string name="chat_suggestion_time">What time is it in Tokyo right now?</string>
+    <string name="chat_suggestion_json">Give me a JSON with 3 countries and their capitals</string>
+    <string name="chat_suggestion_agent">Explain in one sentence what an AI agent is</string>
+    <string name="chat_how_can_i_help">How can I help?</string>
+    <string name="chat_talking_to">Talking to %1$s</string>
+    <string name="chat_checking_availability">Checking availability of %1$s…</string>
+    <string name="chat_download_model">Download model</string>
+    <string name="chat_downloading">Downloading %1$s… %2$d%%</string>
+    <string name="chat_preparing">Preparing %1$s… (this may take a while)</string>
+    <string name="chat_message_placeholder">Type a message…</string>
+    <string name="chat_image_to_attach">Image to attach</string>
+    <string name="chat_remove_image">Remove image</string>
+    <string name="chat_attach">Attach</string>
+    <string name="chat_attach_image">Attach image</string>
+    <string name="chat_paste_link">Paste a link</string>
+    <string name="chat_attach_confirm">Attach</string>
+    <string name="chat_cancel">Cancel</string>
+    <string name="chat_accelerator">Accelerator</string>
+    <string name="chat_accelerator_hint">Changing it reloads the model and starts a new conversation. GPU is usually faster but does not work on every device; if it fails, it falls back to CPU.</string>
+    <string name="chat_summarize_this">Summarize this:</string>
+    <string name="chat_new_conversation">New conversation</string>
+    <string name="chat_json_valid">✓ Valid JSON</string>
+    <string name="chat_json_invalid">✗ Not valid JSON</string>
+    <string name="chat_context_full">~%1$d / %2$d · context full, start a new conversation</string>
+    <string name="chat_context_tokens">~%1$d / %2$d context tokens</string>
+</resources>

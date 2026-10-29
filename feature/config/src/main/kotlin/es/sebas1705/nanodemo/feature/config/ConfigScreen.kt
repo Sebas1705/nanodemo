@@ -13,7 +13,6 @@ import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Slider
 import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
-import androidx.compose.ui.Alignment
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
@@ -21,7 +20,9 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import es.sebas1705.nanodemo.core.designsystem.AppCard
@@ -57,7 +58,7 @@ fun ConfigScreen(viewModel: ConfigViewModel = hiltViewModel()) {
         verticalArrangement = Arrangement.spacedBy(12.dp),
     ) {
         Text(
-            "Cada motor guarda sus propios parámetros — elegí uno para ver o cambiar los suyos.",
+            stringResource(R.string.config_intro),
             style = MaterialTheme.typography.bodyMedium,
             color = DemoColors.Muted,
         )
@@ -70,8 +71,7 @@ fun ConfigScreen(viewModel: ConfigViewModel = hiltViewModel()) {
             }
         }
         Text(
-            "Editando ${selectedTier.label()} [${selectedTier.channelLetter()}]. En Comparar, " +
-                "cada tier aplica solo lo suyo (y solo lo que soporta, ver TierCapabilities).",
+            stringResource(R.string.config_editing, selectedTier.label(), selectedTier.channelLetter()),
             style = MaterialTheme.typography.bodySmall,
             color = DemoColors.Muted,
         )
@@ -82,21 +82,19 @@ fun ConfigScreen(viewModel: ConfigViewModel = hiltViewModel()) {
             onClick = { viewModel.applyToAll(selectedTier); copied = true },
             modifier = Modifier.fillMaxWidth(),
         ) {
-            Text(if (copied) "✓ Copiada a los demás motores" else "Usar esta configuración en todos los motores")
+            Text(stringResource(if (copied) R.string.config_copied_to_all else R.string.config_apply_to_all))
         }
         Text(
-            "Para comparar con parámetros iguales. Solo se copia lo que cada motor soporta; lo demás no se toca.",
+            stringResource(R.string.config_apply_to_all_hint),
             style = MaterialTheme.typography.bodySmall,
             color = DemoColors.Muted,
         )
 
-        SectionLabel("Generación")
+        SectionLabel(stringResource(R.string.config_section_generation))
         AppCard(modifier = Modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(16.dp)) {
             ConfigSlider(
-                label = "Temperature",
-                description = "Aleatoriedad de la respuesta. Cerca de 0: siempre elige la palabra " +
-                    "más probable (predecible, repetitivo). Cerca de 2: se anima con opciones " +
-                    "menos probables (más creativo, pero puede desvariar).",
+                label = stringResource(R.string.config_temperature),
+                description = stringResource(R.string.config_temperature_desc),
                 value = config.temperature ?: 1.0f,
                 range = 0f..2f,
                 enabled = capabilities.temperature,
@@ -105,9 +103,8 @@ fun ConfigScreen(viewModel: ConfigViewModel = hiltViewModel()) {
             )
             HorizontalDivider(color = DemoColors.Outline)
             ConfigSlider(
-                label = "Top-K",
-                description = "En cada palabra, el modelo solo puede elegir entre las K opciones " +
-                    "más probables. K bajo (ej. 5) = respuestas más conservadoras; K alto = más variedad.",
+                label = stringResource(R.string.config_top_k),
+                description = stringResource(R.string.config_top_k_desc),
                 value = (config.topK ?: 40).toFloat(),
                 range = 1f..100f,
                 enabled = capabilities.topK,
@@ -116,10 +113,8 @@ fun ConfigScreen(viewModel: ConfigViewModel = hiltViewModel()) {
             )
             HorizontalDivider(color = DemoColors.Outline)
             ConfigSlider(
-                label = "Top-P",
-                description = "Parecido a Top-K, pero en vez de un número fijo de opciones, corta " +
-                    "cuando la probabilidad acumulada llega a P (ej. 0.95 = las opciones que " +
-                    "suman el 95% de probabilidad). Muchos backends combinan Top-K y Top-P a la vez.",
+                label = stringResource(R.string.config_top_p),
+                description = stringResource(R.string.config_top_p_desc),
                 value = config.topP ?: 0.95f,
                 range = 0f..1f,
                 enabled = capabilities.topP,
@@ -128,9 +123,8 @@ fun ConfigScreen(viewModel: ConfigViewModel = hiltViewModel()) {
             )
             HorizontalDivider(color = DemoColors.Outline)
             ConfigSlider(
-                label = "Max output tokens",
-                description = "Tope de longitud de la respuesta, en tokens (~4 caracteres cada uno, " +
-                    "aproximado). El modelo puede terminar antes solo; esto es un techo, no un objetivo.",
+                label = stringResource(R.string.config_max_tokens),
+                description = stringResource(R.string.config_max_tokens_desc),
                 value = (config.maxOutputTokens ?: 512).toFloat(),
                 range = 16f..2048f,
                 enabled = capabilities.maxOutputTokens,
@@ -139,62 +133,48 @@ fun ConfigScreen(viewModel: ConfigViewModel = hiltViewModel()) {
             )
         }
 
-        SectionLabel("Instrucciones")
+        SectionLabel(stringResource(R.string.config_section_instructions))
         AppCard(modifier = Modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(6.dp)) {
             OutlinedTextField(
                 value = config.systemPrompt.orEmpty(),
                 onValueChange = { viewModel.updateConfig(selectedTier, config.copy(systemPrompt = it.ifBlank { null })) },
                 label = {
-                    Text(if (capabilities.systemPrompt) "System prompt" else "System prompt (no soportado en este tier)")
+                    Text(stringResource(if (capabilities.systemPrompt) R.string.config_system_prompt else R.string.config_system_prompt_unsupported))
                 },
                 enabled = capabilities.systemPrompt,
                 modifier = Modifier.fillMaxWidth(),
             )
             Text(
-                "Instrucción que se le da al modelo antes de cada prompt, para fijar su rol " +
-                    "o estilo de respuesta (ej. \"Respondé siempre en 2 oraciones\"). Se suma a un " +
-                    "contexto fijo que ya le cuenta al modelo qué es nanodemo, en los 5 tiers.",
+                stringResource(R.string.config_system_prompt_desc),
                 style = MaterialTheme.typography.bodySmall,
                 color = DemoColors.Muted,
             )
         }
 
-        SectionLabel("Capacidades")
+        SectionLabel(stringResource(R.string.config_section_capabilities))
         AppCard(modifier = Modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(16.dp)) {
             ConfigToggle(
-                title = "Modo JSON",
+                title = stringResource(R.string.config_json_mode),
                 supported = capabilities.structuredOutput,
                 checked = config.jsonMode,
                 onCheckedChange = { viewModel.updateConfig(selectedTier, config.copy(jsonMode = it)) },
-                description = "Le pide al modelo que devuelva JSON en vez de texto libre. Cloud y Firebase AI lo " +
-                    "garantizan (responseMimeType del API); Nano/MediaPipe/LiteRT-LM lo emulan por " +
-                    "prompt (sin garantía sintáctica, depende de que el modelo lo respete). En Chat se " +
-                    "marca si la respuesta terminó siendo JSON válido o no, en los 5 tiers.",
+                description = stringResource(R.string.config_json_mode_desc),
             )
             HorizontalDivider(color = DemoColors.Outline)
             ConfigToggle(
-                title = "Herramientas",
+                title = stringResource(R.string.config_tools),
                 supported = capabilities.functionCalling,
                 checked = config.functionCalling,
                 onCheckedChange = { viewModel.updateConfig(selectedTier, config.copy(functionCalling = it)) },
-                description = "Deja que el modelo pida la hora actual en una zona horaria en vez de inventarla — " +
-                    "no tiene reloj propio. Cloud y Firebase AI lo hacen nativo (la API tiene tool-calling " +
-                    "real); Nano/MediaPipe/LiteRT-LM lo emulan por prompt (menos confiable: depende de que " +
-                    "el modelo respete el formato pedido). En Chat se ve cuándo la usó.",
+                description = stringResource(R.string.config_tools_desc),
             )
             HorizontalDivider(color = DemoColors.Outline)
             ConfigToggle(
-                title = "Búsqueda en internet",
+                title = stringResource(R.string.config_web_search),
                 supported = capabilities.webSearch,
                 checked = config.webSearch,
                 onCheckedChange = { viewModel.updateConfig(selectedTier, config.copy(webSearch = it)) },
-                description = "Busca en internet antes de responder, para preguntas actuales que el modelo no puede saber. " +
-                    "Cloud/Firebase AI usan grounding nativo (Google Search de la propia API; el modelo decide " +
-                    "cuándo). Nano/MediaPipe/LiteRT-LM no tienen red propia: con esto activo la app SIEMPRE " +
-                    "busca (Brave Search API), lee un extracto de las primeras páginas y se lo pasa al modelo, que " +
-                    "responde con formato, citando [1], [2] y con la lista de fuentes clickeable abajo. Hace falta " +
-                    "configurar BRAVE_SEARCH_API_KEY, si no queda deshabilitada. Si también prendiste Herramientas, " +
-                    "esta gana (no se probaron juntas).",
+                description = stringResource(R.string.config_web_search_desc),
             )
         }
     }
@@ -215,7 +195,7 @@ private fun ConfigToggle(
             verticalAlignment = Alignment.CenterVertically,
         ) {
             Text(
-                if (supported) title else "$title (no soportado en este tier)",
+                if (supported) title else stringResource(R.string.config_unsupported_tier, title),
                 style = MaterialTheme.typography.bodyLarge,
                 color = if (supported) DemoColors.Ink else DemoColors.Muted,
                 modifier = Modifier.weight(1f),
@@ -239,7 +219,7 @@ private fun ConfigSlider(
     Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
         Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
             Text(
-                if (enabled) label else "$label (no soportado)",
+                if (enabled) label else stringResource(R.string.config_unsupported, label),
                 style = MaterialTheme.typography.bodyLarge,
                 color = if (enabled) DemoColors.Ink else DemoColors.Muted,
             )

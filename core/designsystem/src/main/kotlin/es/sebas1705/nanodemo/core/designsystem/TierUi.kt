@@ -1,6 +1,8 @@
 package es.sebas1705.nanodemo.core.designsystem
 
+import androidx.compose.runtime.Composable
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.res.stringResource
 import es.sebas1705.nanodemo.core.ui.DemoColors
 import es.sebas1705.nanodemo.domain.models.DemoState
 import es.sebas1705.nanodemo.domain.models.InferenceTier
@@ -35,35 +37,24 @@ fun InferenceTier.channelLetter(): String = when (this) {
     InferenceTier.FIREBASE_AI -> "E"
 }
 
-fun InferenceTier.unavailableMessage(): String = when (this) {
-    InferenceTier.ML_KIT_NANO ->
-        "Gemini Nano no está disponible en este dispositivo. Necesitas un móvil " +
-            "flagship de 2026 con ≥12GB de RAM (p.ej. Pixel 10 o Galaxy S26) y " +
-            "Google Play Services actualizado."
-    InferenceTier.MEDIAPIPE_LOCAL ->
-        "Este dispositivo no tiene RAM suficiente (~4GB+) para correr un modelo " +
-            "Gemma local con MediaPipe."
-    InferenceTier.CLOUD_GEMINI ->
-        "Falta configurar GEMINI_API_KEY en local.properties, o no hay conexión " +
-            "a internet."
-    InferenceTier.LITERT_LM_LOCAL ->
-        "Este dispositivo no tiene RAM suficiente (~6GB+) para correr Gemma 4 " +
-            "con LiteRT-LM."
-    InferenceTier.FIREBASE_AI ->
-        "Falta configurar FIREBASE_API_KEY, FIREBASE_APP_ID y FIREBASE_PROJECT_ID " +
-            "en local.properties (de un proyecto de Firebase con Firebase AI Logic " +
-            "habilitado), o no hay conexión a internet."
-}
+@Composable
+fun InferenceTier.unavailableMessage(): String = stringResource(
+    when (this) {
+        InferenceTier.ML_KIT_NANO -> R.string.tier_unavailable_nano
+        InferenceTier.MEDIAPIPE_LOCAL -> R.string.tier_unavailable_mediapipe
+        InferenceTier.CLOUD_GEMINI -> R.string.tier_unavailable_cloud
+        InferenceTier.LITERT_LM_LOCAL -> R.string.tier_unavailable_litertlm
+        InferenceTier.FIREBASE_AI -> R.string.tier_unavailable_firebase
+    },
+)
 
+@Composable
 fun InferenceTier.downloadableMessage(): String = when (this) {
-    InferenceTier.ML_KIT_NANO -> "El modelo está disponible pero aún no se ha descargado."
-    InferenceTier.MEDIAPIPE_LOCAL ->
-        "Falta el modelo Gemma (.task) — se puede descargar (unos cientos de MB)."
-    InferenceTier.CLOUD_GEMINI -> "" // Este tier nunca queda en estado Downloadable.
-    InferenceTier.LITERT_LM_LOCAL ->
-        "Falta el modelo Gemma 4 E2B (.litertlm, ~2.6 GB) — se descarga directo de " +
-            "Hugging Face, sin login."
-    InferenceTier.FIREBASE_AI -> "" // Nube: nunca queda en estado Downloadable.
+    InferenceTier.ML_KIT_NANO -> stringResource(R.string.tier_downloadable_nano)
+    InferenceTier.MEDIAPIPE_LOCAL -> stringResource(R.string.tier_downloadable_mediapipe)
+    InferenceTier.CLOUD_GEMINI -> "" // This tier never ends up in the Downloadable state.
+    InferenceTier.LITERT_LM_LOCAL -> stringResource(R.string.tier_downloadable_litertlm)
+    InferenceTier.FIREBASE_AI -> "" // Cloud: never ends up in the Downloadable state.
 }
 
 /** Fases amplias de `DemoState`, para animar sin retriggerear en cada chunk de streaming. */

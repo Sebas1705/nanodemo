@@ -10,6 +10,7 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import es.sebas1705.nanodemo.core.common.SEARCH_CONTEXT_OVERHEAD_TOKENS
 import es.sebas1705.nanodemo.core.common.SEARCH_CONTEXT_OVERHEAD_TOKENS_COMPACT
@@ -66,7 +67,7 @@ internal fun ContextMeter(usedTokens: Int, maxTokens: Int, modifier: Modifier = 
             modifier = Modifier.weight(1f),
         )
         Text(
-            if (fraction >= 1f) "~$usedTokens / $maxTokens · contexto lleno, empezá una conversación nueva" else "~$usedTokens / $maxTokens tokens de contexto",
+            if (fraction >= 1f) stringResource(R.string.chat_context_full, usedTokens, maxTokens) else stringResource(R.string.chat_context_tokens, usedTokens, maxTokens),
             style = MaterialTheme.typography.labelSmall,
             color = color,
         )

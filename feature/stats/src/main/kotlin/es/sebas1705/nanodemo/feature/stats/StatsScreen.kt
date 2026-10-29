@@ -3,8 +3,6 @@ package es.sebas1705.nanodemo.feature.stats
 import android.content.Context
 import android.content.Intent
 import androidx.compose.foundation.background
-
-
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -37,17 +35,17 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
-
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import es.sebas1705.nanodemo.core.designsystem.AdaptiveGrid
 import es.sebas1705.nanodemo.core.designsystem.AppCard
 import es.sebas1705.nanodemo.core.designsystem.EmptyState
+import es.sebas1705.nanodemo.core.designsystem.ScreenSizeClass
 import es.sebas1705.nanodemo.core.designsystem.TierAvatar
 import es.sebas1705.nanodemo.core.designsystem.label
 import es.sebas1705.nanodemo.core.designsystem.signalColor
-import es.sebas1705.nanodemo.core.designsystem.ScreenSizeClass
 import es.sebas1705.nanodemo.core.designsystem.tierColumns
 import es.sebas1705.nanodemo.core.ui.DemoColors
 import es.sebas1705.nanodemo.core.ui.readoutStyle
@@ -80,13 +78,13 @@ fun StatsScreen(sizeClass: ScreenSizeClass, viewModel: StatsViewModel = hiltView
         if (metrics.isNotEmpty()) {
             Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
                 if (votes.values.any { it.appearances > 0 }) {
-                    TextButton(onClick = viewModel.clearVotes::invoke) { Text("Reiniciar votos") }
+                    TextButton(onClick = viewModel.clearVotes::invoke) { Text(stringResource(R.string.stats_reset_votes)) }
                 } else {
                     Spacer(Modifier.size(1.dp))
                 }
                 TextButton(onClick = { exportAndShare(viewModel, context) }) {
                     Icon(Icons.Filled.Share, contentDescription = null, modifier = Modifier.size(18.dp))
-                    Text("  Exportar CSV")
+                    Text("  " + stringResource(R.string.stats_export_csv))
                 }
             }
         }
@@ -96,8 +94,8 @@ fun StatsScreen(sizeClass: ScreenSizeClass, viewModel: StatsViewModel = hiltView
         if (metrics.isEmpty()) {
             EmptyState(
                 icon = Icons.Filled.BarChart,
-                title = "Todavía no hay métricas",
-                message = "Probá un prompt en Chat o en Comparar y acá vas a ver la latencia, velocidad y costo de cada motor.",
+                title = stringResource(R.string.stats_empty_title),
+                message = stringResource(R.string.stats_empty_message),
             )
             return@Column
         }
@@ -112,27 +110,15 @@ fun StatsScreen(sizeClass: ScreenSizeClass, viewModel: StatsViewModel = hiltView
     }
 }
 
-private val METRIC_HELP: List<Pair<String, String>> = listOf(
-    "Latencia prom." to "Tiempo total promedio desde que se envía el prompt hasta que llega " +
-        "la última palabra de la respuesta.",
-    "p50 / p95" to "Percentiles: p50 = la mitad de las corridas fueron más rápidas que este " +
-        "valor. p95 = el 95% lo fueron. Sirven para ver consistencia, no solo el promedio " +
-        "(un tier con p95 mucho más alto que su p50 es \"impredecible\").",
-    "Velocidad" to "Caracteres de la respuesta generados por segundo, en promedio.",
-    "Tokens" to "Cantidad de tokens (unidades de texto que procesa el modelo, no exactamente " +
-        "palabras) de la respuesta. Real cuando el backend lo expone (MediaPipe, Cloud); " +
-        "aproximado (caracteres/4) en ML Kit Nano.",
-    "Éxito" to "Cuántas de las corridas contra este tier terminaron sin error, sobre el total.",
-    "Carga del modelo" to "Solo MediaPipe y LiteRT-LM: lo que tarda en cargar el modelo la primera vez tras abrir " +
-        "la app o cambiar de motor. Va aparte y NO está sumado a la latencia ni a la velocidad, para que " +
-        "comparar velocidades no mezcle \"cargar\" con \"generar\" (las corridas guardadas antes de esta " +
-        "versión sí lo traen sumado, sin separar).",
-    "Mejor respuesta" to "En Comparar podés elegir cuál respondió mejor. Acá se ve en cuántas rondas votadas " +
-        "ganó cada motor, de las que participó: es tu preferencia, el complemento de las métricas objetivas.",
-    "Costo (estimado)" to "Solo Cloud y Firebase AI (los tiers en la nube) lo muestran — los " +
-        "on-device no llaman a ninguna API paga, cuestan \$0. Se calcula con el precio público de " +
-        "Gemini Flash (entrada/salida) y una aproximación de tokens del prompt (caracteres/4, no " +
-        "hay conteo exacto de entrada); tratalo como orden de magnitud, no como factura real.",
+private val METRIC_HELP: List<Pair<Int, Int>> = listOf(
+    R.string.stats_help_latency to R.string.stats_help_latency_desc,
+    R.string.stats_help_percentiles to R.string.stats_help_percentiles_desc,
+    R.string.stats_help_speed to R.string.stats_help_speed_desc,
+    R.string.stats_help_tokens to R.string.stats_help_tokens_desc,
+    R.string.stats_help_success to R.string.stats_help_success_desc,
+    R.string.stats_help_load to R.string.stats_help_load_desc,
+    R.string.stats_help_best to R.string.stats_help_best_desc,
+    R.string.stats_help_cost to R.string.stats_help_cost_desc,
 )
 
 @Composable
@@ -144,7 +130,7 @@ private fun HelpPanel() {
             horizontalArrangement = Arrangement.SpaceBetween,
             verticalAlignment = Alignment.CenterVertically,
         ) {
-            Text("¿Qué significa cada métrica?", style = MaterialTheme.typography.titleSmall, color = DemoColors.Ink)
+            Text(stringResource(R.string.stats_help_title), style = MaterialTheme.typography.titleSmall, color = DemoColors.Ink)
             Icon(
                 if (expanded) Icons.Filled.KeyboardArrowUp else Icons.Filled.KeyboardArrowDown,
                 contentDescription = null,
@@ -154,8 +140,8 @@ private fun HelpPanel() {
         if (expanded) {
             METRIC_HELP.forEach { (label, help) ->
                 Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
-                    Text(label, style = MaterialTheme.typography.bodyMedium, color = DemoColors.Ink, fontWeight = FontWeight.SemiBold)
-                    Text(help, style = MaterialTheme.typography.bodySmall, color = DemoColors.Muted)
+                    Text(stringResource(label), style = MaterialTheme.typography.bodyMedium, color = DemoColors.Ink, fontWeight = FontWeight.SemiBold)
+                    Text(stringResource(help), style = MaterialTheme.typography.bodySmall, color = DemoColors.Muted)
                 }
             }
         }
@@ -170,7 +156,7 @@ private fun exportAndShare(viewModel: StatsViewModel, context: Context) {
             putExtra(Intent.EXTRA_STREAM, uri)
             addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
         }
-        context.startActivity(Intent.createChooser(intent, "Compartir estadísticas"))
+        context.startActivity(Intent.createChooser(intent, context.getString(R.string.stats_share_title)))
     }
 }
 
@@ -258,7 +244,7 @@ private fun StatCard(tier: InferenceTier, stat: TierStat, tally: VoteTally?, max
                     style = MaterialTheme.typography.titleLarge,
                     color = tier.signalColor,
                 )
-                Text("latencia prom.", style = MaterialTheme.typography.labelSmall, color = DemoColors.Muted)
+                Text(stringResource(R.string.stats_avg_latency_short), style = MaterialTheme.typography.labelSmall, color = DemoColors.Muted)
             }
         }
 
@@ -276,19 +262,19 @@ private fun StatCard(tier: InferenceTier, stat: TierStat, tally: VoteTally?, max
             )
         }
 
-        StatRow("p50 / p95", String.format(Locale.US, "%.1fs / %.1fs", stat.p50Ms / 1000, stat.p95Ms / 1000))
-        StatRow("Velocidad", String.format(Locale.US, "%.0f c/s", stat.charsPerSec))
+        StatRow(stringResource(R.string.stats_help_percentiles), String.format(Locale.US, "%.1fs / %.1fs", stat.p50Ms / 1000, stat.p95Ms / 1000))
+        StatRow(stringResource(R.string.stats_help_speed), String.format(Locale.US, "%.0f c/s", stat.charsPerSec))
         StatRow(
-            "Tokens",
-            String.format(Locale.US, "%.0f%s", stat.avgTokens, if (stat.tokensExact) "" else " (aprox.)"),
+            stringResource(R.string.stats_help_tokens),
+            String.format(Locale.US, "%.0f%s", stat.avgTokens, if (stat.tokensExact) "" else " " + stringResource(R.string.stats_approx)),
         )
-        StatRow("Éxito", "${stat.successCount}/${stat.totalCount}")
-        stat.avgLoadMs?.let { StatRow("Carga del modelo", String.format(Locale.US, "%.1fs", it / 1000)) }
+        StatRow(stringResource(R.string.stats_help_success), "${stat.successCount}/${stat.totalCount}")
+        stat.avgLoadMs?.let { StatRow(stringResource(R.string.stats_help_load), String.format(Locale.US, "%.1fs", it / 1000)) }
         tally?.winRate?.let { rate ->
-            StatRow("Mejor respuesta", "${tally.wins} de ${tally.appearances} (${(rate * 100).toInt()}%)")
+            StatRow(stringResource(R.string.stats_help_best), stringResource(R.string.stats_best_value, tally.wins, tally.appearances, (rate * 100).toInt()))
         }
         if (stat.totalCostUsd != null) {
-            StatRow("Costo (estimado)", String.format(Locale.US, "\$%.4f", stat.totalCostUsd))
+            StatRow(stringResource(R.string.stats_help_cost), String.format(Locale.US, "\$%.4f", stat.totalCostUsd))
         }
     }
 }

@@ -13,6 +13,7 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import es.sebas1705.nanodemo.core.ui.DemoColors
 import es.sebas1705.nanodemo.feature.config.ConfigScreen
@@ -46,13 +47,13 @@ fun SettingsSheet(onDismiss: () -> Unit) {
             verticalArrangement = Arrangement.spacedBy(24.dp),
         ) {
             Text(
-                text = "Ajustes",
+                text = stringResource(R.string.drawer_settings),
                 style = MaterialTheme.typography.headlineSmall,
                 color = DemoColors.Ink,
             )
-            SettingsSection("Dispositivo") { DeviceScreen() }
-            SettingsSection("Parámetros") { ConfigScreen() }
-            SettingsSection("Uso y límites") { UsageLimitsScreen() }
+            SettingsSection(stringResource(R.string.settings_device)) { DeviceScreen() }
+            SettingsSection(stringResource(R.string.settings_parameters)) { ConfigScreen() }
+            SettingsSection(stringResource(R.string.settings_usage)) { UsageLimitsScreen() }
         }
     }
 }

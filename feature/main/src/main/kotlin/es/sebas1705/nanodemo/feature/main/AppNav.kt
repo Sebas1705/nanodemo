@@ -33,6 +33,7 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.viewmodel.navigation3.rememberViewModelStoreNavEntryDecorator
@@ -125,7 +126,7 @@ fun AppNav(initialSharedText: String? = null, mainViewModel: MainViewModel = hil
             Scaffold(
                 topBar = {
                     ChannelTopBar(
-                        title = currentDestination?.label ?: "",
+                        title = currentDestination?.let { stringResource(it.labelRes) }.orEmpty(),
                         activeTier = activeTier,
                         availability = topBarTier,
                         onOpenMenu = { scope.launch { drawerState.open() } },
@@ -151,7 +152,7 @@ fun AppNav(initialSharedText: String? = null, mainViewModel: MainViewModel = hil
         ) {
             Column(Modifier.fillMaxSize()) {
                 ChannelTopBar(
-                    title = currentDestination?.label ?: "",
+                    title = currentDestination?.let { stringResource(it.labelRes) }.orEmpty(),
                     activeTier = activeTier,
                     availability = topBarTier,
                     onOpenMenu = null,
@@ -195,7 +196,7 @@ private fun ChannelTopBar(
         Row(verticalAlignment = Alignment.CenterVertically) {
             onOpenMenu?.let {
                 IconButton(onClick = it) {
-                    Icon(Icons.Filled.Menu, contentDescription = "Menú", tint = DemoColors.Ink)
+                    Icon(Icons.Filled.Menu, contentDescription = stringResource(R.string.nav_menu), tint = DemoColors.Ink)
                 }
             }
             Text(

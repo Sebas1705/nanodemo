@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="tier_unavailable_nano">Gemini Nano no está disponible en este dispositivo. Necesitas un móvil flagship de 2026 con ≥12GB de RAM (p.ej. Pixel 10 o Galaxy S26) y Google Play Services actualizado.</string>
+    <string name="tier_unavailable_mediapipe">Este dispositivo no tiene RAM suficiente (~4GB+) para correr un modelo Gemma local con MediaPipe.</string>
+    <string name="tier_unavailable_cloud">Falta configurar GEMINI_API_KEY en local.properties, o no hay conexión a internet.</string>
+    <string name="tier_unavailable_litertlm">Este dispositivo no tiene RAM suficiente (~6GB+) para correr Gemma 4 con LiteRT-LM.</string>
+    <string name="tier_unavailable_firebase">Falta configurar FIREBASE_API_KEY, FIREBASE_APP_ID y FIREBASE_PROJECT_ID en local.properties (de un proyecto de Firebase con Firebase AI Logic habilitado), o no hay conexión a internet.</string>
+    <string name="tier_downloadable_nano">El modelo está disponible pero aún no se ha descargado.</string>
+    <string name="tier_downloadable_mediapipe">Falta el modelo Gemma (.task) — se puede descargar (unos cientos de MB).</string>
+    <string name="tier_downloadable_litertlm">Falta el modelo Gemma 4 E2B (.litertlm, ~2.6 GB) — se descarga directo de Hugging Face, sin login.</string>
+    <string name="ds_send">Enviar</string>
+    <string name="ds_code">código</string>
+    <string name="ds_copy_code">Copiar código</string>
+    <string name="metrics_load">carga</string>
+</resources>
