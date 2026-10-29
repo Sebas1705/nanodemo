@@ -54,6 +54,11 @@ android {
 
     buildTypes {
         getByName("release") {
+            // R8: minifica y ofusca el código y elimina resources sin usar. Las reglas propias están en
+            // proguard-rules.pro; las de cada librería (Hilt, Room, Compose, Firebase...) llegan por consumer rules.
+            isMinifyEnabled = true
+            isShrinkResources = true
+            proguardFiles(getDefaultProguardFile("proguard-android-optimize.txt"), "proguard-rules.pro")
             // Sin keystore de CI (build local) se firma con la de debug, así `assembleRelease`
             // funciona en cualquier máquina sin configurar nada.
             signingConfig = signingConfigs.getByName(if (ciKeystorePath != null) "ci" else "debug")
