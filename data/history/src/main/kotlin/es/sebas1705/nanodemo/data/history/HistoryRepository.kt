@@ -51,11 +51,11 @@ class HistoryRepository @Inject constructor(
         val id = conversationId ?: dao.insertConversation(
             ConversationEntity(
                 tier = tier.name,
+                // Sin texto queda vacío: el título por defecto lo pone la UI en su idioma (`Conversation.isUntitled`).
                 title = newMessages.firstOrNull { it.role == Role.USER }
                     ?.text
                     ?.take(TITLE_MAX_CHARS)
-                    ?.ifBlank { null }
-                    ?: "Conversación",
+                    .orEmpty(),
                 createdAtMs = now,
                 updatedAtMs = now,
             )

@@ -2,12 +2,15 @@ package es.sebas1705.nanodemo.data.firebaseai
 
 import android.content.Context
 import android.util.Log
+import es.sebas1705.nanodemo.core.common.AppTexts
+import es.sebas1705.nanodemo.core.common.AppTextsProvider
 import es.sebas1705.nanodemo.core.common.DemoTools
 import es.sebas1705.nanodemo.core.common.QuotaService
-import es.sebas1705.nanodemo.core.common.SEARCH_ANSWER_FORMAT
 import es.sebas1705.nanodemo.core.common.UsageQuota
 import es.sebas1705.nanodemo.core.common.appContextPreamble
+import es.sebas1705.nanodemo.core.common.groundingMarker
 import es.sebas1705.nanodemo.core.common.hasInternetConnection
+import es.sebas1705.nanodemo.core.common.toolMarker
 import es.sebas1705.nanodemo.domain.models.ChatMessage
 import es.sebas1705.nanodemo.domain.models.GenerationConfig
 import es.sebas1705.nanodemo.domain.models.InferenceBackend
@@ -68,6 +71,7 @@ private const val CLOUD_MODEL = "gemini-3.5-flash"
 class FirebaseAiBackend @Inject constructor(
     @param:ApplicationContext private val context: Context,
     private val firebase: FirebaseBootstrap,
+    private val textsProvider: AppTextsProvider,
 ) : InferenceBackend {
 
     override val capabilities = TierCapabilities(
@@ -86,10 +90,8 @@ class FirebaseAiBackend @Inject constructor(
     private var lastResponseTokens: Int? = null
 
     /** Garantiza la `FirebaseApp` "default" (la que usa `Firebase.ai`); normalmente ya la creó `Application`. */
-    private fun ensureInitialized() {
-        check(firebase.ensureInitialized()) {
-            "Falta FIREBASE_API_KEY / FIREBASE_APP_ID / FIREBASE_PROJECT_ID (Doppler o local.properties)"
-        }
+    private fun ensureInitialized(texts: AppTexts) {
+        check(firebase.ensureInitialized()) { texts.errorMissingFirebaseConfig }
     }
 
     override suspend fun checkAvailability(): TierAvailability {
@@ -108,9 +110,10 @@ class FirebaseAiBackend @Inject constructor(
      */
     override fun generateContentStream(history: List<ChatMessage>, config: GenerationConfig): Flow<String> = flow {
         lastResponseTokens = null
-        ensureInitialized()
+        val texts = textsProvider.current()
+        ensureInitialized(texts)
 
-        val model = buildModel(config)
+        val model = buildModel(config, texts)
         val contents = history.map { it.toFirebaseContent() }
 
         Log.d(TAG, "generateContentStream: $CLOUD_MODEL, ${contents.size} turnos")
@@ -118,10 +121,10 @@ class FirebaseAiBackend @Inject constructor(
         val functionCall = result.functionCall
         if (functionCall != null) {
             Log.d(TAG, "generateContentStream: pidió la función ${functionCall.name}")
-            emit("🔧 usando \"${functionCall.name}\"…\n\n")
+            emit(toolMarker(texts.usingToolNotice(functionCall.name)))
             // Sin parámetros en esta declaración (ver currentTimeDeclaration): siempre la zona del
             // dispositivo, no la que elija el modelo.
-            val toolResult = DemoTools.executeCurrentTime(java.time.ZoneId.systemDefault().id)
+            val toolResult = DemoTools.executeCurrentTime(java.time.ZoneId.systemDefault().id, texts)
             val extraTurns = listOf(
                 Content(role = "model", parts = listOf(functionCall)),
                 // "user" (no "function"): así lo documenta ai.google.dev/api/generate-content para
@@ -142,11 +145,11 @@ class FirebaseAiBackend @Inject constructor(
         result.grounding?.let { grounding ->
             Log.d(TAG, "generateContentStream: grounding con ${grounding.sourceCount} fuente(s)")
             val queries = grounding.queries.joinToString { "\"$it\"" }
-            emit("\n\n🔎 Grounded con Google Search ($queries) — ${grounding.sourceCount} fuente(s)")
+            emit(groundingMarker(texts.groundingNotice(queries, grounding.sourceCount)))
         }
     }.flowOn(Dispatchers.IO)
 
-    private fun buildModel(config: GenerationConfig): com.google.firebase.ai.GenerativeModel {
+    private fun buildModel(config: GenerationConfig, texts: AppTexts): com.google.firebase.ai.GenerativeModel {
         val generationConfig = FirebaseGenerationConfig.builder()
             .setTemperature(config.temperature)
             .setTopK(config.topK)
@@ -160,14 +163,14 @@ class FirebaseAiBackend @Inject constructor(
         // Tier C (no probado combinar Tool.googleSearch() con Tool.functionDeclarations() a la vez).
         val tools = when {
             config.webSearch -> listOf(Tool.googleSearch())
-            config.functionCalling -> listOf(Tool.functionDeclarations(listOf(currentTimeDeclaration())))
+            config.functionCalling -> listOf(Tool.functionDeclarations(listOf(currentTimeDeclaration(texts))))
             else -> null
         }
         return Firebase.ai(backend = GenerativeBackend.googleAI()).generativeModel(
             modelName = CLOUD_MODEL,
             generationConfig = generationConfig,
             systemInstruction = content {
-                text(listOfNotNull(appContextPreamble(), config.systemPrompt, SEARCH_ANSWER_FORMAT.takeIf { config.webSearch }).joinToString("\n\n"))
+                text(listOfNotNull(appContextPreamble(texts), config.systemPrompt, texts.searchAnswerFormat.takeIf { config.webSearch }).joinToString("\n\n"))
             },
             tools = tools,
         )
@@ -180,9 +183,9 @@ class FirebaseAiBackend @Inject constructor(
      * que esta declaración no toma parámetros: usa siempre la zona horaria del dispositivo. El Tier
      * C (REST directo, JSON crudo sin esta limitación) sí deja que el modelo elija la zona.
      */
-    private fun currentTimeDeclaration(): FunctionDeclaration = FunctionDeclaration(
+    private fun currentTimeDeclaration(texts: AppTexts): FunctionDeclaration = FunctionDeclaration(
         name = DemoTools.GET_CURRENT_TIME,
-        description = "${DemoTools.CURRENT_TIME_DESCRIPTION} Siempre en la zona horaria del dispositivo.",
+        description = "${texts.currentTimeDescription} ${texts.deviceTimeZoneNote}",
         parameters = emptyMap(),
     )
 

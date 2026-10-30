@@ -6,6 +6,7 @@ import com.google.mediapipe.tasks.components.containers.Embedding
 import com.google.mediapipe.tasks.core.BaseOptions
 import com.google.mediapipe.tasks.text.textembedder.TextEmbedder
 import dagger.hilt.android.qualifiers.ApplicationContext
+import es.sebas1705.nanodemo.core.common.AppTextsProvider
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.flow
@@ -48,6 +49,7 @@ private const val DEFAULT_MODEL_URL =
 @Singleton
 class LocalEmbeddingService @Inject constructor(
     @ApplicationContext private val context: Context,
+    private val textsProvider: AppTextsProvider,
 ) {
     private var embedder: TextEmbedder? = null
 
@@ -57,6 +59,7 @@ class LocalEmbeddingService @Inject constructor(
     fun isAvailable(): Boolean = modelFile().exists()
 
     fun download(): Flow<Int> = flow {
+        val texts = textsProvider.current()
         val temp = tempModelFile()
         val connection = (URL(DEFAULT_MODEL_URL).openConnection() as HttpURLConnection).apply {
             connectTimeout = 15_000
@@ -65,7 +68,7 @@ class LocalEmbeddingService @Inject constructor(
         Log.d(TAG, "download: GET $DEFAULT_MODEL_URL")
         try {
             if (connection.responseCode !in 200..299) {
-                error("HTTP ${connection.responseCode} descargando el modelo de embeddings")
+                error(texts.errorDownloadingEmbeddingModel(connection.responseCode))
             }
             val totalBytes = connection.contentLengthLong
             var downloadedBytes = 0L
@@ -88,7 +91,7 @@ class LocalEmbeddingService @Inject constructor(
                     }
                 }
             }
-            check(temp.renameTo(modelFile())) { "No se pudo mover el modelo descargado a su ubicación final" }
+            check(temp.renameTo(modelFile())) { texts.errorMovingModel }
             Log.d(TAG, "download: completado, $downloadedBytes bytes")
         } finally {
             connection.disconnect()

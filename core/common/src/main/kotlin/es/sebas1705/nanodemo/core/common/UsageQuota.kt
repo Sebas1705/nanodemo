@@ -9,10 +9,7 @@ import java.time.LocalDate
 import java.time.ZoneId
 import java.time.format.DateTimeFormatter
 
-enum class QuotaPeriod(val perLabel: String, val resetLabel: String) {
-    DAY("por día", "a la medianoche del Pacífico"),
-    MONTH("por mes", "el mes que viene"),
-}
+enum class QuotaPeriod { DAY, MONTH }
 
 /**
  * Servicios con cuota que la app puede gastar sin querer (los tiers locales no tienen límite).
@@ -22,24 +19,10 @@ enum class QuotaPeriod(val perLabel: String, val resetLabel: String) {
  * a 09/2026 fuentes externas hablan de ~20 pedidos/día para Gemini 3.5 Flash) y Brave da $5 de crédito
  * mensual (~1000 búsquedas, verificado 09/2026). Por eso el límite es editable en Ajustes.
  */
-enum class QuotaService(
-    val label: String,
-    val period: QuotaPeriod,
-    val defaultLimit: Int,
-    val note: String,
-) {
-    GEMINI_CLOUD(
-        "Gemini API · Tier C (Cloud)", QuotaPeriod.DAY, 20,
-        "Plan gratis: límites por PROYECTO (no por key), sin tarjeta. Cada llamada HTTP cuenta (un turno con herramientas o búsqueda hace 2). Sin grounding en el plan gratis.",
-    ),
-    GEMINI_FIREBASE(
-        "Firebase AI Logic · Tier E", QuotaPeriod.DAY, 20,
-        "Gemini Developer API vía Firebase (plan Spark, sin tarjeta). Si la key del Tier C es del MISMO proyecto, comparten cuota: repartí el límite entre los dos. Vincular facturación (Blaze) vuelve todo de pago.",
-    ),
-    BRAVE_SEARCH(
-        "Brave Search · búsqueda de los tiers locales", QuotaPeriod.MONTH, 1000,
-        "$5 de crédito mensual ≈ 1000 búsquedas; pasado eso Brave cobra $5 cada 1000.",
-    ),
+enum class QuotaService(val period: QuotaPeriod, val defaultLimit: Int) {
+    GEMINI_CLOUD(QuotaPeriod.DAY, 20),
+    GEMINI_FIREBASE(QuotaPeriod.DAY, 20),
+    BRAVE_SEARCH(QuotaPeriod.MONTH, 1000),
 }
 
 data class QuotaState(
@@ -145,10 +128,8 @@ object UsageQuota {
     }
 
     /** Mensaje para mostrarle al usuario (o al modelo, en una herramienta) cuando se frenó un servicio. */
-    fun blockedMessage(service: QuotaService): String {
+    fun blockedMessage(service: QuotaService, texts: AppTexts): String {
         val state = stateOf(service)
-        return "Llegaste al límite gratis de ${service.label}: ${state.used}/${state.limit} ${service.period.perLabel}. " +
-            "Se reinicia ${service.period.resetLabel}. Podés cambiar el límite o desactivar el bloqueo en " +
-            "Ajustes → Uso y límites."
+        return texts.quotaBlocked(service, state.used, state.limit)
     }
 }

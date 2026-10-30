@@ -38,7 +38,6 @@ import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
-import es.sebas1705.nanodemo.core.common.buildLocalSystemPrompt
 import es.sebas1705.nanodemo.core.designsystem.ErrorCard
 import es.sebas1705.nanodemo.core.designsystem.MetricsLine
 import es.sebas1705.nanodemo.core.designsystem.ScreenPhase
@@ -255,9 +254,7 @@ fun ChatScreen(
             // suma lo que el teclado agrega por encima de eso.
             Column(modifier = Modifier.imePadding()) {
                 capabilities.contextTokens?.let { maxTokens ->
-                    val systemChars = remember(config) {
-                        buildLocalSystemPrompt(config.systemPrompt, config.functionCalling, config.webSearch, config.jsonMode).length
-                    }
+                    val systemChars = remember(config) { viewModel.systemPromptChars(config) }
                     val turnTexts = conversation.map { it.text } + listOfNotNull(inFlight?.text, streamingText)
                     val userTurns = conversation.count { it.role == Role.USER } + (if (inFlight != null) 1 else 0)
                     ContextMeter(

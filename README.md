@@ -60,8 +60,9 @@ silently. Every decision is logged under the `NanoDemo` Logcat tag
 
 The UI is localized: English by default (`values/`) with a Spanish translation
 (`values-es/`), picked from the device language, and the layout supports RTL.
-The prompts that steer the models (app context, tool and JSON instructions) and
-the chat-stream notices (e.g. the search marker) are still Spanish only.
+The prompts that steer the models, the chat-stream notices and the data-layer
+errors follow the same language (see `AppTexts` in `core:common`), so the model
+answers in the language of the UI.
 
 Multi-turn chat with Markdown streaming, image attachments (Photo Picker),
 pasted-link context, generation parameters per tier (temperature, top-K/P, max

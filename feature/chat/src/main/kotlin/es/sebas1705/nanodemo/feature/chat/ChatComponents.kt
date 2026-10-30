@@ -95,6 +95,8 @@ import es.sebas1705.nanodemo.core.designsystem.TierChannelRow
 import es.sebas1705.nanodemo.core.designsystem.TypingDots
 import es.sebas1705.nanodemo.core.designsystem.channelLetter
 import es.sebas1705.nanodemo.core.designsystem.downloadableMessage
+import es.sebas1705.nanodemo.core.common.GROUNDING_MARKER_PREFIX
+import es.sebas1705.nanodemo.core.common.TOOL_MARKER_PREFIX
 import es.sebas1705.nanodemo.core.designsystem.label
 import es.sebas1705.nanodemo.core.designsystem.signalColor
 import es.sebas1705.nanodemo.core.designsystem.unavailableMessage
@@ -270,8 +272,8 @@ internal fun UserBubble(text: String, imageUri: Uri?, url: String?, tier: Infere
 /** Marcadores que los backends meten en el texto de la respuesta (ver `CloudGeminiBackend`/`resolveLocalToolCall`). */
 internal data class AssistantParts(val tool: String?, val body: String, val footer: String?)
 
-private val TOOL_MARKER = Regex("^🔧 ([^\n]*)\n*")
-private val GROUNDING_FOOTER = Regex("\n*🔎 ([^\n]*)$")
+private val TOOL_MARKER = Regex("^${Regex.escape(TOOL_MARKER_PREFIX)}([^\n]*)\n*")
+private val GROUNDING_FOOTER = Regex("\n*${Regex.escape(GROUNDING_MARKER_PREFIX)}([^\n]*)$")
 
 internal fun splitAssistantText(raw: String): AssistantParts {
     var body = raw

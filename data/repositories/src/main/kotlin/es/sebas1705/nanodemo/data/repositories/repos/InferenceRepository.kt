@@ -4,6 +4,7 @@ import android.content.Context
 import android.net.Uri
 import android.util.Log
 import androidx.core.content.FileProvider
+import es.sebas1705.nanodemo.core.common.AppTextsProvider
 import es.sebas1705.nanodemo.core.common.QuotaService
 import es.sebas1705.nanodemo.core.common.Telemetry
 import es.sebas1705.nanodemo.core.common.TelemetryResult
@@ -65,6 +66,7 @@ class InferenceRepository @Inject constructor(
     private val metricsRepository: IMetricsRepository,
     private val telemetry: Telemetry,
     private val settings: SettingsStore,
+    private val textsProvider: AppTextsProvider,
 ) : IInferenceRepository {
 
     private val scope = CoroutineScope(SupervisorJob() + Dispatchers.Main.immediate)
@@ -260,7 +262,7 @@ class InferenceRepository @Inject constructor(
                         InferenceParams.MODEL to model,
                     )
                 }
-                _state.update { DemoState.Error(e.message ?: "Error preparando el modelo") }
+                _state.update { DemoState.Error(e.message ?: textsProvider.current().errorPreparingModel) }
                 return@launch
             }
             telemetry.operation(
@@ -353,15 +355,16 @@ class InferenceRepository @Inject constructor(
         // guardara ahí, el próximo turno volvería a mandar toda la página de contexto sin motivo.
         val userMessage = ChatMessage(Role.USER, prompt, _pendingImage.value)
         scope.launch {
+            val texts = textsProvider.current()
             val generationMessage = if (url != null) {
                 try {
                     val pageText = fetchUrlText(url)
                     telemetry.feature(InferenceFeatures.URL_ATTACH, InferenceParams.TIER to tier.name)
-                    userMessage.copy(text = "Contenido de $url:\n\n$pageText\n\nPregunta del usuario: $prompt")
+                    userMessage.copy(text = texts.pageContentTurn(url, pageText, prompt))
                 } catch (e: Exception) {
                     Log.e(TAG, "generate($tier): no se pudo descargar $url", e)
                     telemetry.failure(InferenceOperations.FETCH_URL, e, null, InferenceParams.TIER to tier.name)
-                    _state.update { DemoState.Error("No se pudo descargar el link: ${e.message ?: "error de red"}") }
+                    _state.update { DemoState.Error(texts.errorDownloadingLink(e.message ?: texts.errorNetwork)) }
                     return@launch
                 }
             } else {
@@ -462,8 +465,8 @@ class InferenceRepository @Inject constructor(
         }
         if (quotaService != null && !UsageQuota.canUse(quotaService)) {
             Log.w(TAG, "runGeneration($tier): bloqueado por límite gratis de $quotaService")
-            onStateChange(DemoState.Error(UsageQuota.blockedMessage(quotaService)))
-            return Result.failure(IllegalStateException("Límite gratis alcanzado: $quotaService"))
+            onStateChange(DemoState.Error(UsageQuota.blockedMessage(quotaService, textsProvider.current())))
+            return Result.failure(IllegalStateException("Free limit reached: $quotaService"))
         }
         Log.d(TAG, "runGeneration($tier): history de ${history.size} turnos")
         val model = modelOf(tier)
@@ -525,7 +528,7 @@ class InferenceRepository @Inject constructor(
                     InferenceParams.HAS_IMAGE to hasImage,
                 )
             }
-            onStateChange(DemoState.Error(e.message ?: "Error generando contenido"))
+            onStateChange(DemoState.Error(e.message ?: textsProvider.current().errorGenerating))
             recordMetric(tier, history.last().text, fullResponse, startedAtMs, firstChunkLatencyMs, memoryBeforeBytes, success = false)
             Result.failure(e)
         }

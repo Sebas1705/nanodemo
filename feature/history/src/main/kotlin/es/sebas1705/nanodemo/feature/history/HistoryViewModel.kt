@@ -22,7 +22,7 @@ sealed interface SemanticSearchState {
     data object NotDownloaded : SemanticSearchState
     data class Downloading(val progressPercent: Int? = null) : SemanticSearchState
     data object Ready : SemanticSearchState
-    data class Error(val message: String) : SemanticSearchState
+    data class Error(val message: String?) : SemanticSearchState
 }
 
 @HiltViewModel
@@ -56,7 +56,7 @@ class HistoryViewModel @Inject constructor(
                 }
                 _searchState.update { SemanticSearchState.Ready }
             } catch (e: Exception) {
-                _searchState.update { SemanticSearchState.Error(e.message ?: "Could not download the search model") }
+                _searchState.update { SemanticSearchState.Error(e.message) }
             }
         }
     }

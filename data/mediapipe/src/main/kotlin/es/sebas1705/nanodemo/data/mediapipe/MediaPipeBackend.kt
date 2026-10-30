@@ -9,6 +9,8 @@ package es.sebas1705.nanodemo.data.mediapipe
 import android.content.Context
 import android.os.SystemClock
 import android.util.Log
+import es.sebas1705.nanodemo.core.common.AppTexts
+import es.sebas1705.nanodemo.core.common.AppTextsProvider
 import es.sebas1705.nanodemo.core.common.WebSearchTool
 import es.sebas1705.nanodemo.core.common.augmentWithWebSearch
 import es.sebas1705.nanodemo.core.common.buildLocalSystemPrompt
@@ -82,6 +84,7 @@ private const val MAX_CONTEXT_TOKENS = 1024
  */
 class MediaPipeBackend @Inject constructor(
     @ApplicationContext private val context: Context,
+    private val textsProvider: AppTextsProvider,
 ) : InferenceBackend {
 
     override val capabilities = TierCapabilities(
@@ -181,9 +184,10 @@ class MediaPipeBackend @Inject constructor(
     }
 
     override fun download(): Flow<Int> = flow {
+        val texts = textsProvider.current()
         val option = _selectedModel.value
         val urls = modelUrlsOf(option)
-        check(urls.all { it.isNotBlank() }) { "Falta alguna URL en local.properties para $option" }
+        check(urls.all { it.isNotBlank() }) { texts.errorMissingModelUrl(option.name) }
 
         val partFiles = urls.indices.map { partFile(option, it) }
         val assembling = assemblingFile(option)
@@ -205,7 +209,7 @@ class MediaPipeBackend @Inject constructor(
                 Log.d(TAG, "download: GET $url (modelo=$option, parte ${index + 1}/${urls.size})")
                 try {
                     if (connection.responseCode !in 200..299) {
-                        error("HTTP ${connection.responseCode} descargando la parte ${index + 1} del modelo")
+                        error(texts.errorDownloadingModelPart(connection.responseCode, index + 1))
                     }
                     // El tamaño de cada parte recién se conoce cuando se abre su
                     // conexión, así que el total (y por lo tanto el %) crece en
@@ -239,7 +243,7 @@ class MediaPipeBackend @Inject constructor(
             assembling.outputStream().use { output ->
                 partFiles.forEach { part -> part.inputStream().use { it.copyTo(output) } }
             }
-            check(assembling.renameTo(modelFile(option))) { "No se pudo mover el modelo descargado a su ubicación final" }
+            check(assembling.renameTo(modelFile(option))) { texts.errorMovingModel }
             emit(100)
             Log.d(TAG, "download: completado, $downloadedBytes bytes")
         } finally {
@@ -264,9 +268,10 @@ class MediaPipeBackend @Inject constructor(
     override fun generateContentStream(history: List<ChatMessage>, config: GenerationConfig): Flow<String> = callbackFlow {
         lastResponseText = ""
         lastLoadMs = null
+        val texts = textsProvider.current()
         val lastUserMessage = history.lastOrNull { it.role == Role.USER }
-            ?: error("No hay turno de usuario para enviar")
-        val activeSession = getOrCreateSession(config)
+            ?: error(texts.errorNoUserTurn)
+        val activeSession = getOrCreateSession(config, texts)
 
         var userText = lastUserMessage.text
         var sourcesBlock: String? = null
@@ -274,6 +279,7 @@ class MediaPipeBackend @Inject constructor(
             val augmentation = augmentWithWebSearch(
                 userText = userText,
                 previousUserText = history.dropLast(1).lastOrNull { it.role == Role.USER }?.text,
+                texts = texts,
                 compact = true, // 1024 tokens en total: sin extractos de páginas, ver augmentWithWebSearch
             )
             lastResponseText += augmentation.marker
@@ -315,7 +321,7 @@ class MediaPipeBackend @Inject constructor(
                 firstPassBuffer.append(partialResult)
                 if (!done) return@generateResponseAsync
                 val firstPassText = firstPassBuffer.toString()
-                val toolCall = resolveLocalToolCall(firstPassText)
+                val toolCall = resolveLocalToolCall(firstPassText, texts)
                 if (toolCall == null) {
                     lastResponseText += firstPassText
                     trySend(firstPassText)
@@ -345,7 +351,7 @@ class MediaPipeBackend @Inject constructor(
      * conversación" para que se apliquen (cambiar de modelo también, vía
      * [selectModel]).
      */
-    private suspend fun getOrCreateSession(config: GenerationConfig): LlmInferenceSession =
+    private suspend fun getOrCreateSession(config: GenerationConfig, texts: AppTexts): LlmInferenceSession =
         withContext(Dispatchers.IO) {
             session?.let { return@withContext it }
             val loadStartedAt = SystemClock.elapsedRealtime()
@@ -368,8 +374,8 @@ class MediaPipeBackend @Inject constructor(
 
             val newSession = LlmInferenceSession.createFromOptions(inference, sessionOptionsBuilder.build())
             val fullSystemPrompt =
-                buildLocalSystemPrompt(config.systemPrompt, config.functionCalling, config.webSearch, config.jsonMode)
-            newSession.addQueryChunk("Instrucciones: $fullSystemPrompt\n\n")
+                buildLocalSystemPrompt(config.systemPrompt, config.functionCalling, config.webSearch, config.jsonMode, texts)
+            newSession.addQueryChunk("${texts.instructionsLabel} $fullSystemPrompt\n\n")
             session = newSession
             lastLoadMs = SystemClock.elapsedRealtime() - loadStartedAt
             newSession

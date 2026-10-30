@@ -13,7 +13,6 @@ private const val DESCRIPTION_CHARS = 220
 private const val PAGE_TIMEOUT_MS = 6_000L
 private const val QUERY_MAX_CHARS = 200
 private const val SHORT_QUESTION_CHARS = 25
-private const val QUESTION_LABEL = "Pregunta del usuario:"
 private const val COMPACT_RESULTS = 3
 private const val COMPACT_DESCRIPTION_CHARS = 160
 
@@ -22,18 +21,6 @@ private const val COMPACT_DESCRIPTION_CHARS = 160
 // chars + formato) ≈ 1.1k chars. Lo usa el medidor de contexto del Chat.
 const val SEARCH_CONTEXT_OVERHEAD_TOKENS = 850
 const val SEARCH_CONTEXT_OVERHEAD_TOKENS_COMPACT = 280
-
-/**
- * Cómo tiene que quedar la respuesta cuando se usó búsqueda: bien armada y en Markdown (la app lo renderiza).
- * Se le pide al modelo citar en el texto con [1], [2]… pero NO listar las fuentes: esa lista la agrega la
- * app (es determinista; un modelo chico se equivoca o se la salta).
- */
-const val SEARCH_ANSWER_FORMAT =
-    "Cuando uses resultados de búsqueda, respondé en español y bien formateada en Markdown: primero una o dos " +
-        "frases que respondan directo a la pregunta; después el detalle con viñetas o secciones cortas (títulos " +
-        "con ##), **negrita** en los datos clave (cifras, fechas, nombres) y sin relleno. Citá las fuentes en el " +
-        "texto como [1], [2]. No inventes datos que no estén en los resultados y, si no alcanzan para responder, " +
-        "decilo. No escribas una lista de fuentes al final: la agrega la app."
 
 /**
  * Resultado de intentar buscar antes de responder. `marker` siempre se muestra (es el aviso de "hubo un paso
@@ -48,12 +35,16 @@ data class SearchAugmentation(val marker: String, val prompt: String?, val sourc
  * busca en Brave, lee un extracto de las primeras páginas y devuelve el turno enriquecido + instrucciones de
  * síntesis y formato. Los 3 tiers locales usan esto en una sola pasada, así la respuesta también se ve en streaming.
  */
-suspend fun augmentWithWebSearch(userText: String, previousUserText: String?, compact: Boolean = false): SearchAugmentation {
-    val question = userText.substringAfterLast(QUESTION_LABEL).trim()
-    val query = buildQuery(question, previousUserText?.substringAfterLast(QUESTION_LABEL)?.trim())
+suspend fun augmentWithWebSearch(
+    userText: String,
+    previousUserText: String?,
+    texts: AppTexts,
+    compact: Boolean = false,
+): SearchAugmentation {
+    val query = buildQuery(extractQuestion(userText), previousUserText?.let(::extractQuestion))
     val results = when (val outcome = WebSearchTool.search(query)) {
         is WebSearchOutcome.Unavailable ->
-            return SearchAugmentation("🔧 búsqueda no disponible (${outcome.reason}) — respondo sin internet\n\n", null, null)
+            return SearchAugmentation(toolMarker(texts.searchUnavailableNotice(outcome.failure)), null, null)
         is WebSearchOutcome.Found -> if (compact) outcome.results.take(COMPACT_RESULTS) else outcome.results
     }
 
@@ -68,30 +59,46 @@ suspend fun augmentWithWebSearch(userText: String, previousUserText: String?, co
         }.awaitAll()
     }
 
-    val prompt = buildString {
-        appendLine("Resultados de búsqueda en internet para \"$query\":")
-        results.forEachIndexed { index, result ->
-            appendLine("[${index + 1}] ${result.title} — ${result.description.take(if (compact) COMPACT_DESCRIPTION_CHARS else DESCRIPTION_CHARS)}")
-        }
-        excerpts.forEachIndexed { index, excerpt ->
-            if (excerpt != null) appendLine("Extracto de [${index + 1}]: $excerpt")
-        }
-        appendLine()
-        val original = userText.trim()
-        appendLine(if (original.contains(QUESTION_LABEL)) original else "$QUESTION_LABEL $original")
-        appendLine()
-        append(SEARCH_ANSWER_FORMAT)
+    return SearchAugmentation(
+        marker = toolMarker(texts.searchDoneNotice(query, results.size)),
+        prompt = buildSearchPrompt(query, results, excerpts, userText, texts, compact),
+        sourcesBlock = buildSourcesBlock(results, texts),
+    )
+}
+
+/** El turno enriquecido: resultados, extractos, la pregunta y las instrucciones de formato. */
+internal fun buildSearchPrompt(
+    query: String,
+    results: List<WebResult>,
+    excerpts: List<String?>,
+    userText: String,
+    texts: AppTexts,
+    compact: Boolean,
+): String = buildString {
+    appendLine(texts.searchResultsHeader(query))
+    results.forEachIndexed { index, result ->
+        appendLine("[${index + 1}] ${result.title} — ${result.description.take(if (compact) COMPACT_DESCRIPTION_CHARS else DESCRIPTION_CHARS)}")
     }
+    excerpts.forEachIndexed { index, excerpt ->
+        if (excerpt != null) appendLine(texts.pageExcerpt(index + 1, excerpt))
+    }
+    appendLine()
+    val original = userText.trim()
+    appendLine(if (hasQuestionLabel(original)) original else "${texts.questionLabel} $original")
+    appendLine()
+    append(texts.searchAnswerFormat)
+}
+
+/**
+ * La lista de fuentes en Markdown. Al modelo se le pide citar en el texto con [1], [2]… pero NO listarlas:
+ * esta lista la agrega la app (es determinista; un modelo chico se equivoca o se la salta).
+ */
+internal fun buildSourcesBlock(results: List<WebResult>, texts: AppTexts): String {
     val sources = results.mapIndexed { index, result ->
         val title = result.title.replace("[", "(").replace("]", ")")
         "${index + 1}. [$title](${result.url.replace(")", "%29")})"
     }.joinToString("\n")
-
-    return SearchAugmentation(
-        marker = "🔧 busqué en internet \"$query\" — ${results.size} resultados\n\n",
-        prompt = prompt,
-        sourcesBlock = "**Fuentes**\n$sources",
-    )
+    return "**${texts.sourcesHeading}**\n$sources"
 }
 
 /** La consulta sale de la pregunta; si es muy corta ("¿y en Madrid?") se le suma la anterior para darle contexto. */

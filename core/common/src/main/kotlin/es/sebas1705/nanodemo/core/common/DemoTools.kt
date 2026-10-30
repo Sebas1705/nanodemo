@@ -2,8 +2,6 @@ package es.sebas1705.nanodemo.core.common
 
 import java.time.ZoneId
 import java.time.ZonedDateTime
-import java.time.format.DateTimeFormatter
-import java.util.Locale
 
 /**
  * Única herramienta de demo para "function calling" (solo Cloud y Firebase AI, ver
@@ -31,35 +29,35 @@ object DemoTools {
     const val GET_CURRENT_TIME = "get_current_time"
     const val PARAM_TIMEZONE = "timezone"
 
-    const val CURRENT_TIME_DESCRIPTION =
-        "Devuelve la fecha y hora actual en una zona horaria IANA (ej. 'Europe/Madrid', " +
-            "'America/Argentina/Buenos_Aires'). Usala siempre que te pregunten la hora o la fecha " +
-            "de hoy: no tenés reloj propio ni sabés qué día es."
+    const val RESULT_ISO8601 = "iso8601"
+    const val RESULT_READABLE = "readable"
 
-    const val TIMEZONE_PARAM_DESCRIPTION = "Zona horaria IANA, ej. Europe/Madrid. Si no está clara, usá UTC."
-
-    /** `timezone` inválida o ausente cae a UTC en vez de fallar — que la herramienta nunca rompa el turno. */
-    fun executeCurrentTime(timezone: String?): Map<String, String> {
+    /**
+     * `timezone` inválida o ausente cae a UTC en vez de fallar — que la herramienta nunca rompa el turno.
+     * Las claves son estables (el modelo las lee tal cual); solo la fecha legible depende del idioma.
+     */
+    fun executeCurrentTime(timezone: String?, texts: AppTexts): Map<String, String> {
         val zoneId = runCatching { ZoneId.of(timezone ?: "UTC") }.getOrDefault(ZoneId.of("UTC"))
         val now = ZonedDateTime.now(zoneId)
         return mapOf(
-            "iso8601" to now.toString(),
-            "legible" to now.format(DateTimeFormatter.ofPattern("EEEE d 'de' MMMM 'de' yyyy, HH:mm", Locale("es"))),
+            RESULT_ISO8601 to now.toString(),
+            RESULT_READABLE to texts.formatDateTime(now),
         )
     }
 
-    private val REACT_CALL_REGEX = Regex("""\[\[GET_CURRENT_TIME(?::([^\]]*))?\]\]""")
+    // La etiqueta es la misma en todos los idiomas: es lo que busca REACT_CALL_REGEX en la respuesta.
+    private const val REACT_TAG = "GET_CURRENT_TIME"
+    private val REACT_CALL_REGEX = Regex("""\[\[$REACT_TAG(?::([^\]]*))?\]\]""")
+
+    private fun reactTag(timezone: String) = "[[$REACT_TAG:$timezone]]"
 
     /**
      * Addendum de system prompt para los tiers locales (A/B/D): sin esto, el modelo solo inventaría
      * una hora. Pedirle que responda ÚNICAMENTE con la etiqueta (nada de texto alrededor) es lo que
      * permite tratar el turno completo como "sí" o "no" hubo pedido de herramienta — ver [matchReactCall].
      */
-    fun reactInstruction(): String =
-        "Si te preguntan la hora o la fecha de hoy, no la inventes: no tenés reloj propio. En vez de " +
-            "responder directamente, respondé ÚNICAMENTE con esta etiqueta exacta, sin texto antes ni " +
-            "después: [[GET_CURRENT_TIME:zona_horaria_IANA]] (ej. [[GET_CURRENT_TIME:Europe/Madrid]]). " +
-            "Vas a recibir el resultado real y ahí sí completás tu respuesta con la hora/fecha correcta."
+    fun reactInstruction(texts: AppTexts): String =
+        texts.reactInstruction(reactTag(texts.timeZonePlaceholder), reactTag("Europe/Madrid"))
 
     /**
      * `null` si `text` no contiene la etiqueta emulada — no hubo pedido de herramienta, se puede
