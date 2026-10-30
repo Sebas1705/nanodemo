@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Not shown anywhere: says which values-* folder Android picked, so that prompts and data-layer
+         texts (AppTexts) follow the language the UI really resolved to. -->
+    <string name="ui_language">en</string>
+</resources>

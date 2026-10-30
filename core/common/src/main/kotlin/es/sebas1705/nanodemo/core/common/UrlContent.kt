@@ -28,7 +28,7 @@ suspend fun fetchUrlText(url: String): String = withContext(Dispatchers.IO) {
         setRequestProperty("User-Agent", "Mozilla/5.0 (compatible; nanodemo)")
     }
     try {
-        check(connection.responseCode in 200..299) { "HTTP ${connection.responseCode} descargando la página" }
+        check(connection.responseCode in 200..299) { "HTTP ${connection.responseCode}" }
         val html = connection.inputStream.bufferedReader().use { it.readText() }
         extractReadableText(html).take(URL_FETCH_MAX_CHARS)
     } finally {

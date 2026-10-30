@@ -4,12 +4,15 @@ import android.content.Context
 import android.net.Uri
 import android.util.Base64
 import android.util.Log
+import es.sebas1705.nanodemo.core.common.AppTexts
+import es.sebas1705.nanodemo.core.common.AppTextsProvider
 import es.sebas1705.nanodemo.core.common.DemoTools
 import es.sebas1705.nanodemo.core.common.QuotaService
-import es.sebas1705.nanodemo.core.common.SEARCH_ANSWER_FORMAT
 import es.sebas1705.nanodemo.core.common.UsageQuota
 import es.sebas1705.nanodemo.core.common.appContextPreamble
+import es.sebas1705.nanodemo.core.common.groundingMarker
 import es.sebas1705.nanodemo.core.common.hasInternetConnection
+import es.sebas1705.nanodemo.core.common.toolMarker
 import es.sebas1705.nanodemo.domain.models.ChatMessage
 import es.sebas1705.nanodemo.domain.models.GenerationConfig
 import es.sebas1705.nanodemo.domain.models.InferenceBackend
@@ -61,6 +64,7 @@ private const val API_BASE = "https://generativelanguage.googleapis.com/v1beta/m
  */
 class CloudGeminiBackend @Inject constructor(
     @ApplicationContext private val context: Context,
+    private val textsProvider: AppTextsProvider,
 ) : InferenceBackend {
 
     override val capabilities = TierCapabilities(
@@ -100,12 +104,13 @@ class CloudGeminiBackend @Inject constructor(
      */
     override fun generateContentStream(history: List<ChatMessage>, config: GenerationConfig): Flow<String> = flow {
         lastResponseTokens = null
-        var result = streamRequest(history, config, extraTurns = emptyList()) { text -> emit(text) }
+        val texts = textsProvider.current()
+        var result = streamRequest(history, config, texts, extraTurns = emptyList()) { text -> emit(text) }
         val call = result.functionCall
         if (call != null) {
             Log.d(TAG, "generateContentStream: pidió la función ${call.name}")
-            emit("🔧 usando \"${call.name}\"…\n\n")
-            val toolResult = DemoTools.executeCurrentTime(call.args.optString(DemoTools.PARAM_TIMEZONE, null))
+            emit(toolMarker(texts.usingToolNotice(call.name)))
+            val toolResult = DemoTools.executeCurrentTime(call.args.optString(DemoTools.PARAM_TIMEZONE, null), texts)
             val resultJson = JSONObject().apply { toolResult.forEach { (k, v) -> put(k, v) } }
             val extraTurns = listOf(
                 JSONObject().put("role", "model").put(
@@ -121,12 +126,12 @@ class CloudGeminiBackend @Inject constructor(
                     ),
                 ),
             )
-            result = streamRequest(history, config, extraTurns) { text -> emit(text) }
+            result = streamRequest(history, config, texts, extraTurns) { text -> emit(text) }
         }
         result.grounding?.let { grounding ->
             Log.d(TAG, "generateContentStream: grounding con ${grounding.sourceCount} fuente(s)")
             val queries = grounding.queries.joinToString { "\"$it\"" }
-            emit("\n\n🔎 Grounded con Google Search ($queries) — ${grounding.sourceCount} fuente(s)")
+            emit(groundingMarker(texts.groundingNotice(queries, grounding.sourceCount)))
         }
     }.flowOn(Dispatchers.IO)
 
@@ -144,6 +149,7 @@ class CloudGeminiBackend @Inject constructor(
     private suspend fun streamRequest(
         history: List<ChatMessage>,
         config: GenerationConfig,
+        texts: AppTexts,
         extraTurns: List<JSONObject>,
         onText: suspend (String) -> Unit,
     ): StreamResult {
@@ -161,7 +167,7 @@ class CloudGeminiBackend @Inject constructor(
         }
         Log.d(TAG, "streamRequest: POST a $CLOUD_MODEL:streamGenerateContent (extraTurns=${extraTurns.size})")
         try {
-            val body = buildRequestBody(history, config, extraTurns)
+            val body = buildRequestBody(history, config, texts, extraTurns)
             connection.outputStream.use { it.write(body.toString().toByteArray(Charsets.UTF_8)) }
 
             if (connection.responseCode !in 200..299) {
@@ -223,6 +229,7 @@ class CloudGeminiBackend @Inject constructor(
     private fun buildRequestBody(
         history: List<ChatMessage>,
         config: GenerationConfig,
+        texts: AppTexts,
         extraTurns: List<JSONObject> = emptyList(),
     ): JSONObject {
         val contents = JSONArray()
@@ -260,7 +267,7 @@ class CloudGeminiBackend @Inject constructor(
                         JSONArray().put(
                             JSONObject()
                                 .put("name", DemoTools.GET_CURRENT_TIME)
-                                .put("description", DemoTools.CURRENT_TIME_DESCRIPTION)
+                                .put("description", texts.currentTimeDescription)
                                 .put(
                                     "parameters",
                                     JSONObject()
@@ -271,7 +278,7 @@ class CloudGeminiBackend @Inject constructor(
                                                 DemoTools.PARAM_TIMEZONE,
                                                 JSONObject()
                                                     .put("type", "string")
-                                                    .put("description", DemoTools.TIMEZONE_PARAM_DESCRIPTION),
+                                                    .put("description", texts.timeZoneParamDescription),
                                             ),
                                         )
                                         .put("required", JSONArray().put(DemoTools.PARAM_TIMEZONE)),
@@ -282,7 +289,7 @@ class CloudGeminiBackend @Inject constructor(
             )
         }
 
-        val fullSystemPrompt = listOfNotNull(appContextPreamble(), config.systemPrompt, SEARCH_ANSWER_FORMAT.takeIf { config.webSearch }).joinToString("\n\n")
+        val fullSystemPrompt = listOfNotNull(appContextPreamble(texts), config.systemPrompt, texts.searchAnswerFormat.takeIf { config.webSearch }).joinToString("\n\n")
         body.put(
             "systemInstruction",
             JSONObject().put("parts", JSONArray().put(JSONObject().put("text", fullSystemPrompt)))

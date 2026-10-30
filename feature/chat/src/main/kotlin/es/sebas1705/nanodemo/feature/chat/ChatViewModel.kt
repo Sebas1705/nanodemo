@@ -3,6 +3,8 @@ package es.sebas1705.nanodemo.feature.chat
 import android.net.Uri
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import es.sebas1705.nanodemo.core.common.AppTextsProvider
+import es.sebas1705.nanodemo.core.common.buildLocalSystemPrompt
 import es.sebas1705.nanodemo.domain.models.ChatMessage
 import es.sebas1705.nanodemo.domain.models.DemoState
 import es.sebas1705.nanodemo.domain.models.GenerationConfig
@@ -69,6 +71,7 @@ class ChatViewModel @Inject constructor(
     val selectMediaPipeModel: SelectMediaPipeModelUseCase,
     val selectLiteRtLmAccelerator: SelectLiteRtLmAcceleratorUseCase,
     private val loadConversation: LoadConversationUseCase,
+    private val textsProvider: AppTextsProvider,
 ) : ViewModel() {
 
     val conversation: StateFlow<List<ChatMessage>> = observeConversation()
@@ -87,6 +90,11 @@ class ChatViewModel @Inject constructor(
     val selectedMediaPipeModel: StateFlow<MediaPipeModelOption> = observeSelectedMediaPipeModel()
     val mediaPipeModels: List<MediaPipeModelOption> = getMediaPipeModels()
     val liteRtLmAccelerator: StateFlow<LiteRtLmAccelerator> = observeLiteRtLmAccelerator()
+
+    /** Largo del system prompt que recibe un tier local, para el medidor de contexto. */
+    fun systemPromptChars(config: GenerationConfig): Int = buildLocalSystemPrompt(
+        config.systemPrompt, config.functionCalling, config.webSearch, config.jsonMode, textsProvider.current(),
+    ).length
 
     /** Se llama una vez al entrar a Chat con un `conversationId` (reapertura desde Historial). */
     fun openConversation(conversationId: Long) = loadConversation(conversationId)

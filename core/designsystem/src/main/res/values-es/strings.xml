@@ -12,4 +12,5 @@
     <string name="ds_code">código</string>
     <string name="ds_copy_code">Copiar código</string>
     <string name="metrics_load">carga</string>
+    <string name="conversation_untitled">Conversación</string>
 </resources>

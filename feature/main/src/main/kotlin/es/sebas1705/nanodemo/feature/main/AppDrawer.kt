@@ -30,6 +30,7 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import es.sebas1705.nanodemo.core.designsystem.SectionLabel
 import es.sebas1705.nanodemo.core.designsystem.TierAvatar
+import es.sebas1705.nanodemo.core.designsystem.displayTitle
 import es.sebas1705.nanodemo.core.designsystem.label
 import es.sebas1705.nanodemo.core.designsystem.signalColor
 import es.sebas1705.nanodemo.core.ui.DemoColors
@@ -112,7 +113,7 @@ internal fun DrawerContent(
                 ) {
                     TierAvatar(conversation.tier, 24.dp)
                     Text(
-                        conversation.title,
+                        conversation.displayTitle(),
                         style = MaterialTheme.typography.bodyMedium,
                         color = DemoColors.Ink,
                         maxLines = 1,

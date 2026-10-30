@@ -19,4 +19,5 @@
     <string name="history_retry_download">Retry download</string>
     <string name="history_row_meta">%1$s · %2$s · %3$d messages</string>
     <string name="history_delete_conversation">Delete conversation</string>
+    <string name="history_search_model_failed">Could not download the search model</string>
 </resources>

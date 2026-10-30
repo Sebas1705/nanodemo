@@ -19,8 +19,16 @@ data class WebResult(val title: String, val description: String, val url: String
 sealed interface WebSearchOutcome {
     data class Found(val results: List<WebResult>) : WebSearchOutcome
 
-    /** No se pudo buscar (sin configurar, cuota agotada, HTTP, red o sin resultados): `reason` es legible. */
-    data class Unavailable(val reason: String) : WebSearchOutcome
+    /** No se pudo buscar: `failure` dice por qué, y [AppTexts] lo convierte en el aviso del chat. */
+    data class Unavailable(val failure: WebSearchFailure) : WebSearchOutcome
+}
+
+sealed interface WebSearchFailure {
+    data object NotConfigured : WebSearchFailure
+    data object QuotaReached : WebSearchFailure
+    data object NoResults : WebSearchFailure
+    data object NetworkError : WebSearchFailure
+    data class HttpError(val code: Int) : WebSearchFailure
 }
 
 /**
@@ -47,12 +55,12 @@ object WebSearchTool {
      * fallo vuelve como [WebSearchOutcome.Unavailable] — la búsqueda nunca tiene que romper el turno.
      */
     suspend fun search(query: String): WebSearchOutcome = withContext(Dispatchers.IO) {
-        if (!isConfigured) return@withContext WebSearchOutcome.Unavailable("falta BRAVE_SEARCH_API_KEY")
+        if (!isConfigured) return@withContext WebSearchOutcome.Unavailable(WebSearchFailure.NotConfigured)
         synchronized(cache) { cache[query]?.takeIf { System.currentTimeMillis() - it.first < CACHE_TTL_MS } }
             ?.let { return@withContext it.second }
         // Sin cuota mensual (ver UsageQuota) no se llama a Brave, en vez de cobrar de más en silencio.
         if (!UsageQuota.canUse(QuotaService.BRAVE_SEARCH)) {
-            return@withContext WebSearchOutcome.Unavailable("límite gratis de Brave alcanzado")
+            return@withContext WebSearchOutcome.Unavailable(WebSearchFailure.QuotaReached)
         }
         UsageQuota.record(QuotaService.BRAVE_SEARCH)
         val url = "$ENDPOINT?q=${URLEncoder.encode(query, "UTF-8")}&count=$MAX_RESULTS"
@@ -65,7 +73,7 @@ object WebSearchTool {
         try {
             if (connection.responseCode !in 200..299) {
                 Log.w(TAG, "search(\"$query\"): HTTP ${connection.responseCode}")
-                return@withContext WebSearchOutcome.Unavailable("error HTTP ${connection.responseCode}")
+                return@withContext WebSearchOutcome.Unavailable(WebSearchFailure.HttpError(connection.responseCode))
             }
             val body = connection.inputStream.bufferedReader().use { it.readText() }
             val array = JSONObject(body).optJSONObject("web")?.optJSONArray("results")
@@ -78,13 +86,13 @@ object WebSearchTool {
                     url = link,
                 )
             }
-            if (results.isEmpty()) return@withContext WebSearchOutcome.Unavailable("sin resultados")
+            if (results.isEmpty()) return@withContext WebSearchOutcome.Unavailable(WebSearchFailure.NoResults)
             WebSearchOutcome.Found(results).also { found ->
                 synchronized(cache) { cache[query] = System.currentTimeMillis() to found }
             }
         } catch (e: Exception) {
             Log.e(TAG, "search(\"$query\"): falló", e)
-            WebSearchOutcome.Unavailable("error de red")
+            WebSearchOutcome.Unavailable(WebSearchFailure.NetworkError)
         } finally {
             connection.disconnect()
         }

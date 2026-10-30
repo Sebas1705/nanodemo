@@ -12,4 +12,5 @@
     <string name="ds_code">code</string>
     <string name="ds_copy_code">Copy code</string>
     <string name="metrics_load">load</string>
+    <string name="conversation_untitled">Conversation</string>
 </resources>

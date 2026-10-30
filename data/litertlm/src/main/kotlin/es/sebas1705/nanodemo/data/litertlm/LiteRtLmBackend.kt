@@ -6,6 +6,8 @@ import android.graphics.BitmapFactory
 import android.net.Uri
 import android.os.SystemClock
 import android.util.Log
+import es.sebas1705.nanodemo.core.common.AppTexts
+import es.sebas1705.nanodemo.core.common.AppTextsProvider
 import es.sebas1705.nanodemo.core.common.WebSearchTool
 import es.sebas1705.nanodemo.core.common.augmentWithWebSearch
 import es.sebas1705.nanodemo.core.common.buildLocalSystemPrompt
@@ -84,6 +86,7 @@ private const val MAX_IMAGE_SIDE_PX = 1024
  */
 class LiteRtLmBackend @Inject constructor(
     @param:ApplicationContext private val context: Context,
+    private val textsProvider: AppTextsProvider,
 ) : InferenceBackend {
 
     // `images` se mantiene en true: si el modelo no trae encoder de visión, el motor
@@ -144,8 +147,9 @@ class LiteRtLmBackend @Inject constructor(
     }
 
     override fun download(): Flow<Int> = flow {
+        val texts = textsProvider.current()
         val modelUrl = BuildConfig.LITERTLM_MODEL_URL
-        check(modelUrl.isNotBlank()) { "LITERTLM_MODEL_URL vacía" }
+        check(modelUrl.isNotBlank()) { texts.errorMissingModelUrl("LiteRT-LM") }
         val connection = (URL(modelUrl).openConnection() as HttpURLConnection).apply {
             connectTimeout = 15_000
             readTimeout = 30_000
@@ -154,7 +158,7 @@ class LiteRtLmBackend @Inject constructor(
         val temp = tempModelFile()
         try {
             if (connection.responseCode !in 200..299) {
-                error("HTTP ${connection.responseCode} descargando el modelo")
+                error(texts.errorDownloadingModel(connection.responseCode))
             }
             val totalBytes = connection.contentLengthLong
             var downloadedBytes = 0L
@@ -177,7 +181,7 @@ class LiteRtLmBackend @Inject constructor(
                     }
                 }
             }
-            check(temp.renameTo(modelFile())) { "No se pudo mover el modelo descargado a su ubicación final" }
+            check(temp.renameTo(modelFile())) { texts.errorMovingModel }
             Log.d(TAG, "download: completado, $downloadedBytes bytes")
         } finally {
             connection.disconnect()
@@ -199,9 +203,10 @@ class LiteRtLmBackend @Inject constructor(
      */
     override fun generateContentStream(history: List<ChatMessage>, config: GenerationConfig): Flow<String> = flow {
         lastLoadMs = null
+        val texts = textsProvider.current()
         val lastUserMessage = history.lastOrNull { it.role == Role.USER }
-            ?: error("No hay turno de usuario para enviar")
-        val activeConversation = getOrCreateConversation(history, config)
+            ?: error(texts.errorNoUserTurn)
+        val activeConversation = getOrCreateConversation(history, config, texts)
 
         var turn = lastUserMessage
         var sourcesBlock: String? = null
@@ -209,6 +214,7 @@ class LiteRtLmBackend @Inject constructor(
             val augmentation = augmentWithWebSearch(
                 userText = lastUserMessage.text,
                 previousUserText = history.dropLast(1).lastOrNull { it.role == Role.USER }?.text,
+                texts = texts,
             )
             emit(augmentation.marker)
             augmentation.prompt?.let { turn = lastUserMessage.copy(text = it) }
@@ -231,7 +237,7 @@ class LiteRtLmBackend @Inject constructor(
         val firstPassBuffer = StringBuilder()
         activeConversation.sendMessageAsync(contents).collect { message -> firstPassBuffer.append(extractText(message)) }
         val firstPassText = firstPassBuffer.toString()
-        val toolCall = resolveLocalToolCall(firstPassText)
+        val toolCall = resolveLocalToolCall(firstPassText, texts)
         if (toolCall == null) {
             emit(firstPassText)
             return@flow
@@ -269,7 +275,11 @@ class LiteRtLmBackend @Inject constructor(
     }
 
     /** Crea el motor (una sola vez) y la conversación (una por charla). Ambos pasos son lentos: van en IO. */
-    private suspend fun getOrCreateConversation(history: List<ChatMessage>, config: GenerationConfig): Conversation =
+    private suspend fun getOrCreateConversation(
+        history: List<ChatMessage>,
+        config: GenerationConfig,
+        texts: AppTexts,
+    ): Conversation =
         withContext(Dispatchers.IO) {
             conversation?.let { return@withContext it }
             val loadStartedAt = SystemClock.elapsedRealtime()
@@ -290,7 +300,7 @@ class LiteRtLmBackend @Inject constructor(
                 maxOutputToken = config.maxOutputTokens,
             )
             val fullSystemPrompt =
-                buildLocalSystemPrompt(config.systemPrompt, config.functionCalling, config.webSearch, config.jsonMode)
+                buildLocalSystemPrompt(config.systemPrompt, config.functionCalling, config.webSearch, config.jsonMode, texts)
             conversationConfig = conversationConfig.copy(systemInstruction = Contents.of(fullSystemPrompt))
 
             Log.d(TAG, "getOrCreateConversation: config=$config, turnos previos=${previousTurns.size}")

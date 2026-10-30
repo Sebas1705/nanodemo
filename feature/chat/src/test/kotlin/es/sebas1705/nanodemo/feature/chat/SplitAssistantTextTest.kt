@@ -1,5 +1,8 @@
 package es.sebas1705.nanodemo.feature.chat
 
+import es.sebas1705.nanodemo.core.common.appTextsFor
+import es.sebas1705.nanodemo.core.common.groundingMarker
+import es.sebas1705.nanodemo.core.common.toolMarker
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNull
 import org.junit.Test
@@ -40,5 +43,34 @@ class SplitAssistantTextTest {
         val parts = splitAssistantText("🔧 usando \"get_current_time\"…\n\n")
         assertEquals("usando \"get_current_time\"…", parts.tool)
         assertEquals("", parts.body)
+    }
+
+    @Test
+    fun `los avisos reales se separan en los dos idiomas`() {
+        listOf(appTextsFor("en"), appTextsFor("es")).forEach { texts ->
+            val tool = texts.searchDoneNotice("clima", 5)
+            val footer = texts.groundingNotice("\"clima\"", 3)
+            val parts = splitAssistantText(toolMarker(tool) + "Cuerpo [1]." + groundingMarker(footer))
+            assertEquals(tool, parts.tool)
+            assertEquals("Cuerpo [1].", parts.body)
+            assertEquals(footer, parts.footer)
+        }
+    }
+
+    @Test
+    fun `un aviso sin cuerpo todavia se separa en los dos idiomas`() {
+        listOf(appTextsFor("en"), appTextsFor("es")).forEach { texts ->
+            val notice = texts.usingToolNotice("get_current_time")
+            assertEquals(notice, splitAssistantText(toolMarker(notice)).tool)
+            assertEquals("", splitAssistantText(toolMarker(notice)).body)
+        }
+    }
+
+    @Test
+    fun `una conversacion guardada con avisos en espanol se sigue separando`() {
+        val parts = splitAssistantText("🔧 busqué en internet \"x\" — 1 resultados\n\nHola.\n\n🔎 Grounded con Google Search (\"x\") — 3 fuente(s)")
+        assertEquals("busqué en internet \"x\" — 1 resultados", parts.tool)
+        assertEquals("Hola.", parts.body)
+        assertEquals("Grounded con Google Search (\"x\") — 3 fuente(s)", parts.footer)
     }
 }

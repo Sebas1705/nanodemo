@@ -5,6 +5,8 @@ import android.graphics.Bitmap
 import android.graphics.BitmapFactory
 import android.net.Uri
 import android.util.Log
+import es.sebas1705.nanodemo.core.common.AppTexts
+import es.sebas1705.nanodemo.core.common.AppTextsProvider
 import es.sebas1705.nanodemo.core.common.WebSearchTool
 import es.sebas1705.nanodemo.core.common.augmentWithWebSearch
 import es.sebas1705.nanodemo.core.common.buildLocalSystemPrompt
@@ -45,6 +47,7 @@ private const val TAG = "NanoDemo.MlKitNano"
  */
 class MlKitNanoBackend @Inject constructor(
     @ApplicationContext private val context: Context,
+    private val textsProvider: AppTextsProvider,
 ) : InferenceBackend {
 
     // Generation.getClient() sin argumentos usa la configuración por defecto
@@ -105,12 +108,14 @@ class MlKitNanoBackend @Inject constructor(
      * el pase que decide. Sin nada de eso: transmite chunk a chunk tal cual llegan.
      */
     override fun generateContentStream(history: List<ChatMessage>, config: GenerationConfig): Flow<String> = flow {
+        val texts = textsProvider.current()
         var effectiveHistory = history
         var sourcesBlock: String? = null
         if (config.webSearch) {
             val augmentation = augmentWithWebSearch(
                 userText = history.last().text,
                 previousUserText = history.dropLast(1).lastOrNull { it.role == Role.USER }?.text,
+                texts = texts,
             )
             emit(augmentation.marker)
             augmentation.prompt?.let { effectiveHistory = history.dropLast(1) + history.last().copy(text = it) }
@@ -118,7 +123,7 @@ class MlKitNanoBackend @Inject constructor(
         }
 
         if (!config.functionCalling || config.webSearch) {
-            runPass(effectiveHistory, config).collect { text ->
+            runPass(effectiveHistory, config, texts).collect { text ->
                 Log.v(TAG, "chunk: \"$text\"")
                 emit(text)
             }
@@ -127,9 +132,9 @@ class MlKitNanoBackend @Inject constructor(
         }
 
         val buffer = StringBuilder()
-        runPass(history, config).collect { buffer.append(it) }
+        runPass(history, config, texts).collect { buffer.append(it) }
         val firstPassText = buffer.toString()
-        val toolCall = resolveLocalToolCall(firstPassText)
+        val toolCall = resolveLocalToolCall(firstPassText, texts)
         if (toolCall == null) {
             emit(firstPassText)
             return@flow
@@ -141,14 +146,14 @@ class MlKitNanoBackend @Inject constructor(
             ChatMessage(Role.MODEL, firstPassText),
             ChatMessage(Role.USER, toolCall.resultMessage),
         )
-        runPass(extendedHistory, config).collect { text ->
+        runPass(extendedHistory, config, texts).collect { text ->
             Log.v(TAG, "chunk (2do pase): \"$text\"")
             emit(text)
         }
     }
 
     /** Un pase de generación: reconstruye toda la conversación (stateless) y transmite el texto crudo. */
-    private fun runPass(history: List<ChatMessage>, config: GenerationConfig): Flow<String> = flow {
+    private fun runPass(history: List<ChatMessage>, config: GenerationConfig, texts: AppTexts): Flow<String> = flow {
         // Un Content por turno (el rol se infiere por la posición/alternancia, la API no expone un
         // campo "role" explícito).
         val contents = history.map { message ->
@@ -164,7 +169,7 @@ class MlKitNanoBackend @Inject constructor(
         config.topK?.let { requestBuilder.topK = it }
         config.maxOutputTokens?.let { requestBuilder.maxOutputTokens = it }
         val fullSystemPrompt =
-            buildLocalSystemPrompt(config.systemPrompt, config.functionCalling, config.webSearch, config.jsonMode)
+            buildLocalSystemPrompt(config.systemPrompt, config.functionCalling, config.webSearch, config.jsonMode, texts)
         if (generativeModel.isSystemPromptAvailable()) {
             requestBuilder.systemInstruction = SystemInstruction(fullSystemPrompt)
         }

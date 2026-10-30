@@ -9,12 +9,6 @@ package es.sebas1705.nanodemo.core.common
  * tier) es la única forma de saber si funcionó, igual para los 5 tiers.
  */
 
-/** Addendum de system prompt para pedir "Modo JSON" cuando no hay `responseMimeType` nativo. */
-const val JSON_MODE_INSTRUCTION =
-    "Respondé ÚNICAMENTE con JSON válido: nada de texto antes ni después, nada de explicaciones, " +
-        "nada de bloques de código markdown (sin ``` alrededor). Todo tu mensaje tiene que poder " +
-        "parsearse como JSON de punta a punta."
-
 /**
  * Combina [appContextPreamble] (siempre primero) con el system prompt del usuario y los addendums
  * de emulación que correspondan según `config`. Nunca es blank -- `appContextPreamble()` sola ya
@@ -32,11 +26,13 @@ fun buildLocalSystemPrompt(
     functionCalling: Boolean,
     webSearch: Boolean,
     jsonMode: Boolean,
+    texts: AppTexts,
 ): String = buildList {
-    add(appContextPreamble())
+    add(appContextPreamble(texts))
     userSystemPrompt?.let(::add)
-    if (functionCalling && !webSearch) add(DemoTools.reactInstruction())
-    if (jsonMode) add(JSON_MODE_INSTRUCTION)
+    if (functionCalling && !webSearch) add(DemoTools.reactInstruction(texts))
+    // "Modo JSON" sin `responseMimeType` nativo: es un addendum más del system prompt.
+    if (jsonMode) add(texts.jsonModeInstruction)
 }.joinToString("\n\n")
 
 /** Lo que hay que mostrar (`marker`) y agregar como turno siguiente (`resultMessage`) tras ejecutar una herramienta emulada. */
@@ -48,11 +44,15 @@ data class LocalToolCall(val marker: String, val resultMessage: String)
  * `null` = no hubo pedido, mostrar `firstPassText` tal cual. (La búsqueda ya no pasa por acá: es
  * determinista, ver `augmentWithWebSearch`.)
  */
-fun resolveLocalToolCall(firstPassText: String): LocalToolCall? {
+fun resolveLocalToolCall(firstPassText: String, texts: AppTexts): LocalToolCall? {
     val timezone = DemoTools.matchReactCall(firstPassText) ?: return null
-    val toolResult = DemoTools.executeCurrentTime(timezone.ifBlank { null })
+    val toolResult = DemoTools.executeCurrentTime(timezone.ifBlank { null }, texts)
     return LocalToolCall(
-        marker = "🔧 usando \"${DemoTools.GET_CURRENT_TIME}\"…\n\n",
-        resultMessage = "Resultado de get_current_time: ${toolResult["legible"]} (${toolResult["iso8601"]})",
+        marker = toolMarker(texts.usingToolNotice(DemoTools.GET_CURRENT_TIME)),
+        resultMessage = texts.toolResult(
+            DemoTools.GET_CURRENT_TIME,
+            toolResult.getValue(DemoTools.RESULT_READABLE),
+            toolResult.getValue(DemoTools.RESULT_ISO8601),
+        ),
     )
 }

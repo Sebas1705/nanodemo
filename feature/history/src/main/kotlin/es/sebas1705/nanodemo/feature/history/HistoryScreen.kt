@@ -49,6 +49,7 @@ import es.sebas1705.nanodemo.core.designsystem.AppCard
 import es.sebas1705.nanodemo.core.designsystem.EmptyState
 import es.sebas1705.nanodemo.core.designsystem.SectionLabel
 import es.sebas1705.nanodemo.core.designsystem.TierAvatar
+import es.sebas1705.nanodemo.core.designsystem.displayTitle
 import es.sebas1705.nanodemo.core.designsystem.label
 import es.sebas1705.nanodemo.core.ui.DemoColors
 import es.sebas1705.nanodemo.domain.models.Conversation
@@ -245,7 +246,7 @@ private fun SemanticSearchBar(
         }
 
         is SemanticSearchState.Error -> AppCard(modifier = modifier.fillMaxWidth()) {
-            Text(stringResource(R.string.history_error, searchState.message), style = MaterialTheme.typography.bodyMedium, color = DemoColors.Danger)
+            Text(stringResource(R.string.history_error, searchState.message ?: stringResource(R.string.history_search_model_failed)), style = MaterialTheme.typography.bodyMedium, color = DemoColors.Danger)
             Button(onClick = onDownloadModel) { Text(stringResource(R.string.history_retry_download)) }
         }
     }
@@ -271,7 +272,7 @@ private fun ConversationRow(
         ) {
             TierAvatar(conversation.tier, 36.dp)
             Column(modifier = Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(2.dp)) {
-                Text(conversation.title, color = DemoColors.Ink, style = MaterialTheme.typography.bodyLarge, maxLines = 2)
+                Text(conversation.displayTitle(), color = DemoColors.Ink, style = MaterialTheme.typography.bodyLarge, maxLines = 2)
                 Text(
                     stringResource(
                         R.string.history_row_meta,
