@@ -41,6 +41,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.SolidColor
+import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.unit.dp
@@ -274,8 +275,9 @@ private fun ConversationRow(
             Column(modifier = Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(2.dp)) {
                 Text(conversation.displayTitle(), color = DemoColors.Ink, style = MaterialTheme.typography.bodyLarge, maxLines = 2)
                 Text(
-                    stringResource(
-                        R.string.history_row_meta,
+                    pluralStringResource(
+                        R.plurals.history_row_meta,
+                        conversation.messageCount,
                         conversation.tier.label(),
                         (if (showDay) DATE_FORMATTER else TIME_FORMATTER).format(time),
                         conversation.messageCount,

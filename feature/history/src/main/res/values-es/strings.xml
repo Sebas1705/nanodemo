@@ -17,7 +17,11 @@
     <string name="history_downloading_search_model">Descargando modelo de búsqueda…</string>
     <string name="history_error">Error: %1$s</string>
     <string name="history_retry_download">Reintentar descarga</string>
-    <string name="history_row_meta">%1$s · %2$s · %3$d mensajes</string>
+    <plurals name="history_row_meta">
+        <item quantity="one">%1$s · %2$s · %3$d mensaje</item>
+        <item quantity="many">%1$s · %2$s · %3$d mensajes</item>
+        <item quantity="other">%1$s · %2$s · %3$d mensajes</item>
+    </plurals>
     <string name="history_delete_conversation">Borrar conversación</string>
     <string name="history_search_model_failed">No se pudo descargar el modelo de búsqueda</string>
 </resources>

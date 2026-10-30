@@ -17,7 +17,10 @@
     <string name="history_downloading_search_model">Downloading search model…</string>
     <string name="history_error">Error: %1$s</string>
     <string name="history_retry_download">Retry download</string>
-    <string name="history_row_meta">%1$s · %2$s · %3$d messages</string>
+    <plurals name="history_row_meta">
+        <item quantity="one">%1$s · %2$s · %3$d message</item>
+        <item quantity="other">%1$s · %2$s · %3$d messages</item>
+    </plurals>
     <string name="history_delete_conversation">Delete conversation</string>
     <string name="history_search_model_failed">Could not download the search model</string>
 </resources>
