@@ -2,6 +2,7 @@
 <resources>
     <string name="destination_chat">Chat</string>
     <string name="destination_compare">Compare</string>
+    <string name="destination_lab">Lab</string>
     <string name="destination_history">History</string>
     <string name="destination_stats">Statistics</string>
     <string name="drawer_engine">Engine: %1$s</string>

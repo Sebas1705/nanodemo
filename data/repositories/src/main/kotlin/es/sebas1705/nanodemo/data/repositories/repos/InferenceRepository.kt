@@ -27,6 +27,7 @@ import es.sebas1705.nanodemo.domain.models.InferenceTier
 import es.sebas1705.nanodemo.domain.models.LiteRtLmAccelerator
 import es.sebas1705.nanodemo.domain.models.MediaPipeModelOption
 import es.sebas1705.nanodemo.domain.models.Role
+import es.sebas1705.nanodemo.domain.models.StepResult
 import es.sebas1705.nanodemo.domain.models.TierAvailability
 import es.sebas1705.nanodemo.domain.models.TierCapabilities
 import es.sebas1705.nanodemo.domain.models.VoteTally
@@ -34,6 +35,10 @@ import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.currentCoroutineContext
+import kotlinx.coroutines.ensureActive
+import kotlinx.coroutines.sync.Mutex
+import kotlinx.coroutines.sync.withLock
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -413,6 +418,36 @@ class InferenceRepository @Inject constructor(
         }
     }
 
+    /** One request at a time per engine: a loaded model cannot serve two generations at once. */
+    private val tierLocks = InferenceTier.entries.associateWith { Mutex() }
+
+    override suspend fun runStep(
+        tier: InferenceTier,
+        messages: List<ChatMessage>,
+        config: GenerationConfig,
+        onPartial: (String) -> Unit,
+    ): StepResult {
+        if (messages.isEmpty()) return StepResult("", null, "No messages")
+        if (_availability.value[tier] != TierAvailability.AVAILABLE) {
+            return StepResult("", null, "Engine $tier is not available")
+        }
+        return tierLocks.getValue(tier).withLock {
+            // Engines that keep a session (MediaPipe, LiteRT-LM) start from a clean one, so a step never sees the
+            // Chat conversation and Chat rebuilds its own afterwards.
+            resetBackendSafely(tier)
+            var metric: GenerationMetric? = null
+            val result = runGeneration(tier, messages, GenerationMode.LAB, config, onMetric = { metric = it }) { state ->
+                if (state is DemoState.Generating) onPartial(state.partialText)
+            }
+            resetBackendSafely(tier)
+            currentCoroutineContext().ensureActive() // runGeneration swallows cancellation into a failed Result
+            result.fold(
+                onSuccess = { StepResult(it, metric) },
+                onFailure = { StepResult("", metric, it.message ?: "Generation failed") },
+            )
+        }
+    }
+
     override fun voteBest(winner: InferenceTier, participants: Set<InferenceTier>, previousWinner: InferenceTier?) {
         _votes.update { applyVote(it, participants, winner, previousWinner) }
         settings.saveVotes(_votes.value)
@@ -454,6 +489,8 @@ class InferenceRepository @Inject constructor(
         tier: InferenceTier,
         history: List<ChatMessage>,
         mode: String,
+        configOverride: GenerationConfig? = null,
+        onMetric: (GenerationMetric) -> Unit = {},
         onStateChange: (DemoState) -> Unit,
     ): Result<String> {
         // Tiers con cuota gratis: si ya se llegó al límite (y el bloqueo está activo) ni se llama a la API.
@@ -480,7 +517,7 @@ class InferenceRepository @Inject constructor(
         val memoryBeforeBytes = usedMemoryBytes()
         onStateChange(DemoState.Generating(""))
         return try {
-            val config = _configs.value[tier] ?: GenerationConfig()
+            val config = configOverride ?: _configs.value[tier] ?: GenerationConfig()
             backends.getValue(tier).generateContentStream(history, config).collect { chunkText ->
                 if (firstChunkLatencyMs == null) {
                     firstChunkLatencyMs = System.currentTimeMillis() - startedAtMs
@@ -491,9 +528,9 @@ class InferenceRepository @Inject constructor(
             Log.d(TAG, "runGeneration($tier): completado (${fullResponse.length} chars)")
             // La métrica se registra ANTES de publicar el resultado: así la UI, al ver `Result`, ya encuentra
             // en `metrics` la de ESTA corrida (si fuera después, mostraría un instante la de la anterior).
-            recordMetric(tier, history.last().text, fullResponse, startedAtMs, firstChunkLatencyMs, memoryBeforeBytes, success = true)
+            val metric = recordMetric(tier, history.last().text, fullResponse, startedAtMs, firstChunkLatencyMs, memoryBeforeBytes, success = true)
+            onMetric(metric)
             onStateChange(DemoState.Result(fullResponse))
-            val metric = _metrics.value.last()
             telemetry.operation(
                 InferenceOperations.GENERATE, TelemetryResult.SUCCESS, metric.totalDurationMs,
                 InferenceParams.TIER to tier.name,
@@ -529,7 +566,7 @@ class InferenceRepository @Inject constructor(
                 )
             }
             onStateChange(DemoState.Error(e.message ?: textsProvider.current().errorGenerating))
-            recordMetric(tier, history.last().text, fullResponse, startedAtMs, firstChunkLatencyMs, memoryBeforeBytes, success = false)
+            onMetric(recordMetric(tier, history.last().text, fullResponse, startedAtMs, firstChunkLatencyMs, memoryBeforeBytes, success = false))
             Result.failure(e)
         }
     }
@@ -542,7 +579,7 @@ class InferenceRepository @Inject constructor(
         firstChunkLatencyMs: Long?,
         memoryBeforeBytes: Long,
         success: Boolean,
-    ) {
+    ): GenerationMetric {
         val exactTokens = backends.getValue(tier).lastResponseTokens()
         // Los backends que cargan el modelo en la primera llamada (MediaPipe, LiteRT-LM) lo incluyen en el tiempo
         // medido acá; se resta y se guarda aparte para que la velocidad sea de generación pura.
@@ -571,6 +608,7 @@ class InferenceRepository @Inject constructor(
                 telemetry.failure(InferenceOperations.PERSIST_METRIC, e, null, InferenceParams.TIER to tier.name)
             }
         }
+        return metric
     }
 
     private fun usedMemoryBytes(): Long =

@@ -21,6 +21,10 @@ sealed interface AppGraph : NavKey {
     @Serializable
     data object Compare : AppGraph
 
+    /** Hub of AI-architecture and measurement experiments; the open experiment is local state of the screen. */
+    @Serializable
+    data object Lab : AppGraph
+
     @Serializable
     data object Stats : AppGraph
 

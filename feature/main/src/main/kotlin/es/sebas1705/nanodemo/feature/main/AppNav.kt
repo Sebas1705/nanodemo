@@ -54,6 +54,7 @@ import es.sebas1705.nanodemo.domain.models.TierAvailability
 import es.sebas1705.nanodemo.feature.chat.ChatScreen
 import es.sebas1705.nanodemo.feature.compare.CompareScreen
 import es.sebas1705.nanodemo.feature.history.HistoryScreen
+import es.sebas1705.nanodemo.feature.lab.LabScreen
 import es.sebas1705.nanodemo.feature.stats.StatsScreen
 import kotlinx.coroutines.launch
 
@@ -229,6 +230,7 @@ private fun AppNavHost(
         entryProvider = entryProvider {
             entry<AppGraph.Chat> { route -> ChatScreen(conversationId = route.conversationId, sharedText = route.sharedText) }
             entry<AppGraph.Compare> { CompareScreen(sizeClass) }
+            entry<AppGraph.Lab> { LabScreen() }
             entry<AppGraph.Stats> { StatsScreen(sizeClass) }
             entry<AppGraph.History> {
                 HistoryScreen(

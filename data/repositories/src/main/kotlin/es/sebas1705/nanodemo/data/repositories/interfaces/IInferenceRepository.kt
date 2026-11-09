@@ -8,6 +8,7 @@ import es.sebas1705.nanodemo.domain.models.GenerationMetric
 import es.sebas1705.nanodemo.domain.models.InferenceTier
 import es.sebas1705.nanodemo.domain.models.LiteRtLmAccelerator
 import es.sebas1705.nanodemo.domain.models.MediaPipeModelOption
+import es.sebas1705.nanodemo.domain.models.StepResult
 import es.sebas1705.nanodemo.domain.models.TierAvailability
 import es.sebas1705.nanodemo.domain.models.TierCapabilities
 import es.sebas1705.nanodemo.domain.models.VoteTally
@@ -56,6 +57,18 @@ interface IInferenceRepository {
     fun generate(prompt: String)
     fun generateCompare(prompt: String)
     fun exportMetricsCsv(): Uri?
+
+    /**
+     * One isolated generation for pipelines and experiments: runs `messages` on `tier` with its own `config`,
+     * never touches the Chat conversation or per-tier settings, serialises access per engine and records a
+     * metric. `onPartial` receives the accumulated text while streaming. Never throws except for cancellation.
+     */
+    suspend fun runStep(
+        tier: InferenceTier,
+        messages: List<ChatMessage>,
+        config: GenerationConfig,
+        onPartial: (String) -> Unit = {},
+    ): StepResult
 
     /**
      * Registra que `winner` fue la mejor respuesta de una ronda de Comparar en la que respondieron

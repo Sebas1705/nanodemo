@@ -6,6 +6,8 @@ import es.sebas1705.nanodemo.domain.models.GenerationConfig
 import es.sebas1705.nanodemo.domain.models.InferenceTier
 import es.sebas1705.nanodemo.domain.models.LiteRtLmAccelerator
 import es.sebas1705.nanodemo.domain.models.MediaPipeModelOption
+import es.sebas1705.nanodemo.domain.models.ChatMessage
+import es.sebas1705.nanodemo.domain.models.StepResult
 import es.sebas1705.nanodemo.domain.models.TierCapabilities
 import javax.inject.Inject
 
@@ -73,4 +75,14 @@ class ClearVotesUseCase @Inject constructor(private val repository: IInferenceRe
 
 class SelectLiteRtLmAcceleratorUseCase @Inject constructor(private val repository: IInferenceRepository) {
     operator fun invoke(option: LiteRtLmAccelerator) = repository.selectLiteRtLmAccelerator(option)
+}
+
+/** One isolated generation on a chosen tier with its own config (see `IInferenceRepository.runStep`). */
+class RunStepUseCase @Inject constructor(private val repository: IInferenceRepository) {
+    suspend operator fun invoke(
+        tier: InferenceTier,
+        messages: List<ChatMessage>,
+        config: GenerationConfig,
+        onPartial: (String) -> Unit = {},
+    ): StepResult = repository.runStep(tier, messages, config, onPartial)
 }

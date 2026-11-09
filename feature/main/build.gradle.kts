@@ -18,4 +18,5 @@ dependencies {
     implementation(projects.feature.device)
     implementation(projects.feature.stats)
     implementation(projects.feature.history)
+    implementation(projects.feature.lab)
 }

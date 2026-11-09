@@ -66,4 +66,5 @@ internal object InferenceParams {
 internal object GenerationMode {
     const val CHAT = "chat"
     const val COMPARE = "compare"
+    const val LAB = "lab"
 }
