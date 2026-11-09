@@ -6,7 +6,6 @@ import es.sebas1705.nanodemo.domain.models.GenerationConfig
 import es.sebas1705.nanodemo.domain.models.InferenceTier
 import es.sebas1705.nanodemo.domain.models.StepKind
 import es.sebas1705.nanodemo.domain.models.StepResult
-import es.sebas1705.nanodemo.domain.usescases.inference.RunStepUseCase
 
 /**
  * Outcome of a non-model step: the `value` the pipeline continues with plus what to show in the trace.
@@ -20,7 +19,7 @@ class LocalOutcome<T>(val value: T, val output: String? = null, val detail: Stri
  * experiment gets the same visible trace without repeating the bookkeeping.
  */
 class PipelineRunner(
-    private val runStep: RunStepUseCase,
+    private val executor: StepExecutor,
     val recorder: TraceRecorder = TraceRecorder(),
 ) {
     suspend fun generate(
@@ -31,7 +30,7 @@ class PipelineRunner(
         config: GenerationConfig = GenerationConfig(),
     ): StepResult {
         val id = recorder.begin(kind, title, tier, messages.lastOrNull()?.text)
-        val result = runStep(tier, messages, config) { partial -> recorder.preview(id, partial) }
+        val result = executor.run(tier, messages, config) { partial -> recorder.preview(id, partial) }
         if (result.ok) {
             recorder.finish(
                 id = id,

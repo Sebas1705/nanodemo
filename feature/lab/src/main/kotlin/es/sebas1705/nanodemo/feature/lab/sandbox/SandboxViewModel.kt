@@ -15,6 +15,7 @@ import es.sebas1705.nanodemo.domain.usescases.inference.CapabilitiesOfUseCase
 import es.sebas1705.nanodemo.domain.usescases.inference.ObserveAvailabilityUseCase
 import es.sebas1705.nanodemo.domain.usescases.inference.RunStepUseCase
 import es.sebas1705.nanodemo.feature.lab.trace.PipelineRunner
+import es.sebas1705.nanodemo.feature.lab.trace.asExecutor
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -37,7 +38,7 @@ class SandboxViewModel @Inject constructor(
     private val capabilitiesOf: CapabilitiesOfUseCase,
 ) : ViewModel() {
 
-    private val runner = PipelineRunner(runStep)
+    private val runner = PipelineRunner(runStep.asExecutor())
 
     val availability: StateFlow<Map<InferenceTier, TierAvailability>> = observeAvailability()
     val trace: StateFlow<PipelineTrace> = runner.recorder.trace
