@@ -9,6 +9,9 @@ import es.sebas1705.nanodemo.core.common.QuotaService
 import es.sebas1705.nanodemo.core.common.Telemetry
 import es.sebas1705.nanodemo.core.common.TelemetryResult
 import es.sebas1705.nanodemo.core.common.UsageQuota
+import es.sebas1705.nanodemo.core.common.DeviceProbe
+import es.sebas1705.nanodemo.core.common.DeviceReading
+import es.sebas1705.nanodemo.core.common.deviceDelta
 import es.sebas1705.nanodemo.core.common.fetchUrlText
 import es.sebas1705.nanodemo.data.cloudgemini.CloudGeminiBackend
 import es.sebas1705.nanodemo.data.firebaseai.FirebaseAiBackend
@@ -73,6 +76,8 @@ class InferenceRepository @Inject constructor(
     private val settings: SettingsStore,
     private val textsProvider: AppTextsProvider,
 ) : IInferenceRepository {
+
+    private val deviceProbe = DeviceProbe(context)
 
     private val scope = CoroutineScope(SupervisorJob() + Dispatchers.Main.immediate)
 
@@ -463,12 +468,13 @@ class InferenceRepository @Inject constructor(
         val runs = _metrics.value
         if (runs.isEmpty()) return null
         val csv = buildString {
-            appendLine("tier,startedAtMs,success,firstChunkLatencyMs,totalDurationMs,promptChars,responseChars,responseTokens,responseTokensExact,memoryDeltaBytes,loadTimeMs")
+            appendLine("tier,startedAtMs,success,firstChunkLatencyMs,totalDurationMs,promptChars,responseChars,responseTokens,responseTokensExact,memoryDeltaBytes,loadTimeMs,pssDeltaKb,batteryDrainUah,thermalStatus")
             runs.forEach { m ->
                 appendLine(
                     "${m.tier},${m.startedAtMs},${m.success},${m.firstChunkLatencyMs ?: ""}," +
                         "${m.totalDurationMs},${m.promptChars},${m.responseChars}," +
-                        "${m.responseTokens},${m.responseTokensExact},${m.memoryDeltaBytes},${m.loadTimeMs ?: ""}"
+                        "${m.responseTokens},${m.responseTokensExact},${m.memoryDeltaBytes},${m.loadTimeMs ?: ""}," +
+                        "${m.pssDeltaKb ?: ""},${m.batteryDrainUah ?: ""},${m.thermalStatus ?: ""}"
                 )
             }
         }
@@ -515,6 +521,7 @@ class InferenceRepository @Inject constructor(
         var firstChunkLatencyMs: Long? = null
         var fullResponse = ""
         val memoryBeforeBytes = usedMemoryBytes()
+        val deviceBefore = deviceProbe.read()
         onStateChange(DemoState.Generating(""))
         return try {
             val config = configOverride ?: _configs.value[tier] ?: GenerationConfig()
@@ -528,7 +535,7 @@ class InferenceRepository @Inject constructor(
             Log.d(TAG, "runGeneration($tier): completado (${fullResponse.length} chars)")
             // La métrica se registra ANTES de publicar el resultado: así la UI, al ver `Result`, ya encuentra
             // en `metrics` la de ESTA corrida (si fuera después, mostraría un instante la de la anterior).
-            val metric = recordMetric(tier, history.last().text, fullResponse, startedAtMs, firstChunkLatencyMs, memoryBeforeBytes, success = true)
+            val metric = recordMetric(tier, history.last().text, fullResponse, startedAtMs, firstChunkLatencyMs, memoryBeforeBytes, deviceBefore, success = true)
             onMetric(metric)
             onStateChange(DemoState.Result(fullResponse))
             telemetry.operation(
@@ -566,7 +573,7 @@ class InferenceRepository @Inject constructor(
                 )
             }
             onStateChange(DemoState.Error(e.message ?: textsProvider.current().errorGenerating))
-            onMetric(recordMetric(tier, history.last().text, fullResponse, startedAtMs, firstChunkLatencyMs, memoryBeforeBytes, success = false))
+            onMetric(recordMetric(tier, history.last().text, fullResponse, startedAtMs, firstChunkLatencyMs, memoryBeforeBytes, deviceBefore, success = false))
             Result.failure(e)
         }
     }
@@ -578,6 +585,7 @@ class InferenceRepository @Inject constructor(
         startedAtMs: Long,
         firstChunkLatencyMs: Long?,
         memoryBeforeBytes: Long,
+        deviceBefore: DeviceReading,
         success: Boolean,
     ): GenerationMetric {
         val exactTokens = backends.getValue(tier).lastResponseTokens()
@@ -585,6 +593,7 @@ class InferenceRepository @Inject constructor(
         // medido acá; se resta y se guarda aparte para que la velocidad sea de generación pura.
         val loadMs = backends.getValue(tier).lastLoadTimeMs()
         val timing = excludeLoadTime(firstChunkLatencyMs, System.currentTimeMillis() - startedAtMs, loadMs)
+        val device = deviceDelta(deviceBefore, deviceProbe.read())
         val approxTokens = if (response.isEmpty()) 0 else (response.length / 4).coerceAtLeast(1)
         val metric = GenerationMetric(
             tier = tier,
@@ -598,6 +607,9 @@ class InferenceRepository @Inject constructor(
             responseTokensExact = exactTokens != null,
             memoryDeltaBytes = usedMemoryBytes() - memoryBeforeBytes,
             loadTimeMs = loadMs,
+            pssDeltaKb = device.pssDeltaKb,
+            batteryDrainUah = device.batteryDrainUah,
+            thermalStatus = device.thermalStatus,
         )
         _metrics.update { it + metric } // la UI ve la corrida nueva al toque, sin esperar al disco.
         scope.launch {

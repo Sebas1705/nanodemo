@@ -15,6 +15,7 @@ class MetricsLineTest {
         exact: Boolean = true,
         success: Boolean = true,
         load: Long? = null,
+        pssKb: Long? = null,
     ) = GenerationMetric(
         tier = InferenceTier.MEDIAPIPE_LOCAL,
         startedAtMs = 0,
@@ -27,6 +28,7 @@ class MetricsLineTest {
         responseTokensExact = exact,
         memoryDeltaBytes = 0,
         loadTimeMs = load,
+        pssDeltaKb = pssKb,
     )
 
     @Test
@@ -68,5 +70,18 @@ class MetricsLineTest {
     fun `la carga del modelo aparece aparte al final solo si la hubo`() {
         assertEquals("load 9.8s", metric(load = 9_800).displayParts().last())
         assertTrue(metric(load = null).displayParts().none { it.startsWith("load") })
+    }
+
+    @Test
+    fun `native memory growth shows with its sign and unit`() {
+        assertEquals("RAM +1.2 GB", metric(pssKb = 1_258_291).displayParts().last())
+        assertEquals("RAM +340 MB", metric(pssKb = 348_160).displayParts().last())
+        assertEquals("RAM -340 MB", metric(pssKb = -348_160).displayParts().last())
+    }
+
+    @Test
+    fun `memory noise below the threshold is not shown`() {
+        assertTrue(metric(pssKb = 4_000).displayParts().none { it.startsWith("RAM") })
+        assertTrue(metric(pssKb = null).displayParts().none { it.startsWith("RAM") })
     }
 }

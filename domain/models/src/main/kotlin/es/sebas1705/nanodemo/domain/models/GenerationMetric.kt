@@ -29,4 +29,13 @@ data class GenerationMetric(
      * "generar". Las corridas guardadas antes de existir este campo quedan en `null`.
      */
     val loadTimeMs: Long? = null,
+    /**
+     * Change in this process PSS (KB) across the run; it includes the native memory a loaded model uses,
+     * unlike [memoryDeltaBytes] (JVM heap only). `null` = not measured.
+     */
+    val pssDeltaKb: Long? = null,
+    /** Battery charge lost during the run in microampere-hours (coarse; meaningful when summed). `null` = not measured. */
+    val batteryDrainUah: Long? = null,
+    /** `PowerManager.THERMAL_STATUS_*` at the end of the run. `null` = not measured. */
+    val thermalStatus: Int? = null,
 )

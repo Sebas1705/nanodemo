@@ -12,7 +12,7 @@ import androidx.sqlite.db.SupportSQLiteDatabase
         MetricEntity::class,
         ConversationEmbeddingEntity::class,
     ],
-    version = 4,
+    version = 5,
     exportSchema = false,
 )
 abstract class NanoDemoDatabase : RoomDatabase() {
@@ -69,5 +69,17 @@ val MIGRATION_2_3 = object : Migration(2, 3) {
 val MIGRATION_3_4 = object : Migration(3, 4) {
     override fun migrate(db: SupportSQLiteDatabase) {
         db.execSQL("ALTER TABLE `metrics` ADD COLUMN `loadTimeMs` INTEGER")
+    }
+}
+
+/**
+ * v4 -> v5: adds the device measurements of a run (`pssDeltaKb`, `batteryDrainUah`, `thermalStatus`, see
+ * [GenerationMetric]). Nullable columns without default: old rows stay NULL = "not measured".
+ */
+val MIGRATION_4_5 = object : Migration(4, 5) {
+    override fun migrate(db: SupportSQLiteDatabase) {
+        db.execSQL("ALTER TABLE `metrics` ADD COLUMN `pssDeltaKb` INTEGER")
+        db.execSQL("ALTER TABLE `metrics` ADD COLUMN `batteryDrainUah` INTEGER")
+        db.execSQL("ALTER TABLE `metrics` ADD COLUMN `thermalStatus` INTEGER")
     }
 }

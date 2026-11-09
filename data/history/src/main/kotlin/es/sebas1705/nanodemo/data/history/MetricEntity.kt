@@ -23,4 +23,7 @@ data class MetricEntity(
     val responseTokensExact: Boolean,
     val memoryDeltaBytes: Long,
     val loadTimeMs: Long? = null,
+    val pssDeltaKb: Long? = null,
+    val batteryDrainUah: Long? = null,
+    val thermalStatus: Int? = null,
 )

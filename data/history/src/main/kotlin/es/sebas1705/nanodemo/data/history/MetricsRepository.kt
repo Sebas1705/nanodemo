@@ -33,6 +33,9 @@ private fun MetricEntity.toDomain() = GenerationMetric(
     responseTokensExact = responseTokensExact,
     memoryDeltaBytes = memoryDeltaBytes,
     loadTimeMs = loadTimeMs,
+    pssDeltaKb = pssDeltaKb,
+    batteryDrainUah = batteryDrainUah,
+    thermalStatus = thermalStatus,
 )
 
 private fun GenerationMetric.toEntity() = MetricEntity(
@@ -47,4 +50,7 @@ private fun GenerationMetric.toEntity() = MetricEntity(
     responseTokensExact = responseTokensExact,
     memoryDeltaBytes = memoryDeltaBytes,
     loadTimeMs = loadTimeMs,
+    pssDeltaKb = pssDeltaKb,
+    batteryDrainUah = batteryDrainUah,
+    thermalStatus = thermalStatus,
 )

@@ -10,6 +10,7 @@ import es.sebas1705.nanodemo.data.history.IMetricsRepository
 import es.sebas1705.nanodemo.data.history.MIGRATION_1_2
 import es.sebas1705.nanodemo.data.history.MIGRATION_2_3
 import es.sebas1705.nanodemo.data.history.MIGRATION_3_4
+import es.sebas1705.nanodemo.data.history.MIGRATION_4_5
 import es.sebas1705.nanodemo.data.history.MetricDao
 import es.sebas1705.nanodemo.data.history.MetricsRepository
 import es.sebas1705.nanodemo.data.history.NanoDemoDatabase
@@ -38,7 +39,7 @@ abstract class HistoryDataModule {
         @Singleton
         fun provideNanoDemoDatabase(@ApplicationContext context: Context): NanoDemoDatabase =
             Room.databaseBuilder(context, NanoDemoDatabase::class.java, "nanodemo.db")
-                .addMigrations(MIGRATION_1_2, MIGRATION_2_3, MIGRATION_3_4)
+                .addMigrations(MIGRATION_1_2, MIGRATION_2_3, MIGRATION_3_4, MIGRATION_4_5)
                 .build()
 
         @Provides
