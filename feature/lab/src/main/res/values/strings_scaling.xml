@@ -1,0 +1,26 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- %1$d and %2$d are the smallest and largest prompt sizes in characters. -->
+    <string name="scaling_intro">Sends prompts that keep getting longer (from %1$d to %2$d characters) and measures the time to the first token. The slope is the cost of each extra thousand characters of context. Sizes that do not fit the engine are skipped.</string>
+    <string name="scaling_engines">Engines</string>
+    <string name="scaling_measure">Measure</string>
+    <string name="scaling_measuring">Measuring…</string>
+    <string name="scaling_cancel">Cancel</string>
+    <!-- Quantity is the total; %1$d is how many are done, %2$d the total. -->
+    <plurals name="scaling_progress">
+        <item quantity="one">%1$d/%2$d request</item>
+        <item quantity="other">%1$d/%2$d requests</item>
+    </plurals>
+    <string name="scaling_chart_title">First token by prompt size (ms)</string>
+    <!-- Unit of the chart's x axis: characters. -->
+    <string name="scaling_axis_chars">chars</string>
+    <string name="scaling_slope_title">Cost of a longer prompt</string>
+    <!-- %1$s is the slope in ms, already formatted. -->
+    <string name="scaling_slope_value">≈ %1$s ms per 1000 characters</string>
+    <string name="scaling_slope_none">not enough data</string>
+    <string name="scaling_slope_note">A slope close to zero means the engine takes the prompt almost for free (cloud); a high one means prefill shows (on-device).</string>
+    <plurals name="scaling_failed">
+        <item quantity="one">%d request failed or took too long and does not count.</item>
+        <item quantity="other">%d requests failed or took too long and do not count.</item>
+    </plurals>
+</resources>

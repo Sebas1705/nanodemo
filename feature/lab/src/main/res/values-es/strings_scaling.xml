@@ -1,0 +1,26 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- %1$d and %2$d are the smallest and largest prompt sizes in characters. -->
+    <string name="scaling_intro">Manda prompts cada vez más largos (de %1$d a %2$d caracteres) y mide el tiempo hasta el primer token. La pendiente es lo que cuesta cada mil caracteres más de contexto. Se saltan los tamaños que no caben en el motor.</string>
+    <string name="scaling_engines">Motores</string>
+    <string name="scaling_measure">Medir</string>
+    <string name="scaling_measuring">Midiendo…</string>
+    <string name="scaling_cancel">Cancelar</string>
+    <!-- Quantity is the total; %1$d is how many are done, %2$d the total. -->
+    <plurals name="scaling_progress">
+        <item quantity="one">%1$d/%2$d petición</item>
+        <item quantity="other">%1$d/%2$d peticiones</item>
+    </plurals>
+    <string name="scaling_chart_title">Primer token según el tamaño del prompt (ms)</string>
+    <!-- Unit of the chart's x axis: characters. -->
+    <string name="scaling_axis_chars">car.</string>
+    <string name="scaling_slope_title">Coste de un prompt más largo</string>
+    <!-- %1$s is the slope in ms, already formatted. -->
+    <string name="scaling_slope_value">≈ %1$s ms por cada 1000 caracteres</string>
+    <string name="scaling_slope_none">sin datos suficientes</string>
+    <string name="scaling_slope_note">Una pendiente cercana a cero indica que el motor procesa el prompt casi gratis (nube); una alta, que el prefill se nota (on-device).</string>
+    <plurals name="scaling_failed">
+        <item quantity="one">%d petición falló o tardó demasiado y no cuenta.</item>
+        <item quantity="other">%d peticiones fallaron o tardaron demasiado y no cuentan.</item>
+    </plurals>
+</resources>

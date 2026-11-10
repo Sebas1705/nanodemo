@@ -22,10 +22,12 @@ import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.graphics.lerp
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import es.sebas1705.nanodemo.core.ui.DemoColors
 import es.sebas1705.nanodemo.core.ui.readoutStyle
+import es.sebas1705.nanodemo.feature.lab.R
 
 /** Red at 0, amber at 0.5, green at 1: the colour of a pass rate. Out-of-range values are clamped. */
 fun passRateColor(rate: Double): Color {
@@ -83,7 +85,7 @@ class ChartSeries(val label: String, val color: Color, val points: List<Pair<Flo
 fun LineChart(series: List<ChartSeries>, xLabel: String, yLabel: String, modifier: Modifier = Modifier, height: Dp = 160.dp) {
     val all = series.flatMap { it.points }
     if (all.size < 2) {
-        Text("Sin datos suficientes todavía.", style = MaterialTheme.typography.bodySmall, color = DemoColors.Muted, modifier = modifier)
+        Text(stringResource(R.string.lab_common_no_data), style = MaterialTheme.typography.bodySmall, color = DemoColors.Muted, modifier = modifier)
         return
     }
     val minX = all.minOf { it.first }
@@ -113,7 +115,7 @@ fun LineChart(series: List<ChartSeries>, xLabel: String, yLabel: String, modifie
         }
         Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
             Text("${formatAxis(minX)} $xLabel", style = readoutStyle, color = DemoColors.Muted)
-            Text("máx $yLabel ${formatAxis(maxY)}", style = readoutStyle, color = DemoColors.Muted)
+            Text(stringResource(R.string.lab_common_chart_max, yLabel, formatAxis(maxY)), style = readoutStyle, color = DemoColors.Muted)
             Text("${formatAxis(maxX)} $xLabel", style = readoutStyle, color = DemoColors.Muted)
         }
     }

@@ -8,6 +8,7 @@ import es.sebas1705.nanodemo.domain.models.TierAvailability
 import es.sebas1705.nanodemo.domain.usescases.inference.CapabilitiesOfUseCase
 import es.sebas1705.nanodemo.domain.usescases.inference.ObserveAvailabilityUseCase
 import es.sebas1705.nanodemo.domain.usescases.inference.RunStepUseCase
+import es.sebas1705.nanodemo.feature.lab.common.LabTexts
 import es.sebas1705.nanodemo.feature.lab.common.usableTiers
 import es.sebas1705.nanodemo.feature.lab.trace.asExecutor
 import kotlinx.coroutines.Job
@@ -25,9 +26,10 @@ class ScalingViewModel @Inject constructor(
     runStep: RunStepUseCase,
     observeAvailability: ObserveAvailabilityUseCase,
     capabilitiesOf: CapabilitiesOfUseCase,
+    texts: LabTexts,
 ) : ViewModel() {
 
-    private val runner = ScalingRunner(runStep.asExecutor(), contextOf = { capabilitiesOf(it).contextTokens })
+    private val runner = ScalingRunner(runStep.asExecutor(texts), contextOf = { capabilitiesOf(it).contextTokens })
 
     val availability: StateFlow<Map<InferenceTier, TierAvailability>> = observeAvailability()
 

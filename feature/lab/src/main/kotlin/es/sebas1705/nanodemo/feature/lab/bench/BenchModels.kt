@@ -1,16 +1,18 @@
 package es.sebas1705.nanodemo.feature.lab.bench
 
+import androidx.annotation.StringRes
 import es.sebas1705.nanodemo.domain.models.InferenceTier
+import es.sebas1705.nanodemo.feature.lab.R
 import kotlinx.serialization.Serializable
 
-enum class BenchCategory(val label: String) {
-    REASONING("Razonamiento"),
-    EXTRACTION("Extracción"),
-    INSTRUCTIONS("Instrucciones"),
-    KNOWLEDGE("Conocimiento"),
-    TRANSLATION("Traducción"),
-    CODE("Código"),
-    SUMMARY("Resumen"),
+enum class BenchCategory(@StringRes val label: Int, @StringRes val shortLabel: Int) {
+    REASONING(R.string.bench_category_reasoning, R.string.bench_category_reasoning_short),
+    EXTRACTION(R.string.bench_category_extraction, R.string.bench_category_extraction_short),
+    INSTRUCTIONS(R.string.bench_category_instructions, R.string.bench_category_instructions_short),
+    KNOWLEDGE(R.string.bench_category_knowledge, R.string.bench_category_knowledge_short),
+    TRANSLATION(R.string.bench_category_translation, R.string.bench_category_translation_short),
+    CODE(R.string.bench_category_code, R.string.bench_category_code_short),
+    SUMMARY(R.string.bench_category_summary, R.string.bench_category_summary_short),
 }
 
 /**
@@ -20,7 +22,7 @@ enum class BenchCategory(val label: String) {
 class BenchTask(
     val id: String,
     val category: BenchCategory,
-    val title: String,
+    @StringRes val title: Int,
     val prompt: String,
     val checker: Checker,
     val jsonMode: Boolean = false,
@@ -81,4 +83,4 @@ data class BenchSession(
 )
 
 /** Progress of a running session, for the progress bar. */
-data class BenchProgress(val done: Int, val total: Int, val tier: InferenceTier?, val taskTitle: String?)
+data class BenchProgress(val done: Int, val total: Int, val tier: InferenceTier?, @StringRes val taskTitle: Int?)

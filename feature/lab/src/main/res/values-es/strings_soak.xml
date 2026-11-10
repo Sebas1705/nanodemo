@@ -1,0 +1,24 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="soak_intro">Un móvil que se calienta baja la frecuencia del procesador (throttling) y el modelo se vuelve más lento. Esta prueba genera texto seguido en un motor y dibuja la velocidad (tokens/s) a lo largo del tiempo. Mejor con el cargador desconectado y la pantalla encendida.</string>
+    <string name="soak_engine">Motor</string>
+    <string name="soak_cloud_warning">Ojo: este motor es de nube; gasta cuota gratis y no calienta el móvil. Para medir el calor usa uno on-device.</string>
+    <string name="soak_duration">Duración</string>
+    <string name="soak_minutes">%1$d min</string>
+    <string name="soak_start">Empezar</string>
+    <string name="soak_generating">Generando…</string>
+    <string name="soak_stop">Parar</string>
+    <string name="soak_chart_title">Velocidad a lo largo del tiempo</string>
+    <string name="soak_result_title">Resultado</string>
+    <plurals name="soak_generations_count">
+        <item quantity="one">%d generación</item>
+        <item quantity="other">%d generaciones</item>
+    </plurals>
+    <!-- %1$s start speed, %2$s end speed, %3$s signed percent change; all already formatted. -->
+    <string name="soak_speed_change">Velocidad %1$s → %2$s tok/s (%3$s%%)</string>
+    <string name="soak_not_enough_data">Hacen falta al menos 3 generaciones con velocidad medible para comparar el principio y el final.</string>
+    <!-- %1$s is the thermal status name. -->
+    <string name="soak_max_thermal">Estado térmico máximo: %1$s</string>
+    <!-- %1$s is the signed amount in mAh. -->
+    <string name="soak_battery">Batería: %1$s mAh (lectura gruesa)</string>
+</resources>

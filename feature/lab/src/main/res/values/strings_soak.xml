@@ -1,0 +1,24 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="soak_intro">A phone that heats up lowers its processor frequency (throttling) and the model gets slower. This test generates text back to back on one engine and plots the speed (tokens/s) over time. Best with the charger unplugged and the screen on.</string>
+    <string name="soak_engine">Engine</string>
+    <string name="soak_cloud_warning">Careful: this is a cloud engine; it spends free quota and does not heat the phone. To measure heat use an on-device one.</string>
+    <string name="soak_duration">Duration</string>
+    <string name="soak_minutes">%1$d min</string>
+    <string name="soak_start">Start</string>
+    <string name="soak_generating">Generating…</string>
+    <string name="soak_stop">Stop</string>
+    <string name="soak_chart_title">Speed over time</string>
+    <string name="soak_result_title">Result</string>
+    <plurals name="soak_generations_count">
+        <item quantity="one">%d generation</item>
+        <item quantity="other">%d generations</item>
+    </plurals>
+    <!-- %1$s start speed, %2$s end speed, %3$s signed percent change; all already formatted. -->
+    <string name="soak_speed_change">Speed %1$s → %2$s tok/s (%3$s%%)</string>
+    <string name="soak_not_enough_data">At least 3 generations with a measurable speed are needed to compare the start and the end.</string>
+    <!-- %1$s is the thermal status name. -->
+    <string name="soak_max_thermal">Highest thermal status: %1$s</string>
+    <!-- %1$s is the signed amount in mAh. -->
+    <string name="soak_battery">Battery: %1$s mAh (rough reading)</string>
+</resources>

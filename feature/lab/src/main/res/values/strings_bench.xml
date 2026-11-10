@@ -1,0 +1,122 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Setup card -->
+    <string name="bench_engines">Engines</string>
+    <string name="bench_engines_unavailable_note">Engines that are not available right now cannot be picked; they turn on once their model is downloaded or their key is set.</string>
+    <string name="bench_categories">Categories</string>
+    <string name="bench_repetitions">Repetitions</string>
+    <string name="bench_repetitions_less_description">Fewer repetitions</string>
+    <string name="bench_repetitions_more_description">More repetitions</string>
+    <!-- %1$s is the temperature, already formatted (for example 0.5). -->
+    <string name="bench_temperature">Temperature %1$s (0 = most deterministic)</string>
+    <string name="bench_session_name">Session name (optional)</string>
+    <!-- %1$s tasks, %2$s engines, %3$s repetitions, %4$s total runs: each one is already a counted phrase. -->
+    <string name="bench_plan_summary">%1$s × %2$s × %3$s = %4$s, one by one.</string>
+    <string name="bench_repetitions_short">%1$d rep.</string>
+    <plurals name="bench_tasks_count">
+        <item quantity="one">%d task</item>
+        <item quantity="other">%d tasks</item>
+    </plurals>
+    <plurals name="bench_engines_count">
+        <item quantity="one">%d engine</item>
+        <item quantity="other">%d engines</item>
+    </plurals>
+    <plurals name="bench_runs_count">
+        <item quantity="one">%d run</item>
+        <item quantity="other">%d runs</item>
+    </plurals>
+    <string name="bench_run">Run</string>
+    <string name="bench_running">Running…</string>
+    <string name="bench_cancel">Cancel</string>
+
+    <!-- Ranking table headers: keep them short, the columns are narrow. -->
+    <string name="bench_ranking_title">Ranking</string>
+    <string name="bench_col_engine">Eng.</string>
+    <string name="bench_col_pass">Pass</string>
+    <string name="bench_col_score">Score</string>
+    <string name="bench_col_p50">p50</string>
+    <string name="bench_col_p95">p95</string>
+    <string name="bench_col_first_token">1st tok</string>
+    <string name="bench_col_tokens_per_second">tok/s</string>
+    <string name="bench_col_errors">Err</string>
+    <string name="bench_ranking_note">Pass = tasks with a perfect score. Score = mean score (0-1, with partial credit). Times do not count errors or model loading.</string>
+
+    <!-- Result cards -->
+    <string name="bench_heatmap_title">Heatmap: pass rate by category</string>
+    <string name="bench_latency_title">Median latency per answer</string>
+    <string name="bench_device_title">Device during the session</string>
+    <string name="bench_device_load">model load %1$s</string>
+    <string name="bench_device_thermal">max thermal %1$s</string>
+    <string name="bench_device_battery">battery −%1$d mAh</string>
+    <string name="bench_determinism_title">Determinism</string>
+    <string name="bench_determinism_note" formatted="false">Tasks with the same answer in every repetition. At temperature 0 it should be 100%.</string>
+    <!-- %1$s is the saved session's name. -->
+    <string name="bench_compare_title">Against “%1$s”</string>
+    <string name="bench_compare_none">No engines in common with that session.</string>
+    <!-- %1$s engine letter, %2$s signed pass-rate change in points. -->
+    <string name="bench_compare_pass">[%1$s] pass rate %2$s pts</string>
+    <!-- %1$s signed duration, for example +1.2 s. -->
+    <string name="bench_compare_median">median %1$s</string>
+    <!-- %1$d number of failures, %2$s expand/collapse arrow. -->
+    <string name="bench_failures_title">Failures (%1$d) %2$s</string>
+    <string name="bench_no_answer">(no answer)</string>
+
+    <!-- Export and saved sessions -->
+    <string name="bench_share_chooser">Share results</string>
+    <string name="bench_export_csv">Export CSV</string>
+    <string name="bench_export_json">Export JSON</string>
+    <string name="bench_sessions_title">Saved sessions</string>
+    <!-- %1$s date, %2$s runs phrase, %3$s temperature, %4$d repetitions. -->
+    <string name="bench_session_meta">%1$s · %2$s · temp %3$s · ×%4$d</string>
+    <string name="bench_session_show">View</string>
+    <string name="bench_session_compare">Compare with this one</string>
+    <string name="bench_session_compare_remove">Remove comparison</string>
+    <string name="bench_session_delete">Delete</string>
+    <!-- %1$s is the start time, already formatted. -->
+    <string name="bench_session_default_label">Session %1$s</string>
+
+    <!-- Error stored in a sample. -->
+    <string name="bench_error_timeout">timeout after %1$d s</string>
+    <string name="bench_error_unknown">error</string>
+
+    <!-- Categories: full name, and a 5-character version for the heatmap columns. -->
+    <string name="bench_category_reasoning">Reasoning</string>
+    <string name="bench_category_reasoning_short">Reas.</string>
+    <string name="bench_category_extraction">Extraction</string>
+    <string name="bench_category_extraction_short">Extr.</string>
+    <string name="bench_category_instructions">Instructions</string>
+    <string name="bench_category_instructions_short">Instr</string>
+    <string name="bench_category_knowledge">Knowledge</string>
+    <string name="bench_category_knowledge_short">Know.</string>
+    <string name="bench_category_translation">Translation</string>
+    <string name="bench_category_translation_short">Trans</string>
+    <string name="bench_category_code">Code</string>
+    <string name="bench_category_code_short">Code</string>
+    <string name="bench_category_summary">Summary</string>
+    <string name="bench_category_summary_short">Summ.</string>
+
+    <!-- Task titles (the prompts sent to the models are not translated). -->
+    <string name="bench_task_train_minutes">Trip minutes</string>
+    <string name="bench_task_apples">Apples</string>
+    <string name="bench_task_percent">Percentage</string>
+    <string name="bench_task_youngest">Age order</string>
+    <string name="bench_task_sequence">Sequence</string>
+    <string name="bench_task_extract_json">Person to JSON</string>
+    <string name="bench_task_extract_email">Email</string>
+    <string name="bench_task_extract_date">ISO date</string>
+    <string name="bench_task_json_flags">JSON with types</string>
+    <string name="bench_task_three_words">Three words</string>
+    <string name="bench_task_yes_no">Yes or no</string>
+    <string name="bench_task_short_sentence">Short sentence</string>
+    <string name="bench_task_three_lines">Three lines</string>
+    <string name="bench_task_capital">Capital</string>
+    <string name="bench_task_quixote">Author</string>
+    <string name="bench_task_gold">Chemical symbol</string>
+    <string name="bench_task_moon">Year</string>
+    <string name="bench_task_to_english">ES → EN</string>
+    <string name="bench_task_to_spanish">EN → ES</string>
+    <string name="bench_task_python_sum">Python function</string>
+    <string name="bench_task_python_len">Code output</string>
+    <string name="bench_task_summary_short">Short summary</string>
+    <string name="bench_task_summary_number">Key figure</string>
+</resources>

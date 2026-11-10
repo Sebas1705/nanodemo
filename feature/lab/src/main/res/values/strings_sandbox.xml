@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="sandbox_engine">Engine</string>
+    <string name="sandbox_prompt">Prompt</string>
+    <string name="sandbox_system_prompt">System prompt (optional)</string>
+    <!-- %1$s is the temperature, already formatted. -->
+    <string name="sandbox_temperature">Temperature %1$s</string>
+    <string name="sandbox_json_mode">JSON mode</string>
+    <string name="sandbox_run">Run</string>
+    <string name="sandbox_running">Running…</string>
+    <string name="sandbox_cancel">Cancel</string>
+    <!-- Title of the single step in the sandbox trace. -->
+    <string name="sandbox_step_answer">Answer</string>
+</resources>

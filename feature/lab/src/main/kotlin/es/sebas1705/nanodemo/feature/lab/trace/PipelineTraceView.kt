@@ -1,5 +1,6 @@
 package es.sebas1705.nanodemo.feature.lab.trace
 
+import androidx.annotation.StringRes
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
@@ -26,6 +27,8 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.res.pluralStringResource
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import es.sebas1705.nanodemo.core.designsystem.AppCard
 import es.sebas1705.nanodemo.core.designsystem.channelLetter
@@ -36,19 +39,21 @@ import es.sebas1705.nanodemo.domain.models.PipelineTrace
 import es.sebas1705.nanodemo.domain.models.StepKind
 import es.sebas1705.nanodemo.domain.models.StepStatus
 import es.sebas1705.nanodemo.domain.models.TraceStep
+import es.sebas1705.nanodemo.feature.lab.R
 
-/** Short Spanish label of what a step does. */
-fun StepKind.label(): String = when (this) {
-    StepKind.ROUTE -> "ruta"
-    StepKind.REDACT -> "filtro"
-    StepKind.RETRIEVE -> "búsqueda"
-    StepKind.GENERATE -> "modelo"
-    StepKind.TOOL -> "herramienta"
-    StepKind.JUDGE -> "juez"
-    StepKind.PLAN -> "plan"
-    StepKind.CRITIQUE -> "crítica"
-    StepKind.SUMMARIZE -> "resumen"
-    StepKind.VALIDATE -> "validación"
+/** String resource with the short name of what a step does. */
+@StringRes
+fun StepKind.labelRes(): Int = when (this) {
+    StepKind.ROUTE -> R.string.trace_kind_route
+    StepKind.REDACT -> R.string.trace_kind_redact
+    StepKind.RETRIEVE -> R.string.trace_kind_retrieve
+    StepKind.GENERATE -> R.string.trace_kind_generate
+    StepKind.TOOL -> R.string.trace_kind_tool
+    StepKind.JUDGE -> R.string.trace_kind_judge
+    StepKind.PLAN -> R.string.trace_kind_plan
+    StepKind.CRITIQUE -> R.string.trace_kind_critique
+    StepKind.SUMMARIZE -> R.string.trace_kind_summarize
+    StepKind.VALIDATE -> R.string.trace_kind_validate
 }
 
 /** "420 ms" under a second, "1.9 s" above. */
@@ -80,11 +85,11 @@ fun PipelineTraceView(trace: PipelineTrace, modifier: Modifier = Modifier) {
 @Composable
 private fun TraceSummary(trace: PipelineTrace) {
     val parts = buildList {
-        add("${trace.steps.size} pasos")
+        add(pluralStringResource(R.plurals.trace_steps_count, trace.steps.size, trace.steps.size))
         add(formatDuration(trace.totalDurationMs))
         if (trace.totalTokens > 0) add("~${trace.totalTokens} tok")
         if (trace.tiersUsed.isNotEmpty()) add(trace.tiersUsed.joinToString(" ") { "[${it.channelLetter()}]" })
-        if (trace.running) add("en curso…")
+        if (trace.running) add(stringResource(R.string.trace_running))
     }
     Text(parts.joinToString(" · "), style = readoutStyle, color = DemoColors.Muted)
 }
@@ -119,7 +124,7 @@ private fun TraceStepRow(step: TraceStep, isLast: Boolean) {
             verticalArrangement = Arrangement.spacedBy(4.dp),
         ) {
             Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                Text(step.kind.label(), style = readoutStyle, color = color)
+                Text(stringResource(step.kind.labelRes()), style = readoutStyle, color = color)
                 Text(
                     step.title,
                     style = MaterialTheme.typography.bodyMedium,
@@ -128,7 +133,7 @@ private fun TraceStepRow(step: TraceStep, isLast: Boolean) {
                 )
                 Text(
                     when {
-                        step.status == StepStatus.SKIPPED -> "omitido"
+                        step.status == StepStatus.SKIPPED -> stringResource(R.string.trace_skipped)
                         step.durationMs != null -> formatDuration(step.durationMs!!)
                         else -> "…"
                     },
@@ -139,7 +144,7 @@ private fun TraceStepRow(step: TraceStep, isLast: Boolean) {
             val meta = buildList {
                 step.tier?.let { add("[${it.channelLetter()}]") }
                 step.tokens?.let { add("~$it tok") }
-                if (step.status == StepStatus.FAILED) add("falló")
+                if (step.status == StepStatus.FAILED) add(stringResource(R.string.trace_failed))
             }
             if (meta.isNotEmpty()) {
                 Text(meta.joinToString(" · "), style = readoutStyle, color = DemoColors.Muted)
@@ -147,9 +152,9 @@ private fun TraceStepRow(step: TraceStep, isLast: Boolean) {
             if (expanded) {
                 SelectionContainer {
                     Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
-                        step.input?.let { BodyLine("entrada", it) }
-                        step.output?.let { BodyLine("salida", it) }
-                        step.detail?.let { BodyLine("detalle", it) }
+                        step.input?.let { BodyLine(stringResource(R.string.trace_input), it) }
+                        step.output?.let { BodyLine(stringResource(R.string.trace_output), it) }
+                        step.detail?.let { BodyLine(stringResource(R.string.trace_detail), it) }
                     }
                 }
             } else if (hasBody) {

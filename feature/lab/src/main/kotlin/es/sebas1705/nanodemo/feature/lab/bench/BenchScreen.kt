@@ -39,10 +39,11 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.pluralStringResource
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import androidx.core.content.FileProvider
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
-import es.sebas1705.nanodemo.core.common.thermalStatusLabel
 import es.sebas1705.nanodemo.core.designsystem.AppCard
 import es.sebas1705.nanodemo.core.designsystem.SectionLabel
 import es.sebas1705.nanodemo.core.designsystem.TierChip
@@ -57,6 +58,7 @@ import es.sebas1705.nanodemo.feature.lab.ExperimentCategory
 import es.sebas1705.nanodemo.feature.lab.common.BarRow
 import es.sebas1705.nanodemo.feature.lab.common.HeatCellBox
 import es.sebas1705.nanodemo.feature.lab.common.SmallNote
+import es.sebas1705.nanodemo.feature.lab.common.thermalStatusLabelRes
 import es.sebas1705.nanodemo.feature.lab.common.isUsable
 import es.sebas1705.nanodemo.feature.lab.common.passRateColor
 import es.sebas1705.nanodemo.feature.lab.trace.formatDuration
@@ -96,7 +98,7 @@ fun BenchScreen(viewModel: BenchViewModel = hiltViewModel()) {
         verticalArrangement = Arrangement.spacedBy(14.dp),
     ) {
         AppCard(Modifier.fillMaxWidth()) {
-            SectionLabel("Motores")
+            SectionLabel(stringResource(R.string.bench_engines))
             LazyRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                 items(InferenceTier.entries) { tier ->
                     val usable = availability.isUsable(tier)
@@ -109,32 +111,32 @@ fun BenchScreen(viewModel: BenchViewModel = hiltViewModel()) {
                 }
             }
             if (InferenceTier.entries.any { !availability.isUsable(it) }) {
-                SmallNote("Los motores no disponibles ahora no se pueden elegir; se activan al descargar su modelo o configurar su clave.")
+                SmallNote(stringResource(R.string.bench_engines_unavailable_note))
             }
 
-            SectionLabel("Categorías")
+            SectionLabel(stringResource(R.string.bench_categories))
             LazyRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                 items(BenchCategory.entries) { category ->
                     FilterChip(
                         selected = category in setup.categories,
                         onClick = { viewModel.toggleCategory(category) },
-                        label = { Text(category.label) },
+                        label = { Text(stringResource(category.label)) },
                     )
                 }
             }
 
             Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                Text("Repeticiones", style = MaterialTheme.typography.bodyMedium, color = DemoColors.Ink, modifier = Modifier.weight(1f))
+                Text(stringResource(R.string.bench_repetitions), style = MaterialTheme.typography.bodyMedium, color = DemoColors.Ink, modifier = Modifier.weight(1f))
                 IconButton(onClick = { viewModel.setRepetitions(setup.repetitions - 1) }) {
-                    Icon(Icons.Filled.Remove, contentDescription = "Menos repeticiones", tint = DemoColors.Ink)
+                    Icon(Icons.Filled.Remove, contentDescription = stringResource(R.string.bench_repetitions_less_description), tint = DemoColors.Ink)
                 }
                 Text("${setup.repetitions}", style = readoutStyle, color = DemoColors.Ink)
                 IconButton(onClick = { viewModel.setRepetitions(setup.repetitions + 1) }) {
-                    Icon(Icons.Filled.Add, contentDescription = "Más repeticiones", tint = DemoColors.Ink)
+                    Icon(Icons.Filled.Add, contentDescription = stringResource(R.string.bench_repetitions_more_description), tint = DemoColors.Ink)
                 }
             }
             Text(
-                "Temperatura ${"%.1f".format(Locale.US, setup.temperature)} (0 = lo más determinista)",
+                stringResource(R.string.bench_temperature, "%.1f".format(Locale.US, setup.temperature)),
                 style = MaterialTheme.typography.bodyMedium,
                 color = DemoColors.Ink,
             )
@@ -142,14 +144,24 @@ fun BenchScreen(viewModel: BenchViewModel = hiltViewModel()) {
             OutlinedTextField(
                 value = setup.label,
                 onValueChange = viewModel::setLabel,
-                label = { Text("Nombre de la sesión (opcional)") },
+                label = { Text(stringResource(R.string.bench_session_name)) },
                 modifier = Modifier.fillMaxWidth(),
                 singleLine = true,
             )
-            SmallNote("$taskCount tareas × ${setup.tiers.size} motores × ${setup.repetitions} rep. = $totalRuns ejecuciones, una a una.")
+            SmallNote(
+                stringResource(
+                    R.string.bench_plan_summary,
+                    pluralStringResource(R.plurals.bench_tasks_count, taskCount, taskCount),
+                    pluralStringResource(R.plurals.bench_engines_count, setup.tiers.size, setup.tiers.size),
+                    stringResource(R.string.bench_repetitions_short, setup.repetitions),
+                    pluralStringResource(R.plurals.bench_runs_count, totalRuns, totalRuns),
+                ),
+            )
             Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-                Button(onClick = viewModel::start, enabled = viewModel.canStart(setup)) { Text(if (running) "Ejecutando…" else "Ejecutar") }
-                if (running) OutlinedButton(onClick = viewModel::cancel) { Text("Cancelar") }
+                Button(onClick = viewModel::start, enabled = viewModel.canStart(setup)) {
+                    Text(stringResource(if (running) R.string.bench_running else R.string.bench_run))
+                }
+                if (running) OutlinedButton(onClick = viewModel::cancel) { Text(stringResource(R.string.bench_cancel)) }
             }
         }
 
@@ -161,7 +173,7 @@ fun BenchScreen(viewModel: BenchViewModel = hiltViewModel()) {
                     color = p.tier?.signalColor ?: DemoColors.TierA,
                 )
                 Text(
-                    "${p.done}/${p.total}" + (p.tier?.let { " · [${it.channelLetter()}]" } ?: "") + (p.taskTitle?.let { " · $it" } ?: ""),
+                    "${p.done}/${p.total}" + (p.tier?.let { " · [${it.channelLetter()}]" } ?: "") + (p.taskTitle?.let { " · ${stringResource(it)}" } ?: ""),
                     style = readoutStyle,
                     color = DemoColors.Muted,
                 )
@@ -196,9 +208,21 @@ private fun Results(samples: List<BenchSample>, baseline: BenchSession?) {
     val categories = BenchCategory.entries.filter { c -> tiers.any { heat.containsKey(it to c) } }
 
     AppCard(Modifier.fillMaxWidth()) {
-        SectionLabel("Ranking")
+        SectionLabel(stringResource(R.string.bench_ranking_title))
         Column(Modifier.horizontalScroll(rememberScrollState()), verticalArrangement = Arrangement.spacedBy(6.dp)) {
-            TableRow(listOf("Motor", "Acierto", "Nota", "p50", "p95", "1.er tok", "tok/s", "Err"), header = true)
+            TableRow(
+                listOf(
+                    stringResource(R.string.bench_col_engine),
+                    stringResource(R.string.bench_col_pass),
+                    stringResource(R.string.bench_col_score),
+                    stringResource(R.string.bench_col_p50),
+                    stringResource(R.string.bench_col_p95),
+                    stringResource(R.string.bench_col_first_token),
+                    stringResource(R.string.bench_col_tokens_per_second),
+                    stringResource(R.string.bench_col_errors),
+                ),
+                header = true,
+            )
             summaries.forEach { s ->
                 TableRow(
                     listOf(
@@ -216,15 +240,15 @@ private fun Results(samples: List<BenchSample>, baseline: BenchSession?) {
                 )
             }
         }
-        SmallNote("Acierto = tareas con puntuación perfecta. Nota = puntuación media (0-1, con crédito parcial). Los tiempos no cuentan los errores ni la carga del modelo.")
+        SmallNote(stringResource(R.string.bench_ranking_note))
     }
 
     AppCard(Modifier.fillMaxWidth()) {
-        SectionLabel("Mapa de calor: acierto por categoría")
+        SectionLabel(stringResource(R.string.bench_heatmap_title))
         Column(Modifier.horizontalScroll(rememberScrollState()), verticalArrangement = Arrangement.spacedBy(6.dp)) {
             Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
                 Text("", Modifier.width(40.dp))
-                categories.forEach { c -> Text(c.label.take(5), style = readoutStyle, color = DemoColors.Muted, modifier = Modifier.width(54.dp)) }
+                categories.forEach { c -> Text(stringResource(c.shortLabel), style = readoutStyle, color = DemoColors.Muted, modifier = Modifier.width(54.dp)) }
             }
             tiers.forEach { tier ->
                 Row(horizontalArrangement = Arrangement.spacedBy(6.dp), verticalAlignment = Alignment.CenterVertically) {
@@ -239,7 +263,7 @@ private fun Results(samples: List<BenchSample>, baseline: BenchSession?) {
     }
 
     AppCard(Modifier.fillMaxWidth()) {
-        SectionLabel("Latencia mediana por respuesta")
+        SectionLabel(stringResource(R.string.bench_latency_title))
         val maxP50 = summaries.mapNotNull { it.latencyP50Ms }.maxOrNull() ?: 1L
         summaries.forEach { s ->
             s.latencyP50Ms?.let {
@@ -248,12 +272,12 @@ private fun Results(samples: List<BenchSample>, baseline: BenchSession?) {
         }
         val extras = summaries.filter { it.maxLoadMs != null || it.maxThermalStatus != null || it.batteryDrainUah != null }
         if (extras.isNotEmpty()) {
-            SectionLabel("Dispositivo durante la sesión")
+            SectionLabel(stringResource(R.string.bench_device_title))
             extras.forEach { s ->
                 val parts = buildList {
-                    s.maxLoadMs?.let { add("carga del modelo ${formatDuration(it)}") }
-                    s.maxThermalStatus?.let { add("térmica máx. ${thermalStatusLabel(it)}") }
-                    s.batteryDrainUah?.takeIf { it > 0 }?.let { add("batería −${it / 1000} mAh") }
+                    s.maxLoadMs?.let { add(stringResource(R.string.bench_device_load, formatDuration(it))) }
+                    s.maxThermalStatus?.let { add(stringResource(R.string.bench_device_thermal, stringResource(thermalStatusLabelRes(it)))) }
+                    s.batteryDrainUah?.takeIf { it > 0 }?.let { add(stringResource(R.string.bench_device_battery, it / 1000)) }
                 }
                 Text("[${s.tier.channelLetter()}] ${parts.joinToString(" · ")}", style = readoutStyle, color = DemoColors.Muted)
             }
@@ -262,27 +286,27 @@ private fun Results(samples: List<BenchSample>, baseline: BenchSession?) {
 
     if (determinism.values.any { it != null }) {
         AppCard(Modifier.fillMaxWidth()) {
-            SectionLabel("Determinismo")
+            SectionLabel(stringResource(R.string.bench_determinism_title))
             determinism.forEach { (tier, share) ->
                 share?.let { BarRow("[${tier.channelLetter()}]", it.toFloat(), "%.0f%%".format(Locale.US, it * 100), passRateColor(it)) }
             }
-            SmallNote("Tareas con la misma respuesta en todas las repeticiones. A temperatura 0 debería ser 100%.")
+            SmallNote(stringResource(R.string.bench_determinism_note))
         }
     }
 
     baseline?.let { base ->
         val deltas = compareSessions(samples, base.samples)
         AppCard(Modifier.fillMaxWidth()) {
-            SectionLabel("Contra «${base.label}»")
+            SectionLabel(stringResource(R.string.bench_compare_title, base.label))
             if (deltas.isEmpty()) {
-                SmallNote("No hay motores en común con esa sesión.")
+                SmallNote(stringResource(R.string.bench_compare_none))
             } else {
                 deltas.forEach { d ->
                     val pass = d.passRateDelta * 100
                     val latency = d.latencyP50DeltaMs
                     Text(
-                        "[${d.tier.channelLetter()}] acierto ${"%+.0f".format(Locale.US, pass)} pts" +
-                            (latency?.let { " · mediana ${if (it >= 0) "+" else "−"}${formatDuration(kotlin.math.abs(it))}" } ?: ""),
+                        stringResource(R.string.bench_compare_pass, d.tier.channelLetter(), "%+.0f".format(Locale.US, pass)) +
+                            (latency?.let { " · " + stringResource(R.string.bench_compare_median, (if (it >= 0) "+" else "−") + formatDuration(kotlin.math.abs(it))) } ?: ""),
                         style = readoutStyle,
                         color = if (d.passRateDelta >= 0) DemoColors.TierA else DemoColors.Danger,
                     )
@@ -295,13 +319,14 @@ private fun Results(samples: List<BenchSample>, baseline: BenchSession?) {
     if (failures.isNotEmpty()) {
         var expanded by remember { mutableStateOf(false) }
         AppCard(Modifier.fillMaxWidth(), onClick = { expanded = !expanded }) {
-            SectionLabel("Fallos (${failures.size}) ${if (expanded) "▾" else "▸"}")
+            SectionLabel(stringResource(R.string.bench_failures_title, failures.size, if (expanded) "▾" else "▸"))
             if (expanded) {
                 val titles = BenchTasks.all.associate { it.id to it.title }
+                val noAnswer = stringResource(R.string.bench_no_answer)
                 failures.take(60).forEach { f ->
                     Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
-                        Text("[${f.tier.channelLetter()}] ${titles[f.taskId] ?: f.taskId} · ${"%.2f".format(Locale.US, f.score)}", style = readoutStyle, color = f.tier.signalColor)
-                        Text((f.error ?: f.answer.ifBlank { "(sin respuesta)" }).take(240), style = MaterialTheme.typography.bodySmall, color = DemoColors.Muted)
+                        Text("[${f.tier.channelLetter()}] ${titles[f.taskId]?.let { stringResource(it) } ?: f.taskId} · ${"%.2f".format(Locale.US, f.score)}", style = readoutStyle, color = f.tier.signalColor)
+                        Text((f.error ?: f.answer.ifBlank { noAnswer }).take(240), style = MaterialTheme.typography.bodySmall, color = DemoColors.Muted)
                     }
                 }
             }
@@ -328,6 +353,7 @@ private fun TableRow(cells: List<String>, header: Boolean = false, color: androi
 @Composable
 private fun ExportRow(samples: List<BenchSample>) {
     val context = LocalContext.current
+    val chooserTitle = stringResource(R.string.bench_share_chooser)
     fun share(name: String, mime: String, content: String) {
         val file = File(context.cacheDir, name).apply { writeText(content) }
         val uri = FileProvider.getUriForFile(context, "${context.packageName}.fileprovider", file)
@@ -336,16 +362,16 @@ private fun ExportRow(samples: List<BenchSample>) {
             putExtra(Intent.EXTRA_STREAM, uri)
             addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
         }
-        context.startActivity(Intent.createChooser(intent, "Compartir resultados"))
+        context.startActivity(Intent.createChooser(intent, chooserTitle))
     }
     Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-        OutlinedButton(onClick = { share("nanodemo-bench.csv", "text/csv", samplesToCsv(samples)) }) { Text("Exportar CSV") }
+        OutlinedButton(onClick = { share("nanodemo-bench.csv", "text/csv", samplesToCsv(samples)) }) { Text(stringResource(R.string.bench_export_csv)) }
         OutlinedButton(
             onClick = {
                 val json = Json { prettyPrint = true }.encodeToString(ListSerializer(BenchSample.serializer()), samples)
                 share("nanodemo-bench.json", "application/json", json)
             },
-        ) { Text("Exportar JSON") }
+        ) { Text(stringResource(R.string.bench_export_json)) }
     }
 }
 
@@ -359,20 +385,28 @@ private fun SessionsList(
     onDelete: (Long) -> Unit,
 ) {
     AppCard(Modifier.fillMaxWidth()) {
-        SectionLabel("Sesiones guardadas")
+        SectionLabel(stringResource(R.string.bench_sessions_title))
         val format = remember { SimpleDateFormat("dd/MM/yyyy HH:mm", Locale.getDefault()) }
         sessions.forEach { s ->
             Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
                 Text(s.label, style = MaterialTheme.typography.bodyMedium, color = DemoColors.Ink)
                 Text(
-                    "${format.format(Date(s.startedAtMs))} · ${s.samples.size} ejecuciones · temp ${"%.1f".format(Locale.US, s.temperature)} · ×${s.repetitions}",
+                    stringResource(
+                        R.string.bench_session_meta,
+                        format.format(Date(s.startedAtMs)),
+                        pluralStringResource(R.plurals.bench_runs_count, s.samples.size, s.samples.size),
+                        "%.1f".format(Locale.US, s.temperature),
+                        s.repetitions,
+                    ),
                     style = readoutStyle,
                     color = DemoColors.Muted,
                 )
                 Row(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
-                    TextButton(onClick = { onShow(s) }, enabled = canShow) { Text("Ver") }
-                    TextButton(onClick = { onBaseline(s.id) }) { Text(if (baselineId == s.id) "Quitar comparación" else "Comparar con esta") }
-                    TextButton(onClick = { onDelete(s.id) }) { Text("Borrar") }
+                    TextButton(onClick = { onShow(s) }, enabled = canShow) { Text(stringResource(R.string.bench_session_show)) }
+                    TextButton(onClick = { onBaseline(s.id) }) {
+                        Text(stringResource(if (baselineId == s.id) R.string.bench_session_compare_remove else R.string.bench_session_compare))
+                    }
+                    TextButton(onClick = { onDelete(s.id) }) { Text(stringResource(R.string.bench_session_delete)) }
                 }
             }
         }

@@ -14,6 +14,7 @@ import es.sebas1705.nanodemo.domain.models.TierCapabilities
 import es.sebas1705.nanodemo.domain.usescases.inference.CapabilitiesOfUseCase
 import es.sebas1705.nanodemo.domain.usescases.inference.ObserveAvailabilityUseCase
 import es.sebas1705.nanodemo.domain.usescases.inference.RunStepUseCase
+import es.sebas1705.nanodemo.feature.lab.common.LabTexts
 import es.sebas1705.nanodemo.feature.lab.trace.PipelineRunner
 import es.sebas1705.nanodemo.feature.lab.trace.asExecutor
 import kotlinx.coroutines.Job
@@ -36,9 +37,10 @@ class SandboxViewModel @Inject constructor(
     runStep: RunStepUseCase,
     observeAvailability: ObserveAvailabilityUseCase,
     private val capabilitiesOf: CapabilitiesOfUseCase,
+    private val texts: LabTexts,
 ) : ViewModel() {
 
-    private val runner = PipelineRunner(runStep.asExecutor())
+    private val runner = PipelineRunner(runStep.asExecutor(texts))
 
     val availability: StateFlow<Map<InferenceTier, TierAvailability>> = observeAvailability()
     val trace: StateFlow<PipelineTrace> = runner.recorder.trace
@@ -78,7 +80,7 @@ class SandboxViewModel @Inject constructor(
             _outcome.value = SandboxOutcome()
             val result = runner.generate(
                 kind = StepKind.GENERATE,
-                title = "Respuesta",
+                title = texts.sandboxAnswerTitle(),
                 tier = _tier.value,
                 messages = listOf(ChatMessage(Role.USER, prompt)),
                 config = config,
