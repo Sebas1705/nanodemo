@@ -1,5 +1,6 @@
 package es.sebas1705.nanodemo.feature.lab
 
+import es.sebas1705.nanodemo.feature.lab.router.routerExperiment
 import es.sebas1705.nanodemo.feature.lab.sandbox.sandboxExperiment
 
 /**
@@ -9,6 +10,7 @@ import es.sebas1705.nanodemo.feature.lab.sandbox.sandboxExperiment
 object ExperimentRegistry {
     val all: List<Experiment> = listOf(
         sandboxExperiment,
+        routerExperiment,
     )
 
     fun find(id: String): Experiment? = all.firstOrNull { it.id == id }
