@@ -92,9 +92,21 @@ object ZoneResolver {
             .replace(Regex("[_\\s]+"), " ").trim()
 }
 
+/**
+ * ISO-8601 plus an English readable form. `DemoTools.executeCurrentTime` needs a localized `AppTexts` (internal to
+ * core:common), but the agent protocol is English and the observation is read by the model, not the user.
+ */
+private fun agentCurrentTime(timezone: String): Map<String, String> {
+    val now = java.time.ZonedDateTime.now(runCatching { java.time.ZoneId.of(timezone) }.getOrDefault(java.time.ZoneId.of("UTC")))
+    return mapOf(
+        DemoTools.RESULT_ISO8601 to now.toString(),
+        DemoTools.RESULT_READABLE to now.format(java.time.format.DateTimeFormatter.ofPattern("EEEE, d MMMM yyyy, HH:mm:ss", java.util.Locale.ENGLISH)),
+    )
+}
+
 /** Current date and time in a time zone; reuses [DemoTools] so the tools tab and the agent agree. */
 class CurrentTimeTool(
-    private val now: (String) -> Map<String, String> = { DemoTools.executeCurrentTime(it) },
+    private val now: (String) -> Map<String, String> = { agentCurrentTime(it) },
 ) : Tool {
     override val name = "current_time"
     override val aliases = setOf(DemoTools.GET_CURRENT_TIME, "time", "clock", "date", "now", "current_date")
@@ -106,7 +118,7 @@ class CurrentTimeTool(
         val zone = ZoneResolver.resolve(requested)
             ?: return ToolResult.Error("unknown time zone \"$requested\". Use an IANA name such as Europe/Madrid or Asia/Tokyo")
         val result = now(zone)
-        return ToolResult.Ok("$zone: ${result["legible"]} (${result["iso8601"]})")
+        return ToolResult.Ok("$zone: ${result[DemoTools.RESULT_READABLE]} (${result[DemoTools.RESULT_ISO8601]})")
     }
 }
 
@@ -249,7 +261,7 @@ class WebSearchAgentTool(
     override suspend fun execute(args: ToolArgs): ToolResult {
         val query = args.text("query", "q", "search", "text", "input") ?: return ToolResult.Error("missing \"query\"")
         return when (val outcome = search(query)) {
-            is WebSearchOutcome.Unavailable -> ToolResult.Error("search unavailable: ${outcome.reason}")
+            is WebSearchOutcome.Unavailable -> ToolResult.Error("search unavailable: ${outcome.failure}")
             is WebSearchOutcome.Found -> ToolResult.Ok(
                 outcome.results.take(RESULTS).mapIndexed { i, r ->
                     "${i + 1}. ${r.title} - ${r.description.take(DESCRIPTION_CHARS)} (${r.url})"

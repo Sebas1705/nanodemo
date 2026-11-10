@@ -2,6 +2,7 @@ package es.sebas1705.nanodemo.feature.lab.agent.tools
 
 import es.sebas1705.nanodemo.core.common.WebResult
 import es.sebas1705.nanodemo.core.common.WebSearchOutcome
+import es.sebas1705.nanodemo.core.common.WebSearchFailure
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.runBlocking
 import org.junit.Assert.assertEquals
@@ -149,7 +150,7 @@ class ToolsTest {
         val seen = mutableListOf<String>()
         val tool = CurrentTimeTool { zone ->
             seen += zone
-            mapOf("iso8601" to "2026-11-09T21:00+09:00[Asia/Tokyo]", "legible" to "lunes 9 de noviembre de 2026, 21:00")
+            mapOf("iso8601" to "2026-11-09T21:00+09:00[Asia/Tokyo]", "readable" to "lunes 9 de noviembre de 2026, 21:00")
         }
         val ok = run(tool, "{\"timezone\": \"Tokio\"}")
         assertEquals(listOf("Asia/Tokyo"), seen)
@@ -162,7 +163,7 @@ class ToolsTest {
     }
 
     @Test
-    fun `current time tool works with the real DemoTools`() {
+    fun `current time tool works with the real clock`() {
         val text = run(CurrentTimeTool(), "Europe/Madrid").text()
         assertTrue(text, text.startsWith("Europe/Madrid: "))
     }
@@ -269,17 +270,17 @@ class ToolsTest {
 
     @Test
     fun `web search reports unavailability and missing query`() {
-        val tool = WebSearchAgentTool { WebSearchOutcome.Unavailable("límite gratis de Brave alcanzado") }
+        val tool = WebSearchAgentTool { WebSearchOutcome.Unavailable(WebSearchFailure.QuotaReached) }
         val failed = run(tool, "kotlin")
         assertFalse(failed.isOk())
-        assertTrue(failed.text().contains("límite gratis"))
+        assertTrue(failed.text().contains("QuotaReached"))
         assertFalse(run(tool, "").isOk())
     }
 
     @Test
     fun `web search passes the query through`() {
         var seen: String? = null
-        val tool = WebSearchAgentTool { query -> seen = query; WebSearchOutcome.Unavailable("x") }
+        val tool = WebSearchAgentTool { query -> seen = query; WebSearchOutcome.Unavailable(WebSearchFailure.NoResults) }
         run(tool, "{\"q\": \"weather madrid\"}")
         assertEquals("weather madrid", seen)
     }

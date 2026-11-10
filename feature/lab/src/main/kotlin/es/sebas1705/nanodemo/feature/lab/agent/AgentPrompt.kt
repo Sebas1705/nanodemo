@@ -1,6 +1,5 @@
 package es.sebas1705.nanodemo.feature.lab.agent
 
-import es.sebas1705.nanodemo.core.common.appContextPreamble
 import es.sebas1705.nanodemo.domain.models.InferenceTier
 import es.sebas1705.nanodemo.feature.lab.agent.tools.Tool
 import es.sebas1705.nanodemo.feature.lab.agent.tools.truncateWithMark
@@ -27,8 +26,8 @@ data class AgentBudget(
         private const val NANO_TOKENS = 3_000       // not measured by the app; conservative for the on-device prompt API
         private const val CLOUD_CHARS = 14_000      // large windows: just keep the loop from growing without bound
 
-        /** Characters the backends add in front of the prompt (see `appContextPreamble`). */
-        val BACKEND_OVERHEAD_CHARS: Int get() = appContextPreamble().length + 40
+        /** Upper bound of the characters the backends add in front of the prompt: the longest (Spanish) app-context preamble in core:common plus a margin. */
+        const val BACKEND_OVERHEAD_CHARS = 1_240
 
         /**
          * `contextTokens` comes from `TierCapabilities.contextTokens`; `null` means "not measured" and then the
