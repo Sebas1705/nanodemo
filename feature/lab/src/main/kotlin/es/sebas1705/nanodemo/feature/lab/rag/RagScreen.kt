@@ -22,6 +22,7 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import es.sebas1705.nanodemo.core.designsystem.rememberScreenSizeClass
@@ -63,7 +64,7 @@ fun RagScreen(viewModel: RagViewModel = hiltViewModel()) {
                 FilterChip(
                     selected = tab == entry,
                     onClick = { tab = entry },
-                    label = { Text(entry.label) },
+                    label = { Text(stringResource(entry.labelRes)) },
                     enabled = tab == entry || !busy,
                 )
             }

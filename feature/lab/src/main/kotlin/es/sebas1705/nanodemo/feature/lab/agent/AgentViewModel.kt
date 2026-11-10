@@ -26,6 +26,7 @@ import es.sebas1705.nanodemo.feature.lab.agent.tools.ToolRegistry
 import es.sebas1705.nanodemo.feature.lab.agent.tools.UnitConverterTool
 import es.sebas1705.nanodemo.feature.lab.agent.tools.WebSearchAgentTool
 import es.sebas1705.nanodemo.feature.lab.common.usableTiers
+import es.sebas1705.nanodemo.feature.lab.common.LabTexts
 import es.sebas1705.nanodemo.feature.lab.trace.PipelineRunner
 import es.sebas1705.nanodemo.feature.lab.trace.asExecutor
 import kotlinx.coroutines.Job
@@ -72,6 +73,7 @@ data class BenchmarkState(
 @HiltViewModel
 class AgentViewModel @Inject constructor(
     runStep: RunStepUseCase,
+    labTexts: LabTexts,
     observeAvailability: ObserveAvailabilityUseCase,
     private val capabilitiesOf: CapabilitiesOfUseCase,
     deviceInfo: AndroidDeviceInfoProvider,
@@ -79,7 +81,7 @@ class AgentViewModel @Inject constructor(
     @ApplicationContext context: Context,
 ) : ViewModel() {
 
-    private val pipeline = PipelineRunner(runStep.asExecutor())
+    private val pipeline = PipelineRunner(runStep.asExecutor(labTexts))
     private val texts = AndroidAgentTexts(context)
     private val agent = AgentRunner(pipeline, texts = texts)
 

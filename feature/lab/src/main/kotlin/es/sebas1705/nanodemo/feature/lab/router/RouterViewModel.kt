@@ -1,14 +1,17 @@
 package es.sebas1705.nanodemo.feature.lab.router
 
+import android.content.Context
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import dagger.hilt.android.lifecycle.HiltViewModel
+import dagger.hilt.android.qualifiers.ApplicationContext
 import es.sebas1705.nanodemo.domain.models.InferenceTier
 import es.sebas1705.nanodemo.domain.models.PipelineTrace
 import es.sebas1705.nanodemo.domain.models.TierAvailability
 import es.sebas1705.nanodemo.domain.usescases.inference.ObserveAvailabilityUseCase
 import es.sebas1705.nanodemo.domain.usescases.inference.RunStepUseCase
 import es.sebas1705.nanodemo.feature.lab.common.usableTiers
+import es.sebas1705.nanodemo.feature.lab.common.LabTexts
 import es.sebas1705.nanodemo.feature.lab.trace.PipelineRunner
 import es.sebas1705.nanodemo.feature.lab.trace.asExecutor
 import kotlinx.coroutines.CancellationException
@@ -53,12 +56,15 @@ data class CompareState(
 @HiltViewModel
 class RouterViewModel @Inject constructor(
     runStep: RunStepUseCase,
+    labTexts: LabTexts,
     observeAvailability: ObserveAvailabilityUseCase,
+    @ApplicationContext context: Context,
 ) : ViewModel() {
 
-    private val executor = runStep.asExecutor()
+    private val executor = runStep.asExecutor(labTexts)
     private val runner = PipelineRunner(executor)
-    private val pipeline = RouterPipeline(runner)
+    private val texts: RouterTexts = AndroidRouterTexts(context.resources)
+    private val pipeline = RouterPipeline(runner, texts)
     private val latencyBook = LatencyBook()
 
     val availability: StateFlow<Map<InferenceTier, TierAvailability>> = observeAvailability()
@@ -124,7 +130,7 @@ class RouterViewModel @Inject constructor(
         job = viewModelScope.launch {
             _compare.value = CompareState(running = true, total = prompts.size * COMPARED_POLICIES.size, promptCount = prompts.size)
             try {
-                val runs = PolicyComparison(executor).run(
+                val runs = PolicyComparison(executor, texts).run(
                     prompts = prompts,
                     policies = COMPARED_POLICIES,
                     usable = usable,

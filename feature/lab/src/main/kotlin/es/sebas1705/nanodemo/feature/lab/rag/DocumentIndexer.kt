@@ -1,6 +1,7 @@
 package es.sebas1705.nanodemo.feature.lab.rag
 
 import es.sebas1705.nanodemo.data.embeddings.LocalEmbeddingService
+import es.sebas1705.nanodemo.feature.lab.R
 import kotlinx.coroutines.currentCoroutineContext
 import kotlinx.coroutines.ensureActive
 import kotlinx.coroutines.flow.Flow
@@ -55,6 +56,7 @@ fun List<RagDocument>.indexStats(): IndexStats {
  */
 class DocumentIndexer(
     private val embedder: ChunkEmbedder,
+    private val texts: RagTexts,
     private val nanoClock: () -> Long = System::nanoTime,
     private val wallClock: () -> Long = System::currentTimeMillis,
 ) {
@@ -74,7 +76,7 @@ class DocumentIndexer(
                 val start = nanoClock()
                 val tmp = RagChunk(chunk.id, chunk.index, chunk.heading, chunk.text)
                 val vector = embedder.embed(tmp.retrievalText)
-                    ?: error("No se pudo calcular el embedding del fragmento ${chunk.index + 1} de «${doc.title}»")
+                    ?: error(texts.string(R.string.rag_error_embed_chunk, chunk.index + 1, doc.title))
                 val ms = (nanoClock() - start) / 1_000_000.0
                 done++
                 onProgress(IndexProgress(doc.title, done, total, ms))

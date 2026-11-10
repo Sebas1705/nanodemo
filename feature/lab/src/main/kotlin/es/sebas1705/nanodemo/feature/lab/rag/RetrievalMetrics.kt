@@ -1,5 +1,6 @@
 package es.sebas1705.nanodemo.feature.lab.rag
 
+import es.sebas1705.nanodemo.feature.lab.R
 import java.text.Normalizer
 
 /**
@@ -74,6 +75,7 @@ fun summarize(evals: List<QuestionEval>, k: Int, skipped: Int = 0): RetrievalRep
  */
 class RetrievalEvaluator(
     private val embedQuery: suspend (String) -> FloatArray?,
+    private val texts: RagTexts,
     private val nanoClock: () -> Long = System::nanoTime,
 ) {
     class Result(val evals: List<QuestionEval>, val report: RetrievalReport)
@@ -90,7 +92,7 @@ class RetrievalEvaluator(
         val evals = mutableListOf<QuestionEval>()
         runnable.forEachIndexed { i, question ->
             val start = nanoClock()
-            val vector = embedQuery(question.question) ?: error("No se pudo calcular el embedding de la pregunta «${question.question}»")
+            val vector = embedQuery(question.question) ?: error(texts.string(R.string.rag_error_embed_eval_question, question.question))
             val hits = Retriever.search(vector, index, options.copy(topK = depth))
             val latencyMs = (nanoClock() - start) / 1_000_000.0
             val rank = firstRelevantRank(hits.map { question.isAnsweredBy(it.chunk) })

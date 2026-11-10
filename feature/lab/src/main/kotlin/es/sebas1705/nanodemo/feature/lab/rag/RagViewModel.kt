@@ -13,7 +13,9 @@ import es.sebas1705.nanodemo.domain.models.TierAvailability
 import es.sebas1705.nanodemo.domain.usescases.inference.CapabilitiesOfUseCase
 import es.sebas1705.nanodemo.domain.usescases.inference.ObserveAvailabilityUseCase
 import es.sebas1705.nanodemo.domain.usescases.inference.RunStepUseCase
+import es.sebas1705.nanodemo.feature.lab.R
 import es.sebas1705.nanodemo.feature.lab.common.usableTiers
+import es.sebas1705.nanodemo.feature.lab.common.LabTexts
 import es.sebas1705.nanodemo.feature.lab.trace.PipelineRunner
 import es.sebas1705.nanodemo.feature.lab.trace.asExecutor
 import kotlinx.coroutines.CancellationException
@@ -41,6 +43,7 @@ import javax.inject.Inject
 @HiltViewModel
 class RagViewModel @Inject constructor(
     runStep: RunStepUseCase,
+    labTexts: LabTexts,
     observeAvailability: ObserveAvailabilityUseCase,
     private val capabilitiesOf: CapabilitiesOfUseCase,
     embeddingService: LocalEmbeddingService,
@@ -49,9 +52,10 @@ class RagViewModel @Inject constructor(
 
     private val embedder: ChunkEmbedder = embeddingService.asChunkEmbedder()
     private val store = RagDocumentStore(File(context.filesDir, "rag"))
-    private val runner = PipelineRunner(runStep.asExecutor())
-    private val pipeline = RagPipeline(runner, embedder::embed)
-    private val indexer = DocumentIndexer(embedder)
+    private val runner = PipelineRunner(runStep.asExecutor(labTexts))
+    private val texts: RagTexts = AndroidRagTexts(context.resources)
+    private val pipeline = RagPipeline(runner, embedder::embed, texts)
+    private val indexer = DocumentIndexer(embedder, texts)
 
     val availability: StateFlow<Map<InferenceTier, TierAvailability>> = observeAvailability()
     val trace: StateFlow<PipelineTrace> = runner.recorder.trace
@@ -86,7 +90,7 @@ class RagViewModel @Inject constructor(
         viewModelScope.launch {
             _documents.value = store.loadAll()
             if (store.lastSkipped.isNotEmpty()) {
-                _notice.value = "No se pudieron leer ${store.lastSkipped.size} documentos guardados y se omitieron."
+                _notice.value = texts.plural(R.plurals.rag_notice_skipped_docs, store.lastSkipped.size, store.lastSkipped.size)
             }
         }
         // Start on an engine that works instead of on one that is not installed.
@@ -97,6 +101,8 @@ class RagViewModel @Inject constructor(
             }
         }
     }
+
+    private fun defaultTitle() = texts.string(R.string.rag_document_default_title)
 
     fun capabilities(tier: InferenceTier) = capabilitiesOf(tier)
 
@@ -133,7 +139,7 @@ class RagViewModel @Inject constructor(
             } catch (e: CancellationException) {
                 throw e
             } catch (e: Exception) {
-                _embedderState.value = EmbedderState.Error(e.message ?: "Error descargando el modelo de embeddings")
+                _embedderState.value = EmbedderState.Error(e.message ?: texts.string(R.string.rag_embedder_error_default))
             }
         }
     }
@@ -143,15 +149,15 @@ class RagViewModel @Inject constructor(
     fun addPasted(title: String, text: String) {
         val cleaned = TextImport.clean(text)
         if (cleaned == null) {
-            _notice.value = "El texto está vacío."
+            _notice.value = texts.string(R.string.rag_notice_text_empty)
             return
         }
-        addDocuments(listOf(TextImport.newDocument(title, cleaned.text, DocumentOrigin.PASTED, System.currentTimeMillis())), cleaned.truncated)
+        addDocuments(listOf(TextImport.newDocument(title, cleaned.text, DocumentOrigin.PASTED, System.currentTimeMillis(), defaultTitle())), cleaned.truncated)
     }
 
     fun importFiles(uris: List<Uri>) {
         viewModelScope.launch {
-            val reader = DocumentFileReader(context.contentResolver)
+            val reader = DocumentFileReader(context.contentResolver, defaultTitle())
             var truncated = false
             val now = System.currentTimeMillis()
             val docs = withContext(Dispatchers.IO) {
@@ -162,10 +168,10 @@ class RagViewModel @Inject constructor(
                         null
                     }
                     picked?.also { truncated = truncated || it.cleaned.truncated }
-                        ?.let { TextImport.newDocument(it.title, it.cleaned.text, DocumentOrigin.FILE, now + i) }
+                        ?.let { TextImport.newDocument(it.title, it.cleaned.text, DocumentOrigin.FILE, now + i, defaultTitle()) }
                 }
             }
-            if (docs.size < uris.size) _notice.value = "${uris.size - docs.size} archivo(s) no se pudieron leer como texto."
+            if (docs.size < uris.size) _notice.value = texts.plural(R.plurals.rag_notice_files_unreadable, uris.size - docs.size, uris.size - docs.size)
             if (docs.isNotEmpty()) addDocuments(docs, truncated)
         }
     }
@@ -178,7 +184,7 @@ class RagViewModel @Inject constructor(
             RagDocument(sample.id, sample.title, sample.text, DocumentOrigin.SAMPLE, addedAtMs = now + i)
         }
         if (docs.isEmpty()) {
-            _notice.value = "El corpus de ejemplo ya está cargado."
+            _notice.value = texts.string(R.string.rag_notice_sample_loaded)
             return
         }
         addDocuments(docs, truncated = false)
@@ -188,7 +194,7 @@ class RagViewModel @Inject constructor(
         viewModelScope.launch {
             _documents.update { it + docs }
             docs.forEach { store.save(it) }
-            if (truncated) _notice.value = "El texto era muy largo y se recortó a ${TextImport.MAX_CHARS} caracteres."
+            if (truncated) _notice.value = texts.string(R.string.rag_notice_truncated, TextImport.MAX_CHARS)
             if (_embedderState.value == EmbedderState.Ready) indexPending()
         }
     }
@@ -218,7 +224,7 @@ class RagViewModel @Inject constructor(
     private fun index(select: (List<RagDocument>) -> List<RagDocument>) {
         if (isBusy) return
         if (_embedderState.value != EmbedderState.Ready) {
-            _indexing.value = IndexingState(error = "Descarga primero el modelo de embeddings.")
+            _indexing.value = IndexingState(error = texts.string(R.string.rag_index_error_download_first))
             return
         }
         val targets = select(_documents.value)
@@ -240,7 +246,7 @@ class RagViewModel @Inject constructor(
                 _indexing.value = IndexingState()
                 throw e
             } catch (e: Exception) {
-                _indexing.value = IndexingState(error = e.message ?: "Falló la indexación")
+                _indexing.value = IndexingState(error = e.message ?: texts.string(R.string.rag_index_error_default))
             }
         }
     }
@@ -251,17 +257,17 @@ class RagViewModel @Inject constructor(
         if (question.isBlank() || isBusy) return
         val index = _documents.value.toIndex()
         if (index.isEmpty()) {
-            _ask.value = AskState(question = question, error = "Indexa algún documento antes de preguntar.")
+            _ask.value = AskState(question = question, error = texts.string(R.string.rag_ask_error_no_index))
             return
         }
         val settings = _settings.value
         val contextTokens = capabilitiesOf(settings.tier).contextTokens
         job = viewModelScope.launch {
             runner.recorder.reset()
-            _ask.value = AskState(running = true, stage = "Sin recuperación", question = question, tier = settings.tier)
+            _ask.value = AskState(running = true, stage = AskStage.PLAIN, question = question, tier = settings.tier)
             try {
                 val plain = pipeline.answerPlain(question, settings.tier, contextTokens)
-                _ask.update { it.copy(plain = plain, stage = "Con recuperación") }
+                _ask.update { it.copy(plain = plain, stage = AskStage.RAG) }
                 val rag = pipeline.answerWithRag(
                     question = question,
                     tier = settings.tier,
@@ -275,7 +281,7 @@ class RagViewModel @Inject constructor(
                 _ask.update { it.copy(running = false, stage = null) }
                 throw e
             } catch (e: Exception) {
-                _ask.update { it.copy(running = false, stage = null, error = e.message ?: "Falló la pregunta") }
+                _ask.update { it.copy(running = false, stage = null, error = e.message ?: texts.string(R.string.rag_ask_error_default)) }
             }
         }
     }
@@ -287,15 +293,15 @@ class RagViewModel @Inject constructor(
         val docs = _documents.value
         val index = docs.toIndex()
         if (index.isEmpty()) {
-            _eval.update { it.copy(error = "Indexa el corpus de ejemplo antes de evaluar.") }
+            _eval.update { it.copy(error = texts.string(R.string.rag_eval_error_no_sample)) }
             return
         }
         val options = _settings.value.retrieval
-        val label = settingsLabel(docs.commonChunkTarget(), options)
+        val label = settingsLabel(docs.commonChunkTarget(), options, texts)
         job = viewModelScope.launch {
             _eval.update { it.copy(running = true, done = 0, total = 0, error = null) }
             try {
-                val result = RetrievalEvaluator(embedder::embed).evaluate(SampleCorpus.questions, index, options) { done, total ->
+                val result = RetrievalEvaluator(embedder::embed, texts).evaluate(SampleCorpus.questions, index, options) { done, total ->
                     _eval.update { it.copy(done = done, total = total) }
                 }
                 _eval.update {
@@ -308,7 +314,7 @@ class RagViewModel @Inject constructor(
                 _eval.update { it.copy(running = false) }
                 throw e
             } catch (e: Exception) {
-                _eval.update { it.copy(running = false, error = e.message ?: "Falló la evaluación") }
+                _eval.update { it.copy(running = false, error = e.message ?: texts.string(R.string.rag_eval_error_default)) }
             }
         }
     }

@@ -25,7 +25,7 @@ class PromptClassifierTest {
         val c = classify("Escribe una función en Kotlin que invierta una lista, con un ejemplo y tests.")
         assertTrue(c.features.hasCode)
         assertTrue(c.score >= 20)
-        assertTrue(c.reasons.any { it.contains("código") })
+        assertTrue(c.reasons.any { it.contains("code") })
     }
 
     @Test
@@ -72,7 +72,7 @@ class PromptClassifierTest {
     @Test
     fun `an unusual language adds to the score`() {
         val c = classify("日本の首都はどこですか。そして、なぜですか。")
-        assertTrue(c.reasons.any { it.contains("idioma") })
+        assertTrue(c.reasons.any { it.contains("language") })
     }
 
     @Test
@@ -81,14 +81,14 @@ class PromptClassifierTest {
         assertTrue(c.sensitive)
         assertEquals(1, c.features.pii[PiiKind.EMAIL])
         assertEquals(1, c.features.pii[PiiKind.PHONE])
-        assertTrue(c.reasons.any { it.contains("datos personales") })
+        assertTrue(c.reasons.any { it.contains("personal data") })
     }
 
     @Test
     fun `the user can mark a prompt as sensitive`() {
         val c = classify("Resume mi diario", marked = true)
         assertTrue(c.sensitive)
-        assertTrue(c.reasons.any { it.contains("marcado") })
+        assertTrue(c.reasons.any { it.contains("marked") })
     }
 
     @Test

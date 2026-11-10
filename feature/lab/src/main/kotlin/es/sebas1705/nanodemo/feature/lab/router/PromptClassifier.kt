@@ -1,14 +1,20 @@
 package es.sebas1705.nanodemo.feature.lab.router
 
+import androidx.annotation.StringRes
+import es.sebas1705.nanodemo.feature.lab.R
 import java.text.Normalizer
 
-enum class Complexity(val label: String) {
-    TRIVIAL("simple"),
-    MODERATE("media"),
-    COMPLEX("compleja"),
+enum class Complexity(@StringRes val labelRes: Int) {
+    TRIVIAL(R.string.router_complexity_trivial),
+    MODERATE(R.string.router_complexity_moderate),
+    COMPLEX(R.string.router_complexity_complex),
 }
 
-enum class PromptLanguage(val label: String) { ES("español"), EN("inglés"), OTHER("otro idioma") }
+enum class PromptLanguage(@StringRes val labelRes: Int) {
+    ES(R.string.router_language_es),
+    EN(R.string.router_language_en),
+    OTHER(R.string.router_language_other),
+}
 
 /** Raw signals read from the prompt text. */
 data class PromptFeatures(
@@ -42,12 +48,12 @@ data class Classification(
     val reasons: List<String>,
     val source: ClassificationSource = ClassificationSource.HEURISTIC,
 ) {
-    fun summary(): String = buildString {
-        append("complejidad ${complexity.label} ($score/100)")
-        if (sensitive) append(" · sensible")
-        if (needsFreshFacts) append(" · datos recientes")
-        if (source == ClassificationSource.LLM) append(" · vía LLM")
-    }
+    fun summary(texts: RouterTexts): String = buildList {
+        add(texts.string(R.string.router_summary_complexity, texts.string(complexity.labelRes), score))
+        if (sensitive) add(texts.string(R.string.router_summary_sensitive))
+        if (needsFreshFacts) add(texts.string(R.string.router_summary_fresh))
+        if (source == ClassificationSource.LLM) add(texts.string(R.string.router_summary_via_llm))
+    }.joinToString(" · ")
 }
 
 /** Cheap, deterministic, explainable classifier. It is also the fallback when the optional LLM classifier fails. */
@@ -101,36 +107,36 @@ object PromptClassifier {
         )
     }
 
-    fun classify(text: String, markedSensitive: Boolean = false): Classification {
+    fun classify(text: String, markedSensitive: Boolean, texts: RouterTexts): Classification {
         val f = features(text)
         val reasons = mutableListOf<String>()
         var score = 0
 
         fun add(points: Int, reason: String) {
             score += points
-            reasons += "$reason (+$points)"
+            reasons += texts.string(R.string.router_reason_points, reason, points)
         }
 
         when {
-            f.estimatedTokens > 500 -> add(40, "prompt muy largo (~${f.estimatedTokens} tok)")
-            f.estimatedTokens > 200 -> add(30, "prompt largo (~${f.estimatedTokens} tok)")
-            f.estimatedTokens > 80 -> add(20, "prompt de longitud media (~${f.estimatedTokens} tok)")
-            f.estimatedTokens > 20 -> add(10, "prompt corto (~${f.estimatedTokens} tok)")
-            else -> reasons += "prompt muy corto (~${f.estimatedTokens} tok)"
+            f.estimatedTokens > 500 -> add(40, texts.string(R.string.router_reason_len_very_long, f.estimatedTokens))
+            f.estimatedTokens > 200 -> add(30, texts.string(R.string.router_reason_len_long, f.estimatedTokens))
+            f.estimatedTokens > 80 -> add(20, texts.string(R.string.router_reason_len_medium, f.estimatedTokens))
+            f.estimatedTokens > 20 -> add(10, texts.string(R.string.router_reason_len_short, f.estimatedTokens))
+            else -> reasons += texts.string(R.string.router_reason_len_very_short, f.estimatedTokens)
         }
-        if (f.hasCode) add(20, "contiene o pide código")
-        if (f.hasMath) add(20, "cálculo o matemáticas")
-        if (f.multiStep) add(15, "varios pasos o comparación")
-        if (f.longForm) add(10, "respuesta larga pedida")
-        if (f.language == PromptLanguage.OTHER) add(10, "idioma poco habitual para un modelo pequeño")
-        if (reasoningWords.containsMatchIn(fold(text))) add(5, "pide razonar")
-        if (f.needsFreshFacts) reasons += "necesita datos recientes (un modelo local no los conoce)"
+        if (f.hasCode) add(20, texts.string(R.string.router_reason_code))
+        if (f.hasMath) add(20, texts.string(R.string.router_reason_math))
+        if (f.multiStep) add(15, texts.string(R.string.router_reason_multi_step))
+        if (f.longForm) add(10, texts.string(R.string.router_reason_long_form))
+        if (f.language == PromptLanguage.OTHER) add(10, texts.string(R.string.router_reason_language))
+        if (reasoningWords.containsMatchIn(fold(text))) add(5, texts.string(R.string.router_reason_reasoning))
+        if (f.needsFreshFacts) reasons += texts.string(R.string.router_reason_fresh)
 
         score = score.coerceIn(0, 100)
         if (f.piiCount > 0) {
-            reasons += "datos personales: " + f.pii.entries.joinToString(", ") { "${it.value} ${it.key.label}" }
+            reasons += texts.string(R.string.router_reason_pii, f.pii.entries.joinToString(", ") { "${it.value} ${texts.string(it.key.labelRes)}" })
         }
-        if (markedSensitive) reasons += "marcado como sensible por el usuario"
+        if (markedSensitive) reasons += texts.string(R.string.router_reason_marked_sensitive)
 
         val complexity = when {
             score < 25 -> Complexity.TRIVIAL
@@ -151,7 +157,7 @@ object PromptClassifier {
      * Combines the heuristic reading with an LLM's. The LLM may raise or lower complexity, but it can only ADD
      * sensitivity or freshness: a datum the detector found is never un-flagged by a model.
      */
-    fun merge(heuristic: Classification, llm: LlmClassification): Classification {
+    fun merge(heuristic: Classification, llm: LlmClassification, texts: RouterTexts): Classification {
         val complexity = llm.complexity ?: heuristic.complexity
         val score = if (complexity == heuristic.complexity) heuristic.score else when (complexity) {
             Complexity.TRIVIAL -> minOf(heuristic.score, 20)
@@ -159,9 +165,17 @@ object PromptClassifier {
             Complexity.COMPLEX -> maxOf(heuristic.score, 60)
         }
         val reasons = heuristic.reasons + buildList {
-            llm.complexity?.let { add("LLM: complejidad ${it.label}" + if (it != heuristic.complexity) " (corrige a la heurística: ${heuristic.complexity.label})" else "") }
-            if (llm.sensitive == true && !heuristic.sensitive) add("LLM: lo considera sensible")
-            if (llm.fresh == true && !heuristic.needsFreshFacts) add("LLM: necesita datos recientes")
+            llm.complexity?.let {
+                add(
+                    if (it != heuristic.complexity) {
+                        texts.string(R.string.router_reason_llm_complexity_corrects, texts.string(it.labelRes), texts.string(heuristic.complexity.labelRes))
+                    } else {
+                        texts.string(R.string.router_reason_llm_complexity, texts.string(it.labelRes))
+                    },
+                )
+            }
+            if (llm.sensitive == true && !heuristic.sensitive) add(texts.string(R.string.router_reason_llm_sensitive))
+            if (llm.fresh == true && !heuristic.needsFreshFacts) add(texts.string(R.string.router_reason_llm_fresh))
         }
         return heuristic.copy(
             complexity = complexity,

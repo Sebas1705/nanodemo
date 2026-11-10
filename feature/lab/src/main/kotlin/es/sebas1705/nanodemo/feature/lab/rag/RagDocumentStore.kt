@@ -44,7 +44,7 @@ class RagDocumentStore(private val directory: File) {
         temp.writeText(json.encodeToString(RagDocument.serializer(), document))
         if (!temp.renameTo(target)) {
             target.delete()
-            check(temp.renameTo(target)) { "No se pudo guardar el documento «${document.title}»" }
+            check(temp.renameTo(target)) { "Could not save document \"${document.title}\"" }
         }
     }
 

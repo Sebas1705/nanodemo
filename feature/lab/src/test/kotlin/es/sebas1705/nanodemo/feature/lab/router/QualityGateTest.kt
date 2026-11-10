@@ -12,7 +12,7 @@ class QualityGateTest {
     private val good = "París es la capital de Francia y su ciudad más poblada, situada a orillas del Sena."
 
     private fun eval(answer: String, c: Complexity = Complexity.MODERATE, json: Boolean = false) =
-        QualityGate.evaluate(answer, c, json)
+        QualityGate.evaluate(answer, c, json, testTexts)
 
     private fun failedIds(r: GateResult) = r.failures.map { it.id }
 
@@ -20,7 +20,7 @@ class QualityGateTest {
     fun `a normal answer is accepted`() {
         val r = eval(good)
         assertTrue(r.accepted)
-        assertTrue(r.summary().startsWith("aceptada"))
+        assertTrue(r.summary().startsWith("accepted"))
     }
 
     @Test
@@ -118,9 +118,9 @@ class QualityGateTest {
     fun `summary lists the reasons for rejection`() {
         val r = eval("Lo siento, pero no puedo.", Complexity.COMPLEX)
         assertFalse(r.accepted)
-        assertTrue(r.summary().startsWith("rechazada"))
-        assertTrue(r.summary().contains("negativa"))
-        assertTrue(r.summary().contains("corta"))
+        assertTrue(r.summary().startsWith("rejected"))
+        assertTrue(r.summary().contains("refusal"))
+        assertTrue(r.summary().contains("short"))
     }
 
     // ---- confidence ---------------------------------------------------------------------------------------

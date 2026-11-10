@@ -6,7 +6,7 @@ import android.provider.OpenableColumns
 import java.io.ByteArrayOutputStream
 
 /** Reads a file picked with the Storage Access Framework. Android-only, so not covered by JVM tests. */
-class DocumentFileReader(private val resolver: ContentResolver) {
+class DocumentFileReader(private val resolver: ContentResolver, private val fallbackTitle: String) {
 
     class Picked(val title: String, val cleaned: TextImport.Cleaned)
 
@@ -31,6 +31,6 @@ class DocumentFileReader(private val resolver: ContentResolver) {
             String(out.toByteArray(), Charsets.UTF_8)
         } ?: return null
         val cleaned = TextImport.clean(raw) ?: return null
-        return Picked(TextImport.titleFromFileName(name), cleaned)
+        return Picked(TextImport.titleFromFileName(name, fallbackTitle), cleaned)
     }
 }

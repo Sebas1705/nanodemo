@@ -12,6 +12,7 @@ import es.sebas1705.nanodemo.domain.usescases.inference.CapabilitiesOfUseCase
 import es.sebas1705.nanodemo.domain.usescases.inference.ObserveAvailabilityUseCase
 import es.sebas1705.nanodemo.domain.usescases.inference.RunStepUseCase
 import es.sebas1705.nanodemo.feature.lab.common.usableTiers
+import es.sebas1705.nanodemo.feature.lab.common.LabTexts
 import es.sebas1705.nanodemo.feature.lab.trace.PipelineRunner
 import es.sebas1705.nanodemo.feature.lab.trace.asExecutor
 import kotlinx.coroutines.CancellationException
@@ -25,13 +26,14 @@ import javax.inject.Inject
 @HiltViewModel
 class SelfConsistencyViewModel @Inject constructor(
     runStep: RunStepUseCase,
+    labTexts: LabTexts,
     observeAvailability: ObserveAvailabilityUseCase,
     private val capabilitiesOf: CapabilitiesOfUseCase,
     @ApplicationContext context: Context,
 ) : ViewModel() {
 
     private val texts = AndroidRefineTexts(context)
-    private val runner = PipelineRunner(runStep.asExecutor())
+    private val runner = PipelineRunner(runStep.asExecutor(labTexts))
     private val pipeline = SelfConsistencyPipeline(runner, texts) { capabilitiesOf.profile(it) }
 
     val availability: StateFlow<Map<InferenceTier, TierAvailability>> = observeAvailability()
@@ -112,13 +114,14 @@ class SelfConsistencyViewModel @Inject constructor(
 @HiltViewModel
 class StrategyBenchmarkViewModel @Inject constructor(
     runStep: RunStepUseCase,
+    labTexts: LabTexts,
     observeAvailability: ObserveAvailabilityUseCase,
     private val capabilitiesOf: CapabilitiesOfUseCase,
     @ApplicationContext context: Context,
 ) : ViewModel() {
 
     private val texts = AndroidRefineTexts(context)
-    private val runner = PipelineRunner(runStep.asExecutor())
+    private val runner = PipelineRunner(runStep.asExecutor(labTexts))
     private val benchmark = StrategyBenchmark(runner, texts) { capabilitiesOf.profile(it) }
 
     val availability: StateFlow<Map<InferenceTier, TierAvailability>> = observeAvailability()

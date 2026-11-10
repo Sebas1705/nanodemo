@@ -1,6 +1,8 @@
 package es.sebas1705.nanodemo.feature.lab.rag
 
+import androidx.annotation.StringRes
 import es.sebas1705.nanodemo.domain.models.InferenceTier
+import es.sebas1705.nanodemo.feature.lab.R
 
 /** State of the embedding model download (the History search shows the same states for the same model). */
 sealed interface EmbedderState {
@@ -10,10 +12,16 @@ sealed interface EmbedderState {
     data class Error(val message: String) : EmbedderState
 }
 
-enum class RagTab(val label: String) {
-    DOCUMENTS("Documentos"),
-    ASK("Preguntar"),
-    EVALUATE("Evaluar"),
+enum class RagTab(@StringRes val labelRes: Int) {
+    DOCUMENTS(R.string.rag_tab_documents),
+    ASK(R.string.rag_tab_ask),
+    EVALUATE(R.string.rag_tab_evaluate),
+}
+
+/** Which half of the A/B is running; the UI shows it as "Now: ...". */
+enum class AskStage(@StringRes val labelRes: Int) {
+    PLAIN(R.string.rag_stage_plain),
+    RAG(R.string.rag_stage_rag),
 }
 
 /** Chunk sizes (characters) offered at indexing time. */
@@ -42,7 +50,7 @@ data class IndexingState(
 /** The A/B result of one question: the baseline arrives first, then the answer with retrieval. */
 data class AskState(
     val running: Boolean = false,
-    val stage: String? = null,
+    val stage: AskStage? = null,
     val question: String? = null,
     val tier: InferenceTier? = null,
     val plain: AnswerRun? = null,
@@ -63,11 +71,11 @@ data class EvalState(
 )
 
 /**
- * Human label of the settings an evaluation ran with, e.g. `frag. 400 · k=3 · MMR · ≥0.20`. `chunkChars` is null
- * when the indexed documents were built with different sizes (shown as "mixto").
+ * Human label of the settings an evaluation ran with, e.g. `chunk 400 · k=3 · MMR · ≥0.20`. `chunkChars` is null
+ * when the indexed documents were built with different sizes (shown as "mixed").
  */
-fun settingsLabel(chunkChars: Int?, options: RetrievalOptions): String = buildList {
-    add("frag. ${chunkChars ?: "mixto"}")
+fun settingsLabel(chunkChars: Int?, options: RetrievalOptions, texts: RagTexts): String = buildList {
+    add(texts.string(R.string.rag_settings_label_chunk, chunkChars ?: texts.string(R.string.rag_settings_label_mixed)))
     add("k=${options.topK}")
     if (options.mmr) add("MMR")
     if (options.minScore > 0) add("≥${"%.2f".format(options.minScore)}")

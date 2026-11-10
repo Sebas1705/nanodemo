@@ -21,12 +21,14 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import es.sebas1705.nanodemo.core.designsystem.AppCard
 import es.sebas1705.nanodemo.core.designsystem.ErrorCard
 import es.sebas1705.nanodemo.core.designsystem.SectionLabel
 import es.sebas1705.nanodemo.core.ui.DemoColors
 import es.sebas1705.nanodemo.core.ui.readoutStyle
+import es.sebas1705.nanodemo.feature.lab.R
 import java.util.Locale
 
 internal fun Double.format(decimals: Int = 2): String = String.format(Locale.US, "%.${decimals}f", this)
@@ -41,34 +43,33 @@ internal fun Double.asDuration(): String = if (this < 1_000) "${format(1)} ms" e
 internal fun EmbedderCard(state: EmbedderState, onDownload: () -> Unit, modifier: Modifier = Modifier) {
     when (state) {
         EmbedderState.Ready -> Text(
-            "● Modelo de embeddings listo (en el dispositivo)",
+            stringResource(R.string.rag_embedder_ready),
             style = readoutStyle, color = DemoColors.TierA, modifier = modifier,
         )
         EmbedderState.NotDownloaded -> AppCard(modifier.fillMaxWidth()) {
-            Text("Modelo de embeddings", style = MaterialTheme.typography.titleSmall, color = DemoColors.Ink)
+            Text(stringResource(R.string.rag_embedder_title), style = MaterialTheme.typography.titleSmall, color = DemoColors.Ink)
             Text(
-                "Para convertir los textos en vectores hace falta un modelo pequeño (unos 6 MB, una sola vez). " +
-                    "Después todo ocurre en el dispositivo, sin enviar nada a la nube.",
+                stringResource(R.string.rag_embedder_needed),
                 style = MaterialTheme.typography.bodyMedium, color = DemoColors.Muted,
             )
-            Button(onClick = onDownload) { Text("Descargar modelo") }
+            Button(onClick = onDownload) { Text(stringResource(R.string.rag_embedder_download)) }
         }
         is EmbedderState.Downloading -> AppCard(modifier.fillMaxWidth()) {
-            Text("Descargando el modelo de embeddings…", style = MaterialTheme.typography.titleSmall, color = DemoColors.Ink)
+            Text(stringResource(R.string.rag_embedder_downloading), style = MaterialTheme.typography.titleSmall, color = DemoColors.Ink)
             val percent = state.percent
             if (percent != null) {
                 LinearProgressIndicator(progress = { percent / 100f }, modifier = Modifier.fillMaxWidth())
-                Text("$percent%", style = readoutStyle, color = DemoColors.Muted)
+                Text(stringResource(R.string.rag_embedder_percent, percent), style = readoutStyle, color = DemoColors.Muted)
             } else {
                 Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(10.dp)) {
                     CircularProgressIndicator(modifier = Modifier.size(20.dp), strokeWidth = 2.dp)
-                    Text("Conectando…", style = MaterialTheme.typography.bodyMedium, color = DemoColors.Muted)
+                    Text(stringResource(R.string.rag_embedder_connecting), style = MaterialTheme.typography.bodyMedium, color = DemoColors.Muted)
                 }
             }
         }
         is EmbedderState.Error -> AppCard(modifier.fillMaxWidth()) {
             ErrorCard(state.message)
-            Button(onClick = onDownload) { Text("Reintentar descarga") }
+            Button(onClick = onDownload) { Text(stringResource(R.string.rag_embedder_retry)) }
         }
     }
 }
@@ -87,7 +88,7 @@ internal fun RetrievalSettingsCard(
     modifier: Modifier = Modifier,
 ) {
     AppCard(modifier.fillMaxWidth()) {
-        SectionLabel("Fragmentos a recuperar (k)")
+        SectionLabel(stringResource(R.string.rag_settings_top_k))
         Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
             (1..MAX_TOP_K_OPTION).forEach { k ->
                 FilterChip(selected = settings.topK == k, onClick = { onTopK(k) }, label = { Text("$k") }, enabled = enabled)
@@ -96,16 +97,16 @@ internal fun RetrievalSettingsCard(
         Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(12.dp)) {
             Switch(checked = settings.mmr, onCheckedChange = onMmr, enabled = enabled)
             Column(Modifier.weight(1f)) {
-                Text("Diversidad (MMR)", style = MaterialTheme.typography.bodyMedium, color = DemoColors.Ink)
+                Text(stringResource(R.string.rag_settings_mmr_title), style = MaterialTheme.typography.bodyMedium, color = DemoColors.Ink)
                 Text(
-                    "Evita elegir fragmentos casi repetidos: cambia relevancia por variedad.",
+                    stringResource(R.string.rag_settings_mmr_hint),
                     style = MaterialTheme.typography.bodySmall, color = DemoColors.Muted,
                 )
             }
         }
         var slider by remember(settings.minScore) { mutableFloatStateOf(settings.minScore) }
         Text(
-            if (settings.minScore <= 0f) "Umbral de similitud: sin umbral" else "Umbral de similitud: ${settings.minScore.toDouble().format()}",
+            if (settings.minScore <= 0f) stringResource(R.string.rag_settings_threshold_none) else stringResource(R.string.rag_settings_threshold_value, settings.minScore.toDouble().format()),
             style = MaterialTheme.typography.bodyMedium, color = DemoColors.Ink,
         )
         Slider(
@@ -116,7 +117,7 @@ internal fun RetrievalSettingsCard(
             enabled = enabled,
         )
         Text(
-            "Por debajo del umbral un fragmento se descarta; si no queda ninguno, el modelo ni se llama.",
+            stringResource(R.string.rag_settings_threshold_hint),
             style = MaterialTheme.typography.bodySmall, color = DemoColors.Muted,
         )
     }

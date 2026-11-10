@@ -1,19 +1,22 @@
 package es.sebas1705.nanodemo.feature.lab.router
 
+import androidx.annotation.StringRes
+import es.sebas1705.nanodemo.feature.lab.R
+
 /**
  * What kind of personal or secret datum was found. `tag` is the word used inside the placeholder
- * (`<EMAIL_1>`); `label` is the Spanish name shown in the UI.
+ * (`<EMAIL_1>`); `labelRes` is the name shown in the UI.
  */
-enum class PiiKind(val tag: String, val label: String) {
-    EMAIL("EMAIL", "correo"),
-    PHONE("PHONE", "teléfono"),
-    IBAN("IBAN", "IBAN"),
-    CARD("CARD", "tarjeta"),
-    DNI("DNI", "DNI"),
-    NIE("NIE", "NIE"),
-    IPV4("IP", "dirección IP"),
-    URL("URL", "URL con credenciales"),
-    SECRET("SECRET", "clave o secreto"),
+enum class PiiKind(val tag: String, @StringRes val labelRes: Int) {
+    EMAIL("EMAIL", R.string.router_pii_email),
+    PHONE("PHONE", R.string.router_pii_phone),
+    IBAN("IBAN", R.string.router_pii_iban),
+    CARD("CARD", R.string.router_pii_card),
+    DNI("DNI", R.string.router_pii_dni),
+    NIE("NIE", R.string.router_pii_nie),
+    IPV4("IP", R.string.router_pii_ip),
+    URL("URL", R.string.router_pii_url),
+    SECRET("SECRET", R.string.router_pii_secret),
 }
 
 /** A detected datum: `[start, end)` are offsets into the scanned text. */

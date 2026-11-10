@@ -64,7 +64,7 @@ class RoutePlannerTest {
         val usable = listOf(MEDIAPIPE_LOCAL, ML_KIT_NANO)
         val p = plan(RoutingPolicy.CLOUD_FIRST, usable = usable)
         assertEquals(listOf(ML_KIT_NANO, MEDIAPIPE_LOCAL), tiers(p))
-        assertTrue(p.notes.any { it.contains("nube") })
+        assertTrue(p.notes.any { it.contains("cloud") })
         assertEquals(listOf(ML_KIT_NANO, MEDIAPIPE_LOCAL), tiers(plan(RoutingPolicy.LOCAL_FIRST, usable = usable)))
     }
 
@@ -107,7 +107,7 @@ class RoutePlannerTest {
         val long = PromptClassifier.classify("ana@example.com " + "texto ".repeat(1000))
         val p = plan(RoutingPolicy.PRIVACY_FIRST, long, usable = listOf(MEDIAPIPE_LOCAL, CLOUD_GEMINI))
         assertTrue(p.blocked)
-        assertTrue(p.notes.any { it.contains("no cabe") })
+        assertTrue(p.notes.any { it.contains("does not fit") })
     }
 
     @Test
@@ -140,7 +140,7 @@ class RoutePlannerTest {
     fun `cost aware drops the cloud when the estimate exceeds the budget`() {
         val p = plan(RoutingPolicy.COST_AWARE, complexPrompt, settings = RouterSettings(cloudBudgetUsd = 0.0000001))
         assertTrue(p.engines.none { it.tier.isCloud })
-        assertTrue(p.notes.any { it.contains("presupuesto") })
+        assertTrue(p.notes.any { it.contains("budget") })
     }
 
     @Test
@@ -174,7 +174,7 @@ class RoutePlannerTest {
     fun `observed latency overrides the static priors`() {
         val p = plan(RoutingPolicy.LATENCY_AWARE, trivial, observed = mapOf(ML_KIT_NANO to 9_000L, CLOUD_GEMINI to 300L))
         assertEquals(CLOUD_GEMINI, p.engines.first().tier)
-        assertTrue(p.engines.first().reason.contains("observada"))
+        assertTrue(p.engines.first().reason.contains("observed"))
     }
 
     // ---- manual -------------------------------------------------------------------------------------------
@@ -198,7 +198,7 @@ class RoutePlannerTest {
     fun `fresh facts move the cloud ahead of the local engines`() {
         val p = plan(RoutingPolicy.LOCAL_FIRST, fresh)
         assertEquals(CLOUD_GEMINI, p.engines.first().tier)
-        assertTrue(p.notes.any { it.contains("recientes") })
+        assertTrue(p.notes.any { it.contains("recent") })
     }
 
     @Test
@@ -220,7 +220,7 @@ class RoutePlannerTest {
     @Test
     fun `describe lists the route or the block reason`() {
         assertEquals("ML_KIT_NANO → LITERT_LM_LOCAL → CLOUD_GEMINI", plan(RoutingPolicy.LOCAL_FIRST).describe())
-        assertTrue(plan(RoutingPolicy.PRIVACY_FIRST, pii, usable = listOf(CLOUD_GEMINI)).describe().startsWith("bloqueada"))
+        assertTrue(plan(RoutingPolicy.PRIVACY_FIRST, pii, usable = listOf(CLOUD_GEMINI)).describe().startsWith("blocked"))
     }
 
     @Test

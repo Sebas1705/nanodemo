@@ -14,6 +14,7 @@ import es.sebas1705.nanodemo.domain.usescases.inference.ObserveAvailabilityUseCa
 import es.sebas1705.nanodemo.domain.usescases.inference.ObserveVotesUseCase
 import es.sebas1705.nanodemo.domain.usescases.inference.RunStepUseCase
 import es.sebas1705.nanodemo.feature.lab.common.usableTiers
+import es.sebas1705.nanodemo.feature.lab.common.LabTexts
 import es.sebas1705.nanodemo.feature.lab.trace.PipelineRunner
 import es.sebas1705.nanodemo.feature.lab.trace.asExecutor
 import kotlinx.coroutines.CancellationException
@@ -27,6 +28,7 @@ import javax.inject.Inject
 @HiltViewModel
 class JudgeViewModel @Inject constructor(
     runStep: RunStepUseCase,
+    labTexts: LabTexts,
     observeAvailability: ObserveAvailabilityUseCase,
     observeVotes: ObserveVotesUseCase,
     private val capabilitiesOf: CapabilitiesOfUseCase,
@@ -34,7 +36,7 @@ class JudgeViewModel @Inject constructor(
 ) : ViewModel() {
 
     private val texts = AndroidRefineTexts(context)
-    private val runner = PipelineRunner(runStep.asExecutor())
+    private val runner = PipelineRunner(runStep.asExecutor(labTexts))
     private val pipeline = JudgePipeline(runner, { capabilitiesOf.profile(it) }, texts = texts)
 
     val availability: StateFlow<Map<InferenceTier, TierAvailability>> = observeAvailability()

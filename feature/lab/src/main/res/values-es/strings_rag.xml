@@ -1,0 +1,212 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Tabs -->
+    <string name="rag_tab_documents">Documentos</string>
+    <string name="rag_tab_ask">Preguntar</string>
+    <string name="rag_tab_evaluate">Evaluar</string>
+
+    <!-- Shared -->
+    <string name="rag_cancel">Cancelar</string>
+    <string name="rag_go_to_documents">Ir a Documentos</string>
+
+    <!-- Embedding model card -->
+    <string name="rag_embedder_ready">● Modelo de embeddings listo (en el dispositivo)</string>
+    <string name="rag_embedder_title">Modelo de embeddings</string>
+    <string name="rag_embedder_needed">Para convertir los textos en vectores hace falta un modelo pequeño (unos 6 MB, una sola vez). Después todo ocurre en el dispositivo, sin enviar nada a la nube.</string>
+    <string name="rag_embedder_download">Descargar modelo</string>
+    <string name="rag_embedder_downloading">Descargando el modelo de embeddings…</string>
+    <string name="rag_embedder_percent">%1$d%%</string>
+    <string name="rag_embedder_connecting">Conectando…</string>
+    <string name="rag_embedder_retry">Reintentar descarga</string>
+    <string name="rag_embedder_error_default">Error descargando el modelo de embeddings</string>
+
+    <!-- Retrieval settings (Ask and Evaluate tabs) -->
+    <string name="rag_settings_top_k">Fragmentos a recuperar (k)</string>
+    <string name="rag_settings_mmr_title">Diversidad (MMR)</string>
+    <string name="rag_settings_mmr_hint">Evita elegir fragmentos casi repetidos: cambia relevancia por variedad.</string>
+    <string name="rag_settings_threshold_none">Umbral de similitud: sin umbral</string>
+    <string name="rag_settings_threshold_value">Umbral de similitud: %1$s</string>
+    <string name="rag_settings_threshold_hint">Por debajo del umbral un fragmento se descarta; si no queda ninguno, el modelo ni se llama.</string>
+    <string name="rag_settings_label_chunk">frag. %1$s</string>
+    <string name="rag_settings_label_mixed">mixto</string>
+
+    <!-- Documents tab -->
+    <string name="rag_docs_intro">Los documentos se trocean en fragmentos, cada fragmento se convierte en un vector en el dispositivo y se guarda en el almacenamiento de la app.</string>
+    <string name="rag_notice_dismiss">Entendido</string>
+    <string name="rag_corpus_section">Corpus</string>
+    <string name="rag_load_sample">Cargar ejemplo</string>
+    <string name="rag_import_files">Importar archivos</string>
+    <string name="rag_sample_hint">El ejemplo es un manual ficticio de empresa en español (vacaciones, gastos, seguridad, incorporación, FAQ) con %1$d preguntas para evaluar.</string>
+    <string name="rag_chunks_section">Fragmentos e indexado</string>
+    <string name="rag_documents_section">Documentos (%1$d)</string>
+    <string name="rag_documents_empty">Todavía no hay documentos. Carga el ejemplo o importa los tuyos.</string>
+    <string name="rag_delete_all">Borrar todos los documentos</string>
+    <string name="rag_document_default_title">Documento</string>
+
+    <string name="rag_paste_title">Pegar texto</string>
+    <string name="rag_paste_title_label">Título</string>
+    <string name="rag_paste_text_label">Texto (admite Markdown)</string>
+    <string name="rag_paste_add">Añadir documento</string>
+
+    <string name="rag_chunk_size_title">Tamaño de fragmento (caracteres)</string>
+    <string name="rag_chunk_size_hint">Se aplica al indexar (con un solapamiento de ~1/6 entre fragmentos). Pequeños: más precisos pero con menos contexto cada uno. Grandes: más contexto pero más ruido y menos caben en los motores de ventana pequeña.</string>
+
+    <plurals name="rag_stat_documents_indexed">
+        <item quantity="one">%1$d documento indexado</item>
+        <item quantity="other">%1$d documentos indexados</item>
+    </plurals>
+    <plurals name="rag_stat_chunks">
+        <item quantity="one">%1$d fragmento</item>
+        <item quantity="other">%1$d fragmentos</item>
+    </plurals>
+    <string name="rag_stat_per_chunk">%1$s por fragmento</string>
+    <string name="rag_stat_total">%1$s en total</string>
+    <string name="rag_index_none">Nada indexado todavía.</string>
+    <plurals name="rag_index_progress">
+        <item quantity="one">%1$d de %2$d fragmento · «%3$s» · último %4$s</item>
+        <item quantity="other">%1$d de %2$d fragmentos · «%3$s» · último %4$s</item>
+    </plurals>
+    <string name="rag_index_pending">Indexar pendientes (%1$d)</string>
+    <string name="rag_index_all_done">Todo indexado</string>
+    <string name="rag_reindex_all">Reindexar todo</string>
+    <string name="rag_index_cancel">Cancelar indexado</string>
+    <string name="rag_index_need_embedder">Descarga el modelo de embeddings para poder indexar.</string>
+
+    <string name="rag_origin_sample">ejemplo</string>
+    <string name="rag_origin_pasted">pegado</string>
+    <string name="rag_origin_file">archivo</string>
+    <string name="rag_doc_chars">%1$d car</string>
+    <plurals name="rag_doc_chunks">
+        <item quantity="one">%1$d fragmento de ~%2$d</item>
+        <item quantity="other">%1$d fragmentos de ~%2$d</item>
+    </plurals>
+    <string name="rag_doc_each">%1$s c/u</string>
+    <string name="rag_doc_not_indexed">sin indexar</string>
+    <string name="rag_doc_delete_description">Borrar «%1$s»</string>
+    <string name="rag_chunk_info">#%1$d · %2$d car · %3$s</string>
+
+    <!-- Ask tab -->
+    <string name="rag_ask_empty_title">Aún no hay nada indexado</string>
+    <string name="rag_ask_empty_hint">Carga el corpus de ejemplo (o tus documentos) e indéxalo para poder preguntar.</string>
+    <string name="rag_ask_engine">Motor que responde</string>
+    <plurals name="rag_ask_context_large">
+        <item quantity="one">Este motor tiene una ventana grande: caben unos %1$d caracteres de contexto (~%2$d fragmento de %3$d).</item>
+        <item quantity="other">Este motor tiene una ventana grande: caben unos %1$d caracteres de contexto (~%2$d fragmentos de %3$d).</item>
+    </plurals>
+    <plurals name="rag_ask_context_small">
+        <item quantity="one">Ventana de %1$d tokens en total: quedan unos %2$d caracteres para el contexto (~%3$d fragmento de %4$d); si k es mayor, los últimos no entran.</item>
+        <item quantity="other">Ventana de %1$d tokens en total: quedan unos %2$d caracteres para el contexto (~%3$d fragmentos de %4$d); si k es mayor, los últimos no entran.</item>
+    </plurals>
+    <string name="rag_judge_title">Comprobar la fundamentación</string>
+    <string name="rag_judge_hint">Un segundo modelo revisa si cada afirmación de la respuesta está respaldada por el contexto.</string>
+    <string name="rag_judge_engine">Motor que juzga</string>
+    <string name="rag_question_section">Pregunta</string>
+    <string name="rag_question_label">Pregunta sobre tus documentos</string>
+    <string name="rag_examples_hide">Ocultar preguntas de ejemplo</string>
+    <string name="rag_examples_show">Preguntas de ejemplo (corpus de muestra)</string>
+    <string name="rag_ask_button">Preguntar con y sin RAG</string>
+    <string name="rag_ask_button_running">Preguntando…</string>
+    <string name="rag_stage_now">Ahora: %1$s</string>
+    <string name="rag_stage_plain">Sin recuperación</string>
+    <string name="rag_stage_rag">Con recuperación</string>
+
+    <string name="rag_answer_plain_title">Sin recuperación</string>
+    <string name="rag_answer_plain_subtitle">Solo lo que el modelo sabe</string>
+    <string name="rag_answer_rag_title">Con recuperación</string>
+    <string name="rag_answer_rag_subtitle">Con los fragmentos de tus documentos</string>
+    <string name="rag_answer_queued">En cola…</string>
+    <string name="rag_answer_skipped">Ningún fragmento superó el umbral, así que no se llamó al modelo.</string>
+    <string name="rag_answer_empty">(respuesta vacía)</string>
+    <string name="rag_answer_not_found">No lo encuentro en los documentos.</string>
+    <plurals name="rag_answer_stats">
+        <item quantity="one">búsqueda %1$s (embedding %2$s + similitud %3$s) · %4$d de %5$d fragmento en el contexto (%6$d/%7$d car)</item>
+        <item quantity="other">búsqueda %1$s (embedding %2$s + similitud %3$s) · %4$d de %5$d fragmentos en el contexto (%6$d/%7$d car)</item>
+    </plurals>
+    <string name="rag_sources_title">Fragmentos recuperados</string>
+    <string name="rag_source_not_fit">No cupo en el contexto del motor</string>
+    <string name="rag_grounding_title">Fundamentación</string>
+    <string name="rag_grounding_judge_failed">El juez falló: %1$s</string>
+    <string name="rag_grounding_judge_said">Dijo el juez: %1$s</string>
+    <string name="rag_verdict_supported">respaldada</string>
+    <string name="rag_verdict_partial">parcialmente respaldada</string>
+    <string name="rag_verdict_unsupported">no respaldada</string>
+    <string name="rag_verdict_unknown">veredicto no interpretable</string>
+
+    <!-- Evaluate tab -->
+    <string name="rag_eval_intro">Mide si la búsqueda encuentra el fragmento que contiene la respuesta, sin llamar a ningún modelo. Cambia el tamaño de fragmento (Documentos, reindexando), k, MMR o el umbral y compara las ejecuciones.</string>
+    <string name="rag_eval_nothing_indexed">Aún no hay nada indexado.</string>
+    <string name="rag_eval_sample_not_indexed">Las preguntas de evaluación son del corpus de ejemplo y no está indexado.</string>
+    <string name="rag_eval_will_use">Se evaluará con: %1$s</string>
+    <string name="rag_eval_running">Evaluando…</string>
+    <plurals name="rag_eval_button">
+        <item quantity="one">Evaluar %1$d pregunta</item>
+        <item quantity="other">Evaluar %1$d preguntas</item>
+    </plurals>
+    <string name="rag_eval_progress">%1$d de %2$d</string>
+    <string name="rag_report_latency">latencia media</string>
+    <plurals name="rag_report_title">
+        <item quantity="one">Resultado · %1$d pregunta</item>
+        <item quantity="other">Resultado · %1$d preguntas</item>
+    </plurals>
+    <plurals name="rag_report_skipped">
+        <item quantity="one">%1$d pregunta se omitió porque su documento no está indexado.</item>
+        <item quantity="other">%1$d preguntas se omitieron porque su documento no está indexado.</item>
+    </plurals>
+    <string name="rag_report_legend">hit@n: la respuesta está entre los n primeros fragmentos. MRR: media de 1/posición del primer acierto (1 = siempre primero). La latencia incluye vectorizar la pregunta y buscar.</string>
+    <string name="rag_per_question">Por pregunta</string>
+    <string name="rag_question_best">mejor puntuación %1$s · %2$s</string>
+    <string name="rag_history_title">Comparar ejecuciones</string>
+    <string name="rag_history_clear">Borrar</string>
+    <string name="rag_history_line">hit@1 %1$s · hit@3 %2$s · MRR %3$s · %4$s</string>
+    <string name="rag_history_best">mejor MRR</string>
+
+    <!-- View model messages -->
+    <plurals name="rag_notice_skipped_docs">
+        <item quantity="one">No se pudo leer %1$d documento guardado y se omitió.</item>
+        <item quantity="other">No se pudieron leer %1$d documentos guardados y se omitieron.</item>
+    </plurals>
+    <string name="rag_notice_text_empty">El texto está vacío.</string>
+    <plurals name="rag_notice_files_unreadable">
+        <item quantity="one">%1$d archivo no se pudo leer como texto.</item>
+        <item quantity="other">%1$d archivos no se pudieron leer como texto.</item>
+    </plurals>
+    <string name="rag_notice_sample_loaded">El corpus de ejemplo ya está cargado.</string>
+    <string name="rag_notice_truncated">El texto era muy largo y se recortó a %1$d caracteres.</string>
+    <string name="rag_index_error_download_first">Descarga primero el modelo de embeddings.</string>
+    <string name="rag_index_error_default">Falló la indexación</string>
+    <string name="rag_ask_error_no_index">Indexa algún documento antes de preguntar.</string>
+    <string name="rag_ask_error_default">Falló la pregunta</string>
+    <string name="rag_eval_error_no_sample">Indexa el corpus de ejemplo antes de evaluar.</string>
+    <string name="rag_eval_error_default">Falló la evaluación</string>
+
+    <!-- Pipeline (trace steps and errors) -->
+    <string name="rag_trace_plain_title">Sin recuperación: respuesta</string>
+    <string name="rag_trace_rag_title">Con recuperación: respuesta</string>
+    <string name="rag_trace_skip_detail">Ningún fragmento supera el umbral de similitud: no se llama al modelo</string>
+    <string name="rag_trace_build_title">Construir el prompt con citas</string>
+    <plurals name="rag_trace_build_input">
+        <item quantity="one">%1$d fragmento</item>
+        <item quantity="other">%1$d fragmentos</item>
+    </plurals>
+    <plurals name="rag_trace_context_chunks">
+        <item quantity="one">%1$d de %2$d fragmento en el contexto</item>
+        <item quantity="other">%1$d de %2$d fragmentos en el contexto</item>
+    </plurals>
+    <string name="rag_trace_context_chars">%1$d de %2$d car</string>
+    <string name="rag_trace_first_cut">el primero se recortó</string>
+    <string name="rag_retrieval_failed">Falló la recuperación</string>
+    <string name="rag_trace_search_title">Buscar fragmentos</string>
+    <string name="rag_trace_no_results">Sin resultados por encima del umbral</string>
+    <string name="rag_trace_embedding_ms">embedding %1$s ms</string>
+    <string name="rag_trace_search_ms">búsqueda %1$s ms</string>
+    <plurals name="rag_trace_index_size">
+        <item quantity="one">%1$d fragmento en el índice</item>
+        <item quantity="other">%1$d fragmentos en el índice</item>
+    </plurals>
+    <string name="rag_trace_threshold">umbral %1$s</string>
+    <string name="rag_trace_judge_title">Comprobar que la respuesta está respaldada</string>
+    <string name="rag_trace_verdict_title">Interpretar el veredicto</string>
+    <string name="rag_error_embed_question">No se pudo calcular el embedding de la pregunta</string>
+    <string name="rag_error_embed_chunk">No se pudo calcular el embedding del fragmento %1$d de «%2$s»</string>
+    <string name="rag_error_embed_eval_question">No se pudo calcular el embedding de la pregunta «%1$s»</string>
+</resources>

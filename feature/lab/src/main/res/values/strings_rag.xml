@@ -1,0 +1,212 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Tabs -->
+    <string name="rag_tab_documents">Documents</string>
+    <string name="rag_tab_ask">Ask</string>
+    <string name="rag_tab_evaluate">Evaluate</string>
+
+    <!-- Shared -->
+    <string name="rag_cancel">Cancel</string>
+    <string name="rag_go_to_documents">Go to Documents</string>
+
+    <!-- Embedding model card -->
+    <string name="rag_embedder_ready">● Embedding model ready (on the device)</string>
+    <string name="rag_embedder_title">Embedding model</string>
+    <string name="rag_embedder_needed">Turning texts into vectors takes a small model (about 6 MB, once). After that everything happens on the device, with nothing sent to the cloud.</string>
+    <string name="rag_embedder_download">Download model</string>
+    <string name="rag_embedder_downloading">Downloading the embedding model…</string>
+    <string name="rag_embedder_percent">%1$d%%</string>
+    <string name="rag_embedder_connecting">Connecting…</string>
+    <string name="rag_embedder_retry">Retry download</string>
+    <string name="rag_embedder_error_default">Error downloading the embedding model</string>
+
+    <!-- Retrieval settings (Ask and Evaluate tabs) -->
+    <string name="rag_settings_top_k">Chunks to retrieve (k)</string>
+    <string name="rag_settings_mmr_title">Diversity (MMR)</string>
+    <string name="rag_settings_mmr_hint">Avoids picking near-duplicate chunks: trades relevance for variety.</string>
+    <string name="rag_settings_threshold_none">Similarity threshold: none</string>
+    <string name="rag_settings_threshold_value">Similarity threshold: %1$s</string>
+    <string name="rag_settings_threshold_hint">Below the threshold a chunk is discarded; if none is left, the model is not called at all.</string>
+    <string name="rag_settings_label_chunk">chunk %1$s</string>
+    <string name="rag_settings_label_mixed">mixed</string>
+
+    <!-- Documents tab -->
+    <string name="rag_docs_intro">Documents are split into chunks, each chunk is turned into a vector on the device and saved in the app\'s storage.</string>
+    <string name="rag_notice_dismiss">Got it</string>
+    <string name="rag_corpus_section">Corpus</string>
+    <string name="rag_load_sample">Load sample</string>
+    <string name="rag_import_files">Import files</string>
+    <string name="rag_sample_hint">The sample is a fictional company handbook in Spanish (vacations, expenses, security, onboarding, FAQ) with %1$d questions to evaluate.</string>
+    <string name="rag_chunks_section">Chunks and indexing</string>
+    <string name="rag_documents_section">Documents (%1$d)</string>
+    <string name="rag_documents_empty">There are no documents yet. Load the sample or import your own.</string>
+    <string name="rag_delete_all">Delete all documents</string>
+    <string name="rag_document_default_title">Document</string>
+
+    <string name="rag_paste_title">Paste text</string>
+    <string name="rag_paste_title_label">Title</string>
+    <string name="rag_paste_text_label">Text (Markdown supported)</string>
+    <string name="rag_paste_add">Add document</string>
+
+    <string name="rag_chunk_size_title">Chunk size (characters)</string>
+    <string name="rag_chunk_size_hint">Applied when indexing (with an overlap of about 1/6 between chunks). Small: more precise, but less context each. Large: more context, but more noise, and fewer fit in small-window engines.</string>
+
+    <plurals name="rag_stat_documents_indexed">
+        <item quantity="one">%1$d document indexed</item>
+        <item quantity="other">%1$d documents indexed</item>
+    </plurals>
+    <plurals name="rag_stat_chunks">
+        <item quantity="one">%1$d chunk</item>
+        <item quantity="other">%1$d chunks</item>
+    </plurals>
+    <string name="rag_stat_per_chunk">%1$s per chunk</string>
+    <string name="rag_stat_total">%1$s in total</string>
+    <string name="rag_index_none">Nothing indexed yet.</string>
+    <plurals name="rag_index_progress">
+        <item quantity="one">%1$d of %2$d chunk · “%3$s” · last %4$s</item>
+        <item quantity="other">%1$d of %2$d chunks · “%3$s” · last %4$s</item>
+    </plurals>
+    <string name="rag_index_pending">Index pending (%1$d)</string>
+    <string name="rag_index_all_done">All indexed</string>
+    <string name="rag_reindex_all">Reindex all</string>
+    <string name="rag_index_cancel">Cancel indexing</string>
+    <string name="rag_index_need_embedder">Download the embedding model to be able to index.</string>
+
+    <string name="rag_origin_sample">sample</string>
+    <string name="rag_origin_pasted">pasted</string>
+    <string name="rag_origin_file">file</string>
+    <string name="rag_doc_chars">%1$d chars</string>
+    <plurals name="rag_doc_chunks">
+        <item quantity="one">%1$d chunk of ~%2$d</item>
+        <item quantity="other">%1$d chunks of ~%2$d</item>
+    </plurals>
+    <string name="rag_doc_each">%1$s each</string>
+    <string name="rag_doc_not_indexed">not indexed</string>
+    <string name="rag_doc_delete_description">Delete “%1$s”</string>
+    <string name="rag_chunk_info">#%1$d · %2$d chars · %3$s</string>
+
+    <!-- Ask tab -->
+    <string name="rag_ask_empty_title">Nothing indexed yet</string>
+    <string name="rag_ask_empty_hint">Load the sample corpus (or your documents) and index it to be able to ask.</string>
+    <string name="rag_ask_engine">Answering engine</string>
+    <plurals name="rag_ask_context_large">
+        <item quantity="one">This engine has a large window: about %1$d characters of context fit (~%2$d chunk of %3$d).</item>
+        <item quantity="other">This engine has a large window: about %1$d characters of context fit (~%2$d chunks of %3$d).</item>
+    </plurals>
+    <plurals name="rag_ask_context_small">
+        <item quantity="one">Window of %1$d tokens in total: about %2$d characters are left for context (~%3$d chunk of %4$d); if k is larger, the last ones do not fit.</item>
+        <item quantity="other">Window of %1$d tokens in total: about %2$d characters are left for context (~%3$d chunks of %4$d); if k is larger, the last ones do not fit.</item>
+    </plurals>
+    <string name="rag_judge_title">Check grounding</string>
+    <string name="rag_judge_hint">A second model checks whether each claim in the answer is backed by the context.</string>
+    <string name="rag_judge_engine">Judging engine</string>
+    <string name="rag_question_section">Question</string>
+    <string name="rag_question_label">Question about your documents</string>
+    <string name="rag_examples_hide">Hide example questions</string>
+    <string name="rag_examples_show">Example questions (sample corpus)</string>
+    <string name="rag_ask_button">Ask with and without RAG</string>
+    <string name="rag_ask_button_running">Asking…</string>
+    <string name="rag_stage_now">Now: %1$s</string>
+    <string name="rag_stage_plain">Without retrieval</string>
+    <string name="rag_stage_rag">With retrieval</string>
+
+    <string name="rag_answer_plain_title">Without retrieval</string>
+    <string name="rag_answer_plain_subtitle">Only what the model knows</string>
+    <string name="rag_answer_rag_title">With retrieval</string>
+    <string name="rag_answer_rag_subtitle">With chunks from your documents</string>
+    <string name="rag_answer_queued">Queued…</string>
+    <string name="rag_answer_skipped">No chunk passed the threshold, so the model was not called.</string>
+    <string name="rag_answer_empty">(empty answer)</string>
+    <string name="rag_answer_not_found">I cannot find it in the documents.</string>
+    <plurals name="rag_answer_stats">
+        <item quantity="one">search %1$s (embedding %2$s + similarity %3$s) · %4$d of %5$d chunk in the context (%6$d/%7$d chars)</item>
+        <item quantity="other">search %1$s (embedding %2$s + similarity %3$s) · %4$d of %5$d chunks in the context (%6$d/%7$d chars)</item>
+    </plurals>
+    <string name="rag_sources_title">Retrieved chunks</string>
+    <string name="rag_source_not_fit">Did not fit in the engine\'s context</string>
+    <string name="rag_grounding_title">Grounding</string>
+    <string name="rag_grounding_judge_failed">The judge failed: %1$s</string>
+    <string name="rag_grounding_judge_said">The judge said: %1$s</string>
+    <string name="rag_verdict_supported">supported</string>
+    <string name="rag_verdict_partial">partially supported</string>
+    <string name="rag_verdict_unsupported">not supported</string>
+    <string name="rag_verdict_unknown">verdict could not be read</string>
+
+    <!-- Evaluate tab -->
+    <string name="rag_eval_intro">Measures whether the search finds the chunk that contains the answer, without calling any model. Change the chunk size (Documents, reindexing), k, MMR or the threshold and compare the runs.</string>
+    <string name="rag_eval_nothing_indexed">Nothing indexed yet.</string>
+    <string name="rag_eval_sample_not_indexed">The evaluation questions come from the sample corpus, and it is not indexed.</string>
+    <string name="rag_eval_will_use">Will evaluate with: %1$s</string>
+    <string name="rag_eval_running">Evaluating…</string>
+    <plurals name="rag_eval_button">
+        <item quantity="one">Evaluate %1$d question</item>
+        <item quantity="other">Evaluate %1$d questions</item>
+    </plurals>
+    <string name="rag_eval_progress">%1$d of %2$d</string>
+    <string name="rag_report_latency">mean latency</string>
+    <plurals name="rag_report_title">
+        <item quantity="one">Result · %1$d question</item>
+        <item quantity="other">Result · %1$d questions</item>
+    </plurals>
+    <plurals name="rag_report_skipped">
+        <item quantity="one">%1$d question was skipped because its document is not indexed.</item>
+        <item quantity="other">%1$d questions were skipped because their document is not indexed.</item>
+    </plurals>
+    <string name="rag_report_legend">hit@n: the answer is among the first n chunks. MRR: mean of 1/position of the first hit (1 = always first). Latency includes embedding the question and searching.</string>
+    <string name="rag_per_question">Per question</string>
+    <string name="rag_question_best">best score %1$s · %2$s</string>
+    <string name="rag_history_title">Compare runs</string>
+    <string name="rag_history_clear">Clear</string>
+    <string name="rag_history_line">hit@1 %1$s · hit@3 %2$s · MRR %3$s · %4$s</string>
+    <string name="rag_history_best">best MRR</string>
+
+    <!-- View model messages -->
+    <plurals name="rag_notice_skipped_docs">
+        <item quantity="one">Could not read %1$d saved document and it was skipped.</item>
+        <item quantity="other">Could not read %1$d saved documents and they were skipped.</item>
+    </plurals>
+    <string name="rag_notice_text_empty">The text is empty.</string>
+    <plurals name="rag_notice_files_unreadable">
+        <item quantity="one">%1$d file could not be read as text.</item>
+        <item quantity="other">%1$d files could not be read as text.</item>
+    </plurals>
+    <string name="rag_notice_sample_loaded">The sample corpus is already loaded.</string>
+    <string name="rag_notice_truncated">The text was too long and was cut to %1$d characters.</string>
+    <string name="rag_index_error_download_first">Download the embedding model first.</string>
+    <string name="rag_index_error_default">Indexing failed</string>
+    <string name="rag_ask_error_no_index">Index a document before asking.</string>
+    <string name="rag_ask_error_default">The question failed</string>
+    <string name="rag_eval_error_no_sample">Index the sample corpus before evaluating.</string>
+    <string name="rag_eval_error_default">The evaluation failed</string>
+
+    <!-- Pipeline (trace steps and errors) -->
+    <string name="rag_trace_plain_title">Without retrieval: answer</string>
+    <string name="rag_trace_rag_title">With retrieval: answer</string>
+    <string name="rag_trace_skip_detail">No chunk passes the similarity threshold: the model is not called</string>
+    <string name="rag_trace_build_title">Build the prompt with citations</string>
+    <plurals name="rag_trace_build_input">
+        <item quantity="one">%1$d chunk</item>
+        <item quantity="other">%1$d chunks</item>
+    </plurals>
+    <plurals name="rag_trace_context_chunks">
+        <item quantity="one">%1$d of %2$d chunk in the context</item>
+        <item quantity="other">%1$d of %2$d chunks in the context</item>
+    </plurals>
+    <string name="rag_trace_context_chars">%1$d of %2$d chars</string>
+    <string name="rag_trace_first_cut">the first one was cut</string>
+    <string name="rag_retrieval_failed">Retrieval failed</string>
+    <string name="rag_trace_search_title">Search chunks</string>
+    <string name="rag_trace_no_results">No results above the threshold</string>
+    <string name="rag_trace_embedding_ms">embedding %1$s ms</string>
+    <string name="rag_trace_search_ms">search %1$s ms</string>
+    <plurals name="rag_trace_index_size">
+        <item quantity="one">%1$d chunk in the index</item>
+        <item quantity="other">%1$d chunks in the index</item>
+    </plurals>
+    <string name="rag_trace_threshold">threshold %1$s</string>
+    <string name="rag_trace_judge_title">Check that the answer is supported</string>
+    <string name="rag_trace_verdict_title">Interpret the verdict</string>
+    <string name="rag_error_embed_question">Could not compute the embedding of the question</string>
+    <string name="rag_error_embed_chunk">Could not compute the embedding of chunk %1$d of “%2$s”</string>
+    <string name="rag_error_embed_eval_question">Could not compute the embedding of the question “%1$s”</string>
+</resources>

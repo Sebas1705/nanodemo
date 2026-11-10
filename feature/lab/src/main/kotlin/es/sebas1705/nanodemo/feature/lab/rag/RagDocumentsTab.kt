@@ -31,12 +31,15 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.res.pluralStringResource
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import es.sebas1705.nanodemo.core.designsystem.AppCard
 import es.sebas1705.nanodemo.core.designsystem.ErrorCard
 import es.sebas1705.nanodemo.core.designsystem.SectionLabel
 import es.sebas1705.nanodemo.core.ui.DemoColors
 import es.sebas1705.nanodemo.core.ui.readoutStyle
+import es.sebas1705.nanodemo.feature.lab.R
 
 /** Documents tab: the embedding model, the corpus (sample, pasted, files), chunk size and indexing. */
 @Composable
@@ -57,7 +60,7 @@ internal fun RagDocumentsTab(viewModel: RagViewModel) {
         verticalArrangement = Arrangement.spacedBy(14.dp),
     ) {
         Text(
-            "Los documentos se trocean en fragmentos, cada fragmento se convierte en un vector en el dispositivo y se guarda en el almacenamiento de la app.",
+            stringResource(R.string.rag_docs_intro),
             style = MaterialTheme.typography.bodyMedium, color = DemoColors.Muted,
         )
         EmbedderCard(embedder, onDownload = viewModel::downloadEmbedder)
@@ -65,26 +68,26 @@ internal fun RagDocumentsTab(viewModel: RagViewModel) {
         notice?.let { message ->
             AppCard(Modifier.fillMaxWidth()) {
                 Text(message, style = MaterialTheme.typography.bodyMedium, color = DemoColors.Ink)
-                TextButton(onClick = viewModel::dismissNotice) { Text("Entendido") }
+                TextButton(onClick = viewModel::dismissNotice) { Text(stringResource(R.string.rag_notice_dismiss)) }
             }
         }
 
-        SectionLabel("Corpus")
+        SectionLabel(stringResource(R.string.rag_corpus_section))
         Row(horizontalArrangement = Arrangement.spacedBy(10.dp), verticalAlignment = Alignment.CenterVertically) {
-            Button(onClick = viewModel::loadSample, enabled = !busy, modifier = Modifier.weight(1f)) { Text("Cargar ejemplo") }
+            Button(onClick = viewModel::loadSample, enabled = !busy, modifier = Modifier.weight(1f)) { Text(stringResource(R.string.rag_load_sample)) }
             OutlinedButton(
                 onClick = { picker.launch(arrayOf("text/plain", "text/markdown", "text/x-markdown", "text/*")) },
                 enabled = !busy,
                 modifier = Modifier.weight(1f),
-            ) { Text("Importar archivos") }
+            ) { Text(stringResource(R.string.rag_import_files)) }
         }
         Text(
-            "El ejemplo es un manual ficticio de empresa en español (vacaciones, gastos, seguridad, incorporación, FAQ) con 10 preguntas para evaluar.",
+            stringResource(R.string.rag_sample_hint, SampleCorpus.questions.size),
             style = MaterialTheme.typography.bodySmall, color = DemoColors.Muted,
         )
         PasteCard(enabled = !busy, onAdd = viewModel::addPasted)
 
-        SectionLabel("Fragmentos e indexado")
+        SectionLabel(stringResource(R.string.rag_chunks_section))
         ChunkSizeCard(settings.chunkTargetChars, onSelect = viewModel::setChunkSize, enabled = !busy)
         IndexControls(
             documents = documents,
@@ -96,13 +99,13 @@ internal fun RagDocumentsTab(viewModel: RagViewModel) {
             onCancel = viewModel::cancel,
         )
 
-        SectionLabel("Documentos (${documents.size})")
+        SectionLabel(stringResource(R.string.rag_documents_section, documents.size))
         if (documents.isEmpty()) {
-            Text("Todavía no hay documentos. Carga el ejemplo o importa los tuyos.", style = MaterialTheme.typography.bodyMedium, color = DemoColors.Muted)
+            Text(stringResource(R.string.rag_documents_empty), style = MaterialTheme.typography.bodyMedium, color = DemoColors.Muted)
         }
         documents.forEach { doc -> DocumentRow(doc, enabled = !busy, onDelete = { viewModel.deleteDocument(doc.id) }) }
         if (documents.isNotEmpty()) {
-            TextButton(onClick = viewModel::deleteAll, enabled = !busy) { Text("Borrar todos los documentos", color = DemoColors.Danger) }
+            TextButton(onClick = viewModel::deleteAll, enabled = !busy) { Text(stringResource(R.string.rag_delete_all), color = DemoColors.Danger) }
         }
     }
 }
@@ -112,13 +115,13 @@ private fun PasteCard(enabled: Boolean, onAdd: (title: String, text: String) -> 
     var title by rememberSaveable { mutableStateOf("") }
     var text by rememberSaveable { mutableStateOf("") }
     AppCard(Modifier.fillMaxWidth()) {
-        Text("Pegar texto", style = MaterialTheme.typography.titleSmall, color = DemoColors.Ink)
+        Text(stringResource(R.string.rag_paste_title), style = MaterialTheme.typography.titleSmall, color = DemoColors.Ink)
         OutlinedTextField(
-            value = title, onValueChange = { title = it }, label = { Text("Título") },
+            value = title, onValueChange = { title = it }, label = { Text(stringResource(R.string.rag_paste_title_label)) },
             singleLine = true, modifier = Modifier.fillMaxWidth(),
         )
         OutlinedTextField(
-            value = text, onValueChange = { text = it }, label = { Text("Texto (admite Markdown)") },
+            value = text, onValueChange = { text = it }, label = { Text(stringResource(R.string.rag_paste_text_label)) },
             minLines = 3, maxLines = 8, modifier = Modifier.fillMaxWidth(),
         )
         Button(
@@ -128,22 +131,21 @@ private fun PasteCard(enabled: Boolean, onAdd: (title: String, text: String) -> 
                 text = ""
             },
             enabled = enabled && text.isNotBlank(),
-        ) { Text("Añadir documento") }
+        ) { Text(stringResource(R.string.rag_paste_add)) }
     }
 }
 
 @Composable
 private fun ChunkSizeCard(selected: Int, onSelect: (Int) -> Unit, enabled: Boolean) {
     AppCard(Modifier.fillMaxWidth()) {
-        Text("Tamaño de fragmento (caracteres)", style = MaterialTheme.typography.titleSmall, color = DemoColors.Ink)
+        Text(stringResource(R.string.rag_chunk_size_title), style = MaterialTheme.typography.titleSmall, color = DemoColors.Ink)
         Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
             CHUNK_SIZE_OPTIONS.forEach { size ->
                 FilterChip(selected = selected == size, onClick = { onSelect(size) }, label = { Text("$size") }, enabled = enabled)
             }
         }
         Text(
-            "Se aplica al indexar (con un solapamiento de ~1/6 entre fragmentos). Pequeños: más precisos pero con menos contexto cada uno. " +
-                "Grandes: más contexto pero más ruido y menos caben en los motores de ventana pequeña.",
+            stringResource(R.string.rag_chunk_size_hint),
             style = MaterialTheme.typography.bodySmall, color = DemoColors.Muted,
         )
     }
@@ -164,19 +166,26 @@ private fun IndexControls(
     AppCard(Modifier.fillMaxWidth()) {
         if (stats.chunks > 0) {
             Text(
-                "${stats.documents} documentos indexados · ${stats.chunks} fragmentos · " +
-                    "${stats.meanChunkMs.asDuration()} por fragmento · ${stats.totalEmbedMs.asDuration()} en total",
+                listOf(
+                    pluralStringResource(R.plurals.rag_stat_documents_indexed, stats.documents, stats.documents),
+                    pluralStringResource(R.plurals.rag_stat_chunks, stats.chunks, stats.chunks),
+                    stringResource(R.string.rag_stat_per_chunk, stats.meanChunkMs.asDuration()),
+                    stringResource(R.string.rag_stat_total, stats.totalEmbedMs.asDuration()),
+                ).joinToString(" · "),
                 style = readoutStyle, color = DemoColors.Ink,
             )
         } else {
-            Text("Nada indexado todavía.", style = MaterialTheme.typography.bodyMedium, color = DemoColors.Muted)
+            Text(stringResource(R.string.rag_index_none), style = MaterialTheme.typography.bodyMedium, color = DemoColors.Muted)
         }
         val progress = indexing.progress
         if (indexing.running) {
             if (progress != null && progress.chunksTotal > 0) {
                 LinearProgressIndicator(progress = { progress.chunksDone / progress.chunksTotal.toFloat() }, modifier = Modifier.fillMaxWidth())
                 Text(
-                    "${progress.chunksDone} de ${progress.chunksTotal} fragmentos · «${progress.docTitle}» · último ${progress.lastChunkMs.asDuration()}",
+                    pluralStringResource(
+                        R.plurals.rag_index_progress, progress.chunksTotal,
+                        progress.chunksDone, progress.chunksTotal, progress.docTitle, progress.lastChunkMs.asDuration(),
+                    ),
                     style = readoutStyle, color = DemoColors.Muted,
                 )
             } else {
@@ -186,15 +195,15 @@ private fun IndexControls(
         indexing.error?.let { ErrorCard(it) }
         Row(horizontalArrangement = Arrangement.spacedBy(10.dp), verticalAlignment = Alignment.CenterVertically) {
             Button(onClick = onIndexPending, enabled = embedderReady && !busy && pending > 0, modifier = Modifier.weight(1f)) {
-                Text(if (pending > 0) "Indexar pendientes ($pending)" else "Todo indexado")
+                Text(if (pending > 0) stringResource(R.string.rag_index_pending, pending) else stringResource(R.string.rag_index_all_done))
             }
             OutlinedButton(onClick = onReindexAll, enabled = embedderReady && !busy && documents.isNotEmpty(), modifier = Modifier.weight(1f)) {
-                Text("Reindexar todo")
+                Text(stringResource(R.string.rag_reindex_all))
             }
         }
-        if (indexing.running) OutlinedButton(onClick = onCancel) { Text("Cancelar indexado") }
+        if (indexing.running) OutlinedButton(onClick = onCancel) { Text(stringResource(R.string.rag_index_cancel)) }
         if (!embedderReady) {
-            Text("Descarga el modelo de embeddings para poder indexar.", style = MaterialTheme.typography.bodySmall, color = DemoColors.Muted)
+            Text(stringResource(R.string.rag_index_need_embedder), style = MaterialTheme.typography.bodySmall, color = DemoColors.Muted)
         }
     }
 }
@@ -210,24 +219,24 @@ private fun DocumentRow(doc: RagDocument, enabled: Boolean, onDelete: () -> Unit
                     buildList {
                         add(
                             when (doc.origin) {
-                                DocumentOrigin.SAMPLE -> "ejemplo"
-                                DocumentOrigin.PASTED -> "pegado"
-                                DocumentOrigin.FILE -> "archivo"
+                                DocumentOrigin.SAMPLE -> stringResource(R.string.rag_origin_sample)
+                                DocumentOrigin.PASTED -> stringResource(R.string.rag_origin_pasted)
+                                DocumentOrigin.FILE -> stringResource(R.string.rag_origin_file)
                             },
                         )
-                        add("${doc.text.length} car")
+                        add(stringResource(R.string.rag_doc_chars, doc.text.length))
                         if (doc.isIndexed) {
-                            add("${doc.chunks.size} fragmentos de ~${doc.chunkTargetChars}")
-                            add("${doc.meanEmbedMs.asDuration()} c/u")
+                            add(pluralStringResource(R.plurals.rag_doc_chunks, doc.chunks.size, doc.chunks.size, doc.chunkTargetChars))
+                            add(stringResource(R.string.rag_doc_each, doc.meanEmbedMs.asDuration()))
                         } else {
-                            add("sin indexar")
+                            add(stringResource(R.string.rag_doc_not_indexed))
                         }
                     }.joinToString(" · "),
                     style = readoutStyle, color = if (doc.isIndexed) DemoColors.Muted else DemoColors.TierB,
                 )
             }
             IconButton(onClick = onDelete, enabled = enabled) {
-                Icon(Icons.Filled.Delete, contentDescription = "Borrar «${doc.title}»", tint = DemoColors.Muted)
+                Icon(Icons.Filled.Delete, contentDescription = stringResource(R.string.rag_doc_delete_description, doc.title), tint = DemoColors.Muted)
             }
         }
         if (expanded) {
@@ -237,7 +246,7 @@ private fun DocumentRow(doc: RagDocument, enabled: Boolean, onDelete: () -> Unit
             doc.chunks.forEach { chunk ->
                 Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
                     Text(
-                        "#${chunk.index + 1} · ${chunk.text.length} car · ${chunk.embedMs.asDuration()}" + (chunk.heading?.let { " · $it" } ?: ""),
+                        stringResource(R.string.rag_chunk_info, chunk.index + 1, chunk.text.length, chunk.embedMs.asDuration()) + (chunk.heading?.let { " · $it" } ?: ""),
                         style = readoutStyle, color = DemoColors.Muted,
                     )
                     Text(chunk.text, style = MaterialTheme.typography.bodySmall, color = DemoColors.Ink)

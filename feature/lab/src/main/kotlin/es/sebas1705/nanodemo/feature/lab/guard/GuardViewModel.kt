@@ -12,6 +12,7 @@ import es.sebas1705.nanodemo.domain.usescases.inference.CapabilitiesOfUseCase
 import es.sebas1705.nanodemo.domain.usescases.inference.ObserveAvailabilityUseCase
 import es.sebas1705.nanodemo.domain.usescases.inference.RunStepUseCase
 import es.sebas1705.nanodemo.feature.lab.common.usableTiers
+import es.sebas1705.nanodemo.feature.lab.common.LabTexts
 import es.sebas1705.nanodemo.feature.lab.trace.PipelineRunner
 import es.sebas1705.nanodemo.feature.lab.trace.asExecutor
 import kotlinx.coroutines.Job
@@ -25,12 +26,13 @@ import javax.inject.Inject
 @HiltViewModel
 class GuardViewModel @Inject constructor(
     runStep: RunStepUseCase,
+    labTexts: LabTexts,
     observeAvailability: ObserveAvailabilityUseCase,
     private val capabilitiesOf: CapabilitiesOfUseCase,
     @ApplicationContext context: Context,
 ) : ViewModel() {
 
-    private val pipeline = PipelineRunner(runStep.asExecutor())
+    private val pipeline = PipelineRunner(runStep.asExecutor(labTexts))
     private val runner = GuardRunner(pipeline, AndroidGuardTexts(context.resources))
 
     val availability: StateFlow<Map<InferenceTier, TierAvailability>> = observeAvailability()

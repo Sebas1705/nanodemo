@@ -84,7 +84,7 @@ class RetrievalMetricsTest {
         )
         val vectors = mapOf("qa" to floatArrayOf(1f, 0f), "qb" to floatArrayOf(0.2f, 1f), "qc" to floatArrayOf(1f, 1f))
         var tick = 0L
-        val evaluator = RetrievalEvaluator(embedQuery = { vectors[it] }, nanoClock = { tick += 2_000_000; tick })
+        val evaluator = RetrievalEvaluator(embedQuery = { vectors[it] }, texts = XmlTexts.english, nanoClock = { tick += 2_000_000; tick })
         val questions = listOf(
             EvalQuestion("1", "qa", "A", "respuesta alfa"), // rank 1
             EvalQuestion("2", "qb", "B", "respuesta beta"), // b1 scores highest -> rank 1
@@ -105,7 +105,7 @@ class RetrievalMetricsTest {
 
     @Test
     fun `a query that cannot be embedded fails the evaluation with the question in the message`() = runBlocking {
-        val evaluator = RetrievalEvaluator(embedQuery = { null })
+        val evaluator = RetrievalEvaluator(embedQuery = { null }, texts = XmlTexts.english)
         try {
             evaluator.evaluate(listOf(EvalQuestion("1", "pregunta", "A", "x")), listOf(indexed("a", 1f, doc = "A")), RetrievalOptions())
             fail("expected an error")
@@ -121,7 +121,7 @@ class RetrievalMetricsTest {
             indexed("n2", 0.9f, 0.1f, doc = "A", text = "ruido dos"),
             indexed("hit", 0.8f, 0.2f, doc = "A", text = "la clave"),
         )
-        val evaluator = RetrievalEvaluator(embedQuery = { floatArrayOf(1f, 0f) })
+        val evaluator = RetrievalEvaluator(embedQuery = { floatArrayOf(1f, 0f) }, texts = XmlTexts.english)
         val result = evaluator.evaluate(listOf(EvalQuestion("1", "q", "A", "la clave")), index, RetrievalOptions(topK = 1))
         assertEquals(3, result.evals.single().rank)
         assertEquals(0.0, result.report.hitAtK, 0.0)
@@ -132,11 +132,11 @@ class RetrievalMetricsTest {
     fun `end to end on the sample corpus with a bag of words embedder finds most answers`() = runBlocking {
         val embedder = BagOfWordsEmbedder()
         for (size in CHUNK_SIZE_OPTIONS) {
-            val docs = DocumentIndexer(embedder).indexAll(
+            val docs = DocumentIndexer(embedder, XmlTexts.english).indexAll(
                 SampleCorpus.documents.map { RagDocument(it.id, it.title, it.text, DocumentOrigin.SAMPLE) },
                 ChunkerConfig.forTarget(size),
             )
-            val result = RetrievalEvaluator(embedder::embed).evaluate(SampleCorpus.questions, docs.toIndex(), RetrievalOptions(topK = 3))
+            val result = RetrievalEvaluator(embedder::embed, XmlTexts.english).evaluate(SampleCorpus.questions, docs.toIndex(), RetrievalOptions(topK = 3))
             assertEquals(0, result.report.skipped)
             assertTrue("hit@3 ${result.report.hitAt3} at chunk size $size", result.report.hitAt3 >= 0.8)
         }
