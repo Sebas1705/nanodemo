@@ -1,0 +1,46 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="lab_memory_title">Memoria de contexto</string>
+    <string name="lab_memory_subtitle">Qué sobrevive cuando la conversación desborda el contexto: historial completo, ventana, resumen móvil o datos extraídos.</string>
+
+    <string name="memory_intro">Los motores pequeños solo admiten de 1k a 2k tokens. Esto reproduce una conversación guionizada, dice los datos al principio y pregunta por ellos al final. Cada estrategia decide qué conservar; la nota es cuántos de los datos iniciales conserva la respuesta.</string>
+    <string name="memory_engine">Motor</string>
+    <string name="memory_scenario">Conversación</string>
+    <string name="memory_scenario_trip">Viaje a Lisboa</string>
+    <string name="memory_scenario_project">Arranque de proyecto</string>
+    <string name="memory_budget">Presupuesto del prompt</string>
+    <string name="memory_budget_auto">Del motor (70%)</string>
+    <string name="memory_budget_tokens">%1$d tok</string>
+    <string name="memory_setup_summary">%1$d turnos, unos %2$d tokens completos. Presupuesto del prompt: %3$d tokens.</string>
+    <string name="memory_run">Comparar estrategias</string>
+    <string name="memory_running">Comparando…</string>
+    <string name="memory_cancel">Cancelar</string>
+    <string name="memory_no_engine">Ahora mismo no hay ningún motor utilizable; descarga un modelo o configura una clave primero.</string>
+
+    <string name="memory_strategy_full">Historial completo</string>
+    <string name="memory_strategy_full_desc">Envía todos los turnos. Exacto, pero desborda los motores pequeños.</string>
+    <string name="memory_strategy_window">Ventana deslizante</string>
+    <string name="memory_strategy_window_desc">Conserva solo los turnos más recientes que caben. Lo dicho al principio se olvida.</string>
+    <string name="memory_strategy_summary">Resumen móvil</string>
+    <string name="memory_strategy_summary_desc">El modelo comprime los turnos antiguos; los recientes quedan literales.</string>
+    <string name="memory_strategy_facts">Datos extraídos</string>
+    <string name="memory_strategy_facts_desc">El modelo saca los datos duraderos una vez; la pregunta solo ve los relevantes.</string>
+
+    <string name="memory_result_tokens">Prompt</string>
+    <string name="memory_result_recall">Recuerdo</string>
+    <string name="memory_result_overflow">Por encima del presupuesto: un motor pequeño truncaría o rechazaría este prompt.</string>
+    <string name="memory_result_time">%1$s</string>
+    <plurals name="memory_result_calls">
+        <item quantity="one">%1$d llamada al modelo</item>
+        <item quantity="other">%1$d llamadas al modelo</item>
+    </plurals>
+    <string name="memory_result_error">Falló: %1$s</string>
+    <string name="memory_note">Los resúmenes y los datos los escribe el mismo motor que elegiste, así que un motor flojo también resume mal. Ese coste forma parte de la comparación.</string>
+
+    <string name="memory_step_summarize">Resumir turnos antiguos (%1$d/%2$d)</string>
+    <string name="memory_step_facts">Extraer datos (%1$d/%2$d)</string>
+    <string name="memory_step_answer">Responder con %1$s</string>
+    <string name="memory_step_recall">Comprobar el recuerdo</string>
+    <string name="memory_recall_detail">%1$d de %2$d datos recordados</string>
+    <string name="memory_overflow_detail">prompt de ~%1$d tok por encima de los %2$d tok de presupuesto</string>
+</resources>

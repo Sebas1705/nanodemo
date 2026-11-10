@@ -1,0 +1,46 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="lab_memory_title">Context memory</string>
+    <string name="lab_memory_subtitle">What survives when a conversation outgrows the context: full history, window, rolling summary or extracted facts.</string>
+
+    <string name="memory_intro">Small engines only fit 1k to 2k tokens. This replays a scripted conversation, states the facts early, and asks about them at the end. Each strategy decides what to keep; the score is how many of the early facts the answer still has.</string>
+    <string name="memory_engine">Engine</string>
+    <string name="memory_scenario">Conversation</string>
+    <string name="memory_scenario_trip">Trip to Lisbon</string>
+    <string name="memory_scenario_project">Project kickoff</string>
+    <string name="memory_budget">Prompt budget</string>
+    <string name="memory_budget_auto">Engine (70%)</string>
+    <string name="memory_budget_tokens">%1$d tok</string>
+    <string name="memory_setup_summary">%1$d turns, about %2$d tokens in full. Budget for the prompt: %3$d tokens.</string>
+    <string name="memory_run">Compare strategies</string>
+    <string name="memory_running">Comparing…</string>
+    <string name="memory_cancel">Cancel</string>
+    <string name="memory_no_engine">No engine is usable right now; download a model or configure a key first.</string>
+
+    <string name="memory_strategy_full">Full history</string>
+    <string name="memory_strategy_full_desc">Sends every turn. Exact, but it overflows small engines.</string>
+    <string name="memory_strategy_window">Sliding window</string>
+    <string name="memory_strategy_window_desc">Keeps only the newest turns that fit. What was said early is forgotten.</string>
+    <string name="memory_strategy_summary">Rolling summary</string>
+    <string name="memory_strategy_summary_desc">The model compresses the older turns; the newest stay word for word.</string>
+    <string name="memory_strategy_facts">Extracted facts</string>
+    <string name="memory_strategy_facts_desc">The model pulls durable facts out once; the question sees only the relevant ones.</string>
+
+    <string name="memory_result_tokens">Prompt</string>
+    <string name="memory_result_recall">Recall</string>
+    <string name="memory_result_overflow">Over the budget: a small engine would truncate or reject this prompt.</string>
+    <string name="memory_result_time">%1$s</string>
+    <plurals name="memory_result_calls">
+        <item quantity="one">%1$d model call</item>
+        <item quantity="other">%1$d model calls</item>
+    </plurals>
+    <string name="memory_result_error">It failed: %1$s</string>
+    <string name="memory_note">Summaries and facts are written by the same engine you picked, so a weak engine also summarizes badly. That cost is part of the comparison.</string>
+
+    <string name="memory_step_summarize">Summarize older turns (%1$d/%2$d)</string>
+    <string name="memory_step_facts">Extract facts (%1$d/%2$d)</string>
+    <string name="memory_step_answer">Answer with %1$s</string>
+    <string name="memory_step_recall">Check recall</string>
+    <string name="memory_recall_detail">%1$d of %2$d facts recalled</string>
+    <string name="memory_overflow_detail">prompt ~%1$d tok over the %2$d tok budget</string>
+</resources>
