@@ -1,14 +1,16 @@
 package es.sebas1705.nanodemo.feature.lab.router
 
+import androidx.annotation.StringRes
 import es.sebas1705.nanodemo.domain.models.InferenceTier
+import es.sebas1705.nanodemo.feature.lab.R
 
-enum class RoutingPolicy(val label: String, val description: String) {
-    LOCAL_FIRST("Local primero", "Intenta los motores del dispositivo y solo sube a la nube si no bastan."),
-    CLOUD_FIRST("Nube primero", "Empieza por la nube; los motores locales quedan de respaldo."),
-    PRIVACY_FIRST("Privacidad primero", "Lo que tenga datos personales o esté marcado como sensible nunca sale del dispositivo."),
-    COST_AWARE("Coste", "Local primero y la nube solo si la consulta cabe en el presupuesto y no es trivial."),
-    LATENCY_AWARE("Latencia", "Ordena los motores por la latencia esperada (o la observada en esta sesión)."),
-    MANUAL("Manual", "Un único motor elegido a mano, sin escalado."),
+enum class RoutingPolicy(@StringRes val labelRes: Int, @StringRes val descriptionRes: Int) {
+    LOCAL_FIRST(R.string.router_policy_local_first_label, R.string.router_policy_local_first_description),
+    CLOUD_FIRST(R.string.router_policy_cloud_first_label, R.string.router_policy_cloud_first_description),
+    PRIVACY_FIRST(R.string.router_policy_privacy_first_label, R.string.router_policy_privacy_first_description),
+    COST_AWARE(R.string.router_policy_cost_aware_label, R.string.router_policy_cost_aware_description),
+    LATENCY_AWARE(R.string.router_policy_latency_aware_label, R.string.router_policy_latency_aware_description),
+    MANUAL(R.string.router_policy_manual_label, R.string.router_policy_manual_description),
 }
 
 /** Knobs of the router that are not the policy itself. */
@@ -38,7 +40,7 @@ data class RoutePlan(
     val blockedReason: String? = null,
 ) {
     val blocked: Boolean get() = blockedReason != null
-    fun describe(): String = if (blocked) "bloqueada: $blockedReason" else engines.joinToString(" → ") { it.tier.name }
+    fun describe(texts: RouterTexts): String = if (blocked) texts.string(R.string.router_plan_describe_blocked, blockedReason.orEmpty()) else engines.joinToString(" → ") { it.tier.name }
 }
 
 /**
@@ -61,6 +63,7 @@ object RoutePlanner {
         policy: RoutingPolicy,
         classification: Classification,
         usable: List<InferenceTier>,
+        texts: RouterTexts,
         settings: RouterSettings = RouterSettings(),
         manualTier: InferenceTier? = null,
         observedLatencyMs: Map<InferenceTier, Long> = emptyMap(),
@@ -69,14 +72,14 @@ object RoutePlanner {
         fun engine(tier: InferenceTier, reason: String) =
             PlannedEngine(tier, viaGateway = tier.isCloud && settings.gatewayEnabled, reason = reason)
 
-        if (usable.isEmpty()) return RoutePlan(policy, emptyList(), notes, "no hay ningún motor disponible")
+        if (usable.isEmpty()) return RoutePlan(policy, emptyList(), notes, texts.string(R.string.router_plan_no_engine))
 
         if (policy == RoutingPolicy.MANUAL) {
             val tier = manualTier
             return when {
-                tier == null -> RoutePlan(policy, emptyList(), notes, "no has elegido motor")
-                tier !in usable -> RoutePlan(policy, emptyList(), notes, "el motor elegido no está disponible ahora")
-                else -> RoutePlan(policy, listOf(engine(tier, "elegido a mano")), notes)
+                tier == null -> RoutePlan(policy, emptyList(), notes, texts.string(R.string.router_plan_no_manual_choice))
+                tier !in usable -> RoutePlan(policy, emptyList(), notes, texts.string(R.string.router_plan_manual_unavailable))
+                else -> RoutePlan(policy, listOf(engine(tier, texts.string(R.string.router_plan_picked_by_hand))), notes)
             }
         }
 
@@ -87,7 +90,7 @@ object RoutePlanner {
         // Fail closed: a sensitive prompt under the privacy policy never gets a cloud engine, whatever else happens.
         if (privacyLocked) {
             clouds = emptyList()
-            notes += "sensible: no sale del dispositivo"
+            notes += texts.string(R.string.router_plan_sensitive_stays)
         }
 
         // Small local contexts cannot take a long prompt: drop them instead of letting them truncate it.
@@ -97,7 +100,7 @@ object RoutePlanner {
             ctx == null || classification.features.estimatedTokens + outTokens + CONTEXT_OVERHEAD_TOKENS <= ctx
         }
         (locals - fitting.toSet()).forEach { tier ->
-            notes += "${tier.name} descartado: el prompt (~${classification.features.estimatedTokens} tok) no cabe en su contexto"
+            notes += texts.string(R.string.router_plan_discarded, tier.name, classification.features.estimatedTokens)
         }
         locals = fitting
 
@@ -107,11 +110,11 @@ object RoutePlanner {
             when {
                 classification.complexity == Complexity.TRIVIAL -> {
                     clouds = emptyList()
-                    notes += "consulta simple: no se paga la nube"
+                    notes += texts.string(R.string.router_plan_simple_no_cloud)
                 }
                 cost > settings.cloudBudgetUsd -> {
                     clouds = emptyList()
-                    notes += "coste estimado ${formatUsd(cost)} por encima del presupuesto ${formatUsd(settings.cloudBudgetUsd)}: sin nube"
+                    notes += texts.string(R.string.router_plan_over_budget, formatUsd(cost), formatUsd(settings.cloudBudgetUsd))
                 }
             }
         }
@@ -122,14 +125,14 @@ object RoutePlanner {
 
         var ordered: List<PlannedEngine> = when (policy) {
             RoutingPolicy.CLOUD_FIRST ->
-                rankedClouds.take(2).map { engine(it, "nube primero") } + rankedLocals.map { engine(it, "respaldo local") }
+                rankedClouds.take(2).map { engine(it, texts.string(R.string.router_plan_cloud_first)) } + rankedLocals.map { engine(it, texts.string(R.string.router_plan_local_backup)) }
             RoutingPolicy.LATENCY_AWARE -> {
                 val candidates = rankedLocals + rankedClouds.take(1)
                 candidates.sortedBy { observedLatencyMs[it] ?: EngineProfiles.of(it).expectedLatencyMs(outTokens) }
-                    .map { engine(it, if (it in observedLatencyMs) "latencia observada ${observedLatencyMs.getValue(it)} ms" else "latencia esperada") }
+                    .map { engine(it, if (it in observedLatencyMs) texts.string(R.string.router_plan_observed_latency, observedLatencyMs.getValue(it)) else texts.string(R.string.router_plan_expected_latency)) }
             }
             else -> // LOCAL_FIRST, PRIVACY_FIRST, COST_AWARE
-                rankedLocals.map { engine(it, "local, mejor calidad primero") } + rankedClouds.take(1).map { engine(it, "escalado a la nube") }
+                rankedLocals.map { engine(it, texts.string(R.string.router_plan_local_best)) } + rankedClouds.take(1).map { engine(it, texts.string(R.string.router_plan_escalated_cloud)) }
         }
 
         // Capability gap: a local model cannot know recent facts, so the cloud goes first when it is allowed.
@@ -137,18 +140,18 @@ object RoutePlanner {
             val (cloudEntries, localEntries) = ordered.partition { it.tier.isCloud }
             if (cloudEntries.isNotEmpty() && ordered.first().tier.isCloud.not()) {
                 ordered = cloudEntries + localEntries
-                notes += "necesita datos recientes: la nube va primero"
+                notes += texts.string(R.string.router_plan_fresh_cloud_first)
             }
         }
 
-        if (usable.none { it.isCloud }) notes += "no hay motor en la nube utilizable"
-        if (usable.none { !it.isCloud }) notes += "no hay motor local utilizable"
+        if (usable.none { it.isCloud }) notes += texts.string(R.string.router_plan_no_cloud_usable)
+        if (usable.none { !it.isCloud }) notes += texts.string(R.string.router_plan_no_local_usable)
 
         if (ordered.isEmpty()) {
             val reason = if (privacyLocked) {
-                "es sensible y ningún motor local puede atenderlo, así que no se envía a la nube"
+                texts.string(R.string.router_plan_blocked_sensitive)
             } else {
-                "ningún motor puede atender este prompt"
+                texts.string(R.string.router_plan_blocked_no_engine)
             }
             return RoutePlan(policy, emptyList(), notes, reason)
         }

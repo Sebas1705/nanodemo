@@ -1,16 +1,18 @@
 package es.sebas1705.nanodemo.feature.lab.router
 
+import androidx.annotation.StringRes
 import es.sebas1705.nanodemo.domain.models.ChatMessage
 import es.sebas1705.nanodemo.domain.models.GenerationConfig
 import es.sebas1705.nanodemo.domain.models.InferenceTier
 import es.sebas1705.nanodemo.domain.models.StepResult
+import es.sebas1705.nanodemo.feature.lab.R
 import es.sebas1705.nanodemo.feature.lab.trace.PipelineRunner
 import es.sebas1705.nanodemo.feature.lab.trace.StepExecutor
 
 /** A prompt of the built-in comparison set. `quick` ones form the short run. */
 data class BenchPrompt(
     val id: String,
-    val label: String,
+    @StringRes val labelRes: Int,
     val text: String,
     val expectJson: Boolean = false,
     val quick: Boolean = false,
@@ -29,24 +31,24 @@ object RouterBenchSet {
             "regresiones en el arranque y en el desplazamiento de las listas largas. Justifica cada punto."
 
     val prompts: List<BenchPrompt> = listOf(
-        BenchPrompt("trivial", "Simple", "¿Cuál es la capital de Francia?", quick = true),
-        BenchPrompt("translate", "Traducción", "Traduce al inglés: «buenos días, ¿cómo estás?»"),
-        BenchPrompt("code", "Código", "Escribe una función en Kotlin que invierta una lista sin usar reversed() y añade un ejemplo de uso.", quick = true),
-        BenchPrompt("math", "Matemáticas", "Resuelve paso a paso: 3x + 7 = 28. Después calcula el 15% de 240."),
-        BenchPrompt("plan", "Varios pasos", "Compara las ventajas e inconvenientes de usar Room frente a SQLDelight en una app Android y recomiéndame una opción en tres pasos."),
+        BenchPrompt("trivial", R.string.router_bench_trivial, "¿Cuál es la capital de Francia?", quick = true),
+        BenchPrompt("translate", R.string.router_bench_translate, "Traduce al inglés: «buenos días, ¿cómo estás?»"),
+        BenchPrompt("code", R.string.router_bench_code, "Escribe una función en Kotlin que invierta una lista sin usar reversed() y añade un ejemplo de uso.", quick = true),
+        BenchPrompt("math", R.string.router_bench_math, "Resuelve paso a paso: 3x + 7 = 28. Después calcula el 15% de 240."),
+        BenchPrompt("plan", R.string.router_bench_plan, "Compara las ventajas e inconvenientes de usar Room frente a SQLDelight en una app Android y recomiéndame una opción en tres pasos."),
         BenchPrompt(
-            "pii-contact", "Datos de contacto",
+            "pii-contact", R.string.router_bench_pii_contact,
             "Redacta un correo para ana.garcia@example.com confirmando la cita del jueves. Mi teléfono es +34 612 345 678 y mi DNI 12345678Z.",
             quick = true,
         ),
         BenchPrompt(
-            "pii-bank", "Datos bancarios",
+            "pii-bank", R.string.router_bench_pii_bank,
             "Mi IBAN es ES91 2100 0418 4502 0005 1332 y mi tarjeta 4111 1111 1111 1111. Explícame cómo comprobar que una transferencia SEPA ha llegado.",
         ),
-        BenchPrompt("fresh", "Datos recientes", "¿Cuál es el precio actual del bitcoin y qué noticias hay hoy sobre él?", quick = true),
-        BenchPrompt("long", "Texto largo", LONG_TEXT),
+        BenchPrompt("fresh", R.string.router_bench_fresh, "¿Cuál es el precio actual del bitcoin y qué noticias hay hoy sobre él?", quick = true),
+        BenchPrompt("long", R.string.router_bench_long, LONG_TEXT),
         BenchPrompt(
-            "json", "JSON",
+            "json", R.string.router_bench_json,
             "Extrae en JSON con las claves nombre y ciudad: «Me llamo Lucía y vivo en Valencia desde 2019.»",
             expectJson = true, quick = true,
         ),
@@ -194,6 +196,7 @@ class MemoizingExecutor(private val inner: StepExecutor) : StepExecutor {
 /** Runs the benchmark prompts under each policy through the real [RouterPipeline]. */
 class PolicyComparison(
     private val executor: StepExecutor,
+    private val texts: RouterTexts,
     private val clock: () -> Long = System::currentTimeMillis,
 ) {
     suspend fun run(
@@ -210,8 +213,8 @@ class PolicyComparison(
         var done = 0
         for (prompt in prompts) {
             for (policy in policies) {
-                onProgress(done, total, "${policy.label} · ${prompt.label}")
-                val outcome = RouterPipeline(PipelineRunner(memo), clock).run(
+                onProgress(done, total, "${texts.string(policy.labelRes)} · ${texts.string(prompt.labelRes)}")
+                val outcome = RouterPipeline(PipelineRunner(memo), texts, clock).run(
                     RouterRequest(
                         prompt = prompt.text,
                         policy = policy,

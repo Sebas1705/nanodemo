@@ -1,12 +1,14 @@
 package es.sebas1705.nanodemo.feature.lab.router
 
+import androidx.annotation.StringRes
+import es.sebas1705.nanodemo.feature.lab.R
 import java.text.Normalizer
 
 /** How the cascade double-checks an answer that already passed the cheap heuristics. */
-enum class ConfidenceMode(val label: String) {
-    NONE("Solo heurísticas"),
-    SELF_ASSESS("Autoevaluación"),
-    JUDGE("Juez"),
+enum class ConfidenceMode(@StringRes val labelRes: Int) {
+    NONE(R.string.router_confidence_none),
+    SELF_ASSESS(R.string.router_confidence_self_assess),
+    JUDGE(R.string.router_confidence_judge),
 }
 
 data class GateCheck(val id: String, val label: String, val passed: Boolean, val detail: String? = null)
@@ -15,8 +17,12 @@ data class GateResult(val checks: List<GateCheck>) {
     val accepted: Boolean get() = checks.all { it.passed }
     val failures: List<GateCheck> get() = checks.filterNot { it.passed }
 
-    fun summary(): String =
-        if (accepted) "aceptada (${checks.size} comprobaciones)" else "rechazada: " + failures.joinToString("; ") { it.detail ?: it.label }
+    fun summary(texts: RouterTexts): String =
+        if (accepted) {
+            texts.plural(R.plurals.router_gate_accepted, checks.size, checks.size)
+        } else {
+            texts.string(R.string.router_gate_rejected, failures.joinToString("; ") { it.detail ?: it.label })
+        }
 }
 
 /**
@@ -42,26 +48,26 @@ object QualityGate {
         Complexity.COMPLEX -> 80
     }
 
-    fun evaluate(answer: String, complexity: Complexity, expectJson: Boolean = false): GateResult {
+    fun evaluate(answer: String, complexity: Complexity, expectJson: Boolean, texts: RouterTexts): GateResult {
         val checks = mutableListOf<GateCheck>()
         val text = answer.trim()
 
-        checks += GateCheck("not_empty", "no está vacía", text.isNotEmpty(), if (text.isEmpty()) "respuesta vacía" else null)
+        checks += GateCheck("not_empty", texts.string(R.string.router_gate_not_empty), text.isNotEmpty(), if (text.isEmpty()) texts.string(R.string.router_gate_not_empty_detail) else null)
         if (text.isEmpty()) return GateResult(checks)
 
         val refusal = refusalIn(text)
-        checks += GateCheck("not_refusal", "no es una negativa", refusal == null, refusal?.let { "negativa (\"$it\")" })
+        checks += GateCheck("not_refusal", texts.string(R.string.router_gate_not_refusal), refusal == null, refusal?.let { texts.string(R.string.router_gate_not_refusal_detail, it) })
 
         val min = if (expectJson) 2 else minChars(complexity)
-        checks += GateCheck("long_enough", "longitud suficiente", text.length >= min, if (text.length < min) "demasiado corta (${text.length} < $min caracteres)" else null)
+        checks += GateCheck("long_enough", texts.string(R.string.router_gate_long_enough), text.length >= min, if (text.length < min) texts.string(R.string.router_gate_long_enough_detail, text.length, min) else null)
 
         if (expectJson) {
             val json = JsonSyntax.extract(text)
-            checks += GateCheck("valid_json", "JSON válido", json != null && JsonSyntax.isValid(json), "no es JSON válido")
+            checks += GateCheck("valid_json", texts.string(R.string.router_gate_valid_json), json != null && JsonSyntax.isValid(json), texts.string(R.string.router_gate_valid_json_detail))
         }
 
-        val repetition = Repetition.describe(text)
-        checks += GateCheck("no_repetition", "sin repeticiones", repetition == null, repetition)
+        val repetition = Repetition.describe(text, texts)
+        checks += GateCheck("no_repetition", texts.string(R.string.router_gate_no_repetition), repetition == null, repetition)
         return GateResult(checks)
     }
 
@@ -75,23 +81,23 @@ object QualityGate {
 /** Detects a model stuck in a loop. */
 object Repetition {
     /** Describes the repetition found, or null when the text looks healthy. */
-    fun describe(text: String): String? {
+    fun describe(text: String, texts: RouterTexts): String? {
         val lines = text.lines().map { it.trim() }.filter { it.length > 8 }
         lines.groupingBy { it }.eachCount().entries.firstOrNull { it.value >= 3 }?.let {
-            return "la misma línea se repite ${it.value} veces"
+            return texts.string(R.string.router_repeat_line, it.value)
         }
         val words = text.lowercase().split(Regex("\\s+")).filter { it.isNotEmpty() }
         if (words.size >= 24) {
             val trigrams = words.windowed(3).map { it.joinToString(" ") }
             val ratio = trigrams.toSet().size.toDouble() / trigrams.size
-            if (ratio < 0.45) return "texto muy repetitivo (${(ratio * 100).toInt()}% de tramos distintos)"
+            if (ratio < 0.45) return texts.string(R.string.router_repeat_text, (ratio * 100).toInt())
         }
         val tail = text.trimEnd()
         for (period in 4..60) {
             if (tail.length < period * 3) break
             val chunk = tail.takeLast(period)
             if (tail.takeLast(period * 3) == chunk + chunk + chunk && chunk.any { it.isLetterOrDigit() }) {
-                return "el final se repite en bucle"
+                return texts.string(R.string.router_repeat_tail)
             }
         }
         return null

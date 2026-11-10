@@ -205,7 +205,7 @@ class PolicyComparisonTest {
         prompts: List<BenchPrompt>,
         settings: RouterSettings = RouterSettings(),
     ): List<PolicySummary> = runBlocking {
-        val runs = PolicyComparison(world).run(prompts, COMPARED_POLICIES, world.usable, settings)
+        val runs = PolicyComparison(world, testTexts).run(prompts, COMPARED_POLICIES, world.usable, settings)
         PolicyAggregator.summarize(runs)
     }
 
@@ -282,7 +282,7 @@ class PolicyComparisonTest {
     fun `progress is reported for every run`() = runBlocking {
         val world = World(listOf(ML_KIT_NANO))
         val seen = mutableListOf<Pair<Int, Int>>()
-        PolicyComparison(world).run(listOf(trivial), COMPARED_POLICIES, world.usable) { done, total, _ -> seen += done to total }
+        PolicyComparison(world, testTexts).run(listOf(trivial), COMPARED_POLICIES, world.usable) { done, total, _ -> seen += done to total }
         assertEquals(COMPARED_POLICIES.size + 1, seen.size)
         assertEquals(COMPARED_POLICIES.size to COMPARED_POLICIES.size, seen.last())
     }

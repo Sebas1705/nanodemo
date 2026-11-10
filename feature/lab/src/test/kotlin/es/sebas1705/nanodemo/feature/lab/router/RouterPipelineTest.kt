@@ -57,7 +57,7 @@ class RouterPipelineTest {
         configure: (RouterRequest) -> RouterRequest = { it },
     ): Pair<RouterOutcome, PipelineRunner> = runBlocking {
         val runner = PipelineRunner(fake)
-        val outcome = RouterPipeline(runner).run(configure(RouterRequest(prompt, policy, usable)))
+        val outcome = RouterPipeline(runner, testTexts).run(configure(RouterRequest(prompt, policy, usable)))
         outcome to runner
     }
 
@@ -81,7 +81,7 @@ class RouterPipelineTest {
 
         val skipped = runner.steps().filter { it.status == StepStatus.SKIPPED }
         assertEquals(listOf(LITERT_LM_LOCAL, CLOUD_GEMINI), skipped.map { it.tier })
-        assertTrue(skipped.all { it.detail!!.contains("no hizo falta") })
+        assertTrue(skipped.all { it.detail!!.contains("not needed") })
     }
 
     @Test
@@ -127,7 +127,7 @@ class RouterPipelineTest {
         assertEquals(1, fake.calls.size)
         assertFalse(outcome.accepted)
         assertEquals("corta", outcome.answer) // the rejected answer is still returned, flagged as not accepted
-        assertTrue(runner.steps().any { it.status == StepStatus.SKIPPED && it.detail!!.contains("límite") })
+        assertTrue(runner.steps().any { it.status == StepStatus.SKIPPED && it.detail!!.contains("limit") })
     }
 
     @Test
@@ -160,7 +160,7 @@ class RouterPipelineTest {
 
         assertTrue(fake.calls.isEmpty())
         assertNotNull(outcome.blockedReason)
-        assertTrue(outcome.error!!.startsWith("No se ejecutó nada"))
+        assertTrue(outcome.error!!.startsWith("Nothing was run"))
         assertTrue(runner.steps().any { it.status == StepStatus.SKIPPED })
     }
 
@@ -229,8 +229,8 @@ class RouterPipelineTest {
 
         val kinds = runner.steps().map { it.kind }
         // redact -> engine -> restore around the cloud call
-        val redactIndex = runner.steps().indexOfFirst { it.kind == StepKind.REDACT && it.title.startsWith("Filtrar") }
-        val restoreIndex = runner.steps().indexOfFirst { it.kind == StepKind.REDACT && it.title.startsWith("Restaurar") }
+        val redactIndex = runner.steps().indexOfFirst { it.kind == StepKind.REDACT && it.title.startsWith("Filter") }
+        val restoreIndex = runner.steps().indexOfFirst { it.kind == StepKind.REDACT && it.title.startsWith("Restore") }
         val cloudIndex = runner.steps().indexOfFirst { it.tier == CLOUD_GEMINI && it.kind == StepKind.GENERATE }
         assertTrue(kinds.isNotEmpty() && redactIndex in 0 until cloudIndex && cloudIndex < restoreIndex)
     }
@@ -248,7 +248,7 @@ class RouterPipelineTest {
         val fake = Fake { tier, _ -> if (tier.isCloud) ok("Aviso a <EMAIL_1> y también a <EMAIL_9> como pedías, aunque nadie lo pidió.") else ok("") }
         val (outcome, runner) = run(fake, piiPrompt)
         assertTrue(outcome.answer.contains("<EMAIL_9>"))
-        val restore = runner.steps().first { it.title.startsWith("Restaurar") }
+        val restore = runner.steps().first { it.title.startsWith("Restore") }
         assertTrue(restore.detail!!.contains("<EMAIL_9>"))
     }
 
@@ -345,7 +345,7 @@ class RouterPipelineTest {
         val (outcome, runner) = run(fake, usable = listOf(ML_KIT_NANO)) { it.copy(confidenceMode = ConfidenceMode.JUDGE) }
         assertEquals(1, fake.calls.size)
         assertTrue(outcome.accepted)
-        assertTrue(runner.steps().any { it.status == StepStatus.SKIPPED && it.detail!!.contains("último motor") })
+        assertTrue(runner.steps().any { it.status == StepStatus.SKIPPED && it.detail!!.contains("last engine") })
     }
 
     @Test
@@ -373,7 +373,7 @@ class RouterPipelineTest {
         assertEquals(CLOUD_GEMINI, judgeCall.tier)
         assertFalse(judgeCall.text.contains("ana@example.com"))
         assertFalse(judgeCall.text.contains("612 345 678"))
-        assertTrue(outcome.exposures.any { it.purpose == "juez" })
+        assertTrue(outcome.exposures.any { it.purpose == ExposurePurpose.JUDGE })
         assertEquals(0, outcome.piiLeakedToCloud)
     }
 
@@ -405,7 +405,7 @@ class RouterPipelineTest {
         val (outcome, runner) = run(fake) { it.copy(classifierTier = ML_KIT_NANO) }
 
         assertEquals(ClassificationSource.HEURISTIC, outcome.classification!!.source)
-        assertTrue(runner.steps().any { it.output?.contains("se mantiene la heurística") == true })
+        assertTrue(runner.steps().any { it.output?.contains("heuristic is kept") == true })
         assertEquals(goodAnswer, outcome.answer)
     }
 
@@ -466,10 +466,10 @@ class RouterPipelineTest {
         val fake = Fake { tier, _ -> if (tier == ML_KIT_NANO) ok("") else ok(goodAnswer) }
         val (_, runner) = run(fake)
         val titles = runner.steps().map { it.title }
-        assertEquals("Clasificar el prompt", titles[0])
-        assertTrue(titles[1].startsWith("Elegir ruta"))
-        assertTrue(titles.indexOf("Respuesta · Nano") < titles.indexOf("Respuesta · LiteRT-LM"))
-        assertEquals(StepStatus.DONE, runner.steps().first { it.title == "Respuesta · Nano" }.status)
+        assertEquals("Classify the prompt", titles[0])
+        assertTrue(titles[1].startsWith("Choose route"))
+        assertTrue(titles.indexOf("Answer · Nano") < titles.indexOf("Answer · LiteRT-LM"))
+        assertEquals(StepStatus.DONE, runner.steps().first { it.title == "Answer · Nano" }.status)
         assertTrue(runner.steps().none { it.status == StepStatus.RUNNING })
     }
 }

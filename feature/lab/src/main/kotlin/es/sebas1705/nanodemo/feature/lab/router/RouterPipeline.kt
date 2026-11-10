@@ -1,5 +1,6 @@
 package es.sebas1705.nanodemo.feature.lab.router
 
+import androidx.annotation.StringRes
 import es.sebas1705.nanodemo.core.designsystem.label
 import es.sebas1705.nanodemo.domain.models.ChatMessage
 import es.sebas1705.nanodemo.domain.models.GenerationConfig
@@ -7,6 +8,7 @@ import es.sebas1705.nanodemo.domain.models.InferenceTier
 import es.sebas1705.nanodemo.domain.models.Role
 import es.sebas1705.nanodemo.domain.models.StepKind
 import es.sebas1705.nanodemo.domain.models.StepResult
+import es.sebas1705.nanodemo.feature.lab.R
 import es.sebas1705.nanodemo.feature.lab.trace.LocalOutcome
 import es.sebas1705.nanodemo.feature.lab.trace.PipelineRunner
 
@@ -30,11 +32,19 @@ data class RouterRequest(
     val observedLatencyMs: Map<InferenceTier, Long> = emptyMap(),
 )
 
+/** What a model call was for; the UI names it in the exposure panel. */
+enum class ExposurePurpose(@StringRes val labelRes: Int) {
+    CLASSIFICATION(R.string.router_purpose_classification),
+    ANSWER(R.string.router_purpose_answer),
+    SELF_ASSESSMENT(R.string.router_purpose_self_assess),
+    JUDGE(R.string.router_purpose_judge),
+}
+
 /** One thing that was sent to a cloud engine, kept so the UI can show exactly what left the device. */
 data class Exposure(
     val tier: InferenceTier,
     /** What the call was for: the answer, a self-assessment or a judge verdict. */
-    val purpose: String,
+    val purpose: ExposurePurpose,
     /** The text before the gateway (never leaves the device). */
     val original: String,
     /** The exact text that was sent. */
@@ -90,6 +100,7 @@ data class RouterOutcome(
  */
 class RouterPipeline(
     private val runner: PipelineRunner,
+    private val texts: RouterTexts,
     private val clock: () -> Long = System::currentTimeMillis,
 ) {
     private val recorder get() = runner.recorder
@@ -101,53 +112,53 @@ class RouterPipeline(
         val exposures = mutableListOf<Exposure>()
 
         // 1. Classify (heuristic first: it is the fallback and it is where PII is counted).
-        val heuristic = runner.local(StepKind.ROUTE, "Clasificar el prompt", input = request.prompt) {
-            val c = PromptClassifier.classify(request.prompt, request.markedSensitive)
-            LocalOutcome(c, output = c.summary(), detail = c.reasons.joinToString("\n"))
+        val heuristic = runner.local(StepKind.ROUTE, texts.string(R.string.router_trace_classify), input = request.prompt) {
+            val c = PromptClassifier.classify(request.prompt, request.markedSensitive, texts)
+            LocalOutcome(c, output = c.summary(texts), detail = c.reasons.joinToString("\n"))
         }
         var classification = heuristic
         val classifierTier = request.classifierTier?.takeIf { !it.isCloud && it in request.usable }
         if (classifierTier != null) {
             val call = guarded(
                 kind = StepKind.ROUTE,
-                title = "Clasificar con ${classifierTier.label()}",
+                title = texts.string(R.string.router_trace_classify_with, classifierTier.label()),
                 tier = classifierTier,
                 text = LlmClassifier.prompt(request.prompt),
                 config = GenerationConfig(temperature = 0.0f, maxOutputTokens = 60),
-                purpose = "clasificación",
+                purpose = ExposurePurpose.CLASSIFICATION,
                 gatewayEnabled = false,
                 exposures = exposures,
             )
             latency += call.latencyMs
             val parsed = if (call.result.ok) LlmClassifier.parse(call.result.text) else null
-            classification = runner.local(StepKind.ROUTE, "Leer la clasificación del LLM") {
+            classification = runner.local(StepKind.ROUTE, texts.string(R.string.router_trace_read_llm)) {
                 if (parsed == null) {
-                    LocalOutcome(heuristic, output = "no se pudo leer: se mantiene la heurística")
+                    LocalOutcome(heuristic, output = texts.string(R.string.router_trace_llm_unreadable))
                 } else {
-                    val merged = PromptClassifier.merge(heuristic, parsed)
-                    LocalOutcome(merged, output = merged.summary())
+                    val merged = PromptClassifier.merge(heuristic, parsed, texts)
+                    LocalOutcome(merged, output = merged.summary(texts))
                 }
             }
         } else if (request.classifierTier != null) {
-            recorder.skip(StepKind.ROUTE, "Clasificar con LLM", "el motor elegido no está disponible o no es local", request.classifierTier)
+            recorder.skip(StepKind.ROUTE, texts.string(R.string.router_trace_classify_llm), texts.string(R.string.router_trace_classify_skipped), request.classifierTier)
         }
 
         // 2. Plan the route.
-        val plan = runner.local(StepKind.ROUTE, "Elegir ruta · ${request.policy.label}") {
+        val plan = runner.local(StepKind.ROUTE, texts.string(R.string.router_trace_route, texts.string(request.policy.labelRes))) {
             val p = RoutePlanner.plan(
-                request.policy, classification, request.usable, request.settings, request.manualTier, request.observedLatencyMs,
+                request.policy, classification, request.usable, texts, request.settings, request.manualTier, request.observedLatencyMs,
             )
             val notes = p.notes.toMutableList()
             if (classification.sensitive && classification.features.piiCount == 0 && p.engines.any { it.tier.isCloud }) {
-                notes += "marcado como sensible: solo se enmascaran datos reconocibles"
+                notes += texts.string(R.string.router_trace_marked_sensitive_note)
             }
             val shown = p.copy(notes = notes)
-            LocalOutcome(shown, output = shown.describe(), detail = notes.joinToString("\n").ifEmpty { null })
+            LocalOutcome(shown, output = shown.describe(texts), detail = notes.joinToString("\n").ifEmpty { null })
         }
         if (plan.blocked) {
-            recorder.skip(StepKind.GENERATE, "Respuesta", "ruta bloqueada: ${plan.blockedReason}")
+            recorder.skip(StepKind.GENERATE, texts.string(R.string.router_trace_answer), texts.string(R.string.router_trace_route_blocked, plan.blockedReason.orEmpty()))
             return RouterOutcome(
-                classification, plan, emptyList(), "", null, false, 0, plan.blockedReason, "No se ejecutó nada: ${plan.blockedReason}.",
+                classification, plan, emptyList(), "", null, false, 0, plan.blockedReason, texts.string(R.string.router_trace_nothing_run, plan.blockedReason.orEmpty()),
                 exposures, latency, cost,
             )
         }
@@ -156,7 +167,7 @@ class RouterPipeline(
         val maxAttempts = (request.settings.maxEscalations.coerceAtLeast(0)) + 1
         val engines = plan.engines.take(maxAttempts)
         plan.engines.drop(maxAttempts).forEach {
-            recorder.skip(StepKind.GENERATE, "Respuesta · ${it.tier.label()}", "límite de escalados alcanzado", it.tier)
+            recorder.skip(StepKind.GENERATE, texts.string(R.string.router_trace_answer_with, it.tier.label()), texts.string(R.string.router_trace_limit_reached), it.tier)
         }
         val attempts = mutableListOf<Attempt>()
         for ((index, engine) in engines.withIndex()) {
@@ -164,11 +175,11 @@ class RouterPipeline(
             val next = engines.getOrNull(index + 1)
             val answerCall = guarded(
                 kind = StepKind.GENERATE,
-                title = "Respuesta · ${engine.tier.label()}",
+                title = texts.string(R.string.router_trace_answer_with, engine.tier.label()),
                 tier = engine.tier,
                 text = request.prompt,
                 config = answerConfig(engine.tier, request, classification),
-                purpose = "respuesta",
+                purpose = ExposurePurpose.ANSWER,
                 gatewayEnabled = engine.viaGateway,
                 exposures = exposures,
                 decorate = { body, masked -> decorateAnswer(body, masked, request.expectJson, engine.tier) },
@@ -182,23 +193,23 @@ class RouterPipeline(
             var error: String? = null
 
             if (!answerCall.result.ok) {
-                error = answerCall.result.error ?: "Error"
+                error = answerCall.result.error ?: texts.string(R.string.router_error_generic)
                 accepted = false
-                val outcome = if (next != null) "falló el motor: se escala a ${next.tier.label()}" else "falló el motor y no quedan más"
-                runner.local(StepKind.VALIDATE, "Control de calidad", input = null) { LocalOutcome(Unit, output = outcome, detail = error) }
+                val outcome = if (next != null) texts.string(R.string.router_trace_engine_failed_next, next.tier.label()) else texts.string(R.string.router_trace_engine_failed_last)
+                runner.local(StepKind.VALIDATE, texts.string(R.string.router_trace_quality), input = null) { LocalOutcome(Unit, output = outcome, detail = error) }
             } else {
-                val g = QualityGate.evaluate(answerCall.answer, classification.complexity, request.expectJson)
+                val g = QualityGate.evaluate(answerCall.answer, classification.complexity, request.expectJson, texts)
                 gate = g
                 accepted = g.accepted
                 val needsConfidence = g.accepted && request.confidenceMode != ConfidenceMode.NONE && !isLast
                 val verdict = when {
-                    needsConfidence -> "aceptada por heurísticas; falta la comprobación de confianza"
-                    g.accepted -> "aceptada"
-                    next != null -> "${g.summary()} → se escala a ${next.tier.label()}"
-                    else -> "${g.summary()}; es la última opción y se devuelve igualmente"
+                    needsConfidence -> texts.string(R.string.router_trace_pending_confidence)
+                    g.accepted -> texts.string(R.string.router_trace_accepted)
+                    next != null -> texts.string(R.string.router_trace_rejected_next, g.summary(texts), next.tier.label())
+                    else -> texts.string(R.string.router_trace_rejected_last, g.summary(texts))
                 }
-                runner.local(StepKind.VALIDATE, "Control de calidad", input = answerCall.answer) {
-                    LocalOutcome(Unit, output = verdict, detail = g.checks.joinToString("\n") { (if (it.passed) "ok  " else "FALLA ") + it.label })
+                runner.local(StepKind.VALIDATE, texts.string(R.string.router_trace_quality), input = answerCall.answer) {
+                    LocalOutcome(Unit, output = verdict, detail = g.checks.joinToString("\n") { (if (it.passed) texts.string(R.string.router_gate_check_ok) + "  " else texts.string(R.string.router_gate_check_fail) + " ") + it.label })
                 }
 
                 if (needsConfidence) {
@@ -208,16 +219,16 @@ class RouterPipeline(
                     confidence = check.score
                     accepted = check.score == null || check.score >= request.confidenceThreshold
                     val decision = when {
-                        check.score == null -> "sin puntuación legible: se acepta"
-                        accepted -> "confianza ${percent(check.score)} ≥ ${percent(request.confidenceThreshold)}: se acepta"
-                        next != null -> "confianza ${percent(check.score)} < ${percent(request.confidenceThreshold)} → se escala a ${next.tier.label()}"
-                        else -> "confianza baja pero no quedan más motores"
+                        check.score == null -> texts.string(R.string.router_trace_no_score)
+                        accepted -> texts.string(R.string.router_trace_confidence_ok, percent(check.score), percent(request.confidenceThreshold))
+                        next != null -> texts.string(R.string.router_trace_confidence_low_next, percent(check.score), percent(request.confidenceThreshold), next.tier.label())
+                        else -> texts.string(R.string.router_trace_confidence_low_last)
                     }
-                    runner.local(StepKind.VALIDATE, "Decisión", input = null) { LocalOutcome(Unit, output = decision) }
+                    runner.local(StepKind.VALIDATE, texts.string(R.string.router_trace_decision), input = null) { LocalOutcome(Unit, output = decision) }
                 } else if (g.accepted && request.confidenceMode != ConfidenceMode.NONE) {
                     recorder.skip(
                         if (request.confidenceMode == ConfidenceMode.JUDGE) StepKind.JUDGE else StepKind.VALIDATE,
-                        "Comprobación de confianza", "último motor de la ruta: no hay a dónde escalar",
+                        texts.string(R.string.router_trace_confidence_check), texts.string(R.string.router_trace_confidence_skipped),
                     )
                 }
             }
@@ -237,7 +248,7 @@ class RouterPipeline(
             )
             if (accepted) {
                 engines.drop(index + 1).forEach {
-                    recorder.skip(StepKind.GENERATE, "Respuesta · ${it.tier.label()}", "no hizo falta: la respuesta anterior pasó el control", it.tier)
+                    recorder.skip(StepKind.GENERATE, texts.string(R.string.router_trace_answer_with, it.tier.label()), texts.string(R.string.router_trace_not_needed), it.tier)
                 }
                 break
             }
@@ -255,7 +266,7 @@ class RouterPipeline(
             accepted = winner != null,
             escalations = (attempts.size - 1).coerceAtLeast(0),
             blockedReason = null,
-            error = if (chosen == null) attempts.lastOrNull()?.error ?: "Ningún motor pudo responder." else null,
+            error = if (chosen == null) attempts.lastOrNull()?.error ?: texts.string(R.string.router_error_no_engine_answered) else null,
             exposures = exposures,
             latencyMs = latency,
             cloudCostUsd = cost,
@@ -299,7 +310,7 @@ class RouterPipeline(
         tier: InferenceTier,
         text: String,
         config: GenerationConfig,
-        purpose: String,
+        purpose: ExposurePurpose,
         gatewayEnabled: Boolean,
         exposures: MutableList<Exposure>,
         decorate: (body: String, masked: Boolean) -> String = { body, _ -> body },
@@ -309,10 +320,10 @@ class RouterPipeline(
         var outgoing = decorate(text, false)
 
         if (cloud && gatewayEnabled) {
-            redaction = runner.local(StepKind.REDACT, "Filtrar datos personales · ${tier.label()}", input = text) {
+            redaction = runner.local(StepKind.REDACT, texts.string(R.string.router_trace_redact, tier.label()), input = text) {
                 val r = PiiGateway.redact(text)
-                val detail = if (r.isEmpty) "nada que filtrar" else
-                    r.replacements.joinToString("\n") { "${it.placeholder} ← ${it.kind.label} (${it.occurrences}×)" }
+                val detail = if (r.isEmpty) texts.string(R.string.router_trace_redact_nothing) else
+                    r.replacements.joinToString("\n") { "${it.placeholder} ← ${texts.string(it.kind.labelRes)} (${it.occurrences}×)" }
                 LocalOutcome(r, output = decorate(r.redacted, !r.isEmpty), detail = detail)
             }
             outgoing = decorate(redaction.redacted, !redaction.isEmpty)
@@ -325,7 +336,7 @@ class RouterPipeline(
 
         // Safety net: if the gateway is on and something recognisable is still in the outgoing text, do not send it.
         if (cloud && gatewayEnabled && leaked.isNotEmpty()) {
-            val message = "envío cancelado: quedan ${leaked.size} datos sin filtrar"
+            val message = texts.plural(R.plurals.router_trace_send_cancelled, leaked.size, leaked.size)
             recorder.fail(recorder.begin(kind, title, tier, outgoing), message)
             return Guarded(StepResult("", null, message), "", 0L, 0.0, null)
         }
@@ -339,12 +350,12 @@ class RouterPipeline(
         var rehydration: RehydrationResult? = null
         if (redaction != null && result.ok) {
             val r = redaction
-            rehydration = runner.local(StepKind.REDACT, "Restaurar datos · ${tier.label()}", input = result.text) {
+            rehydration = runner.local(StepKind.REDACT, texts.string(R.string.router_trace_restore, tier.label()), input = result.text) {
                 val back = PiiGateway.rehydrate(result.text, r)
-                val out = if (r.isEmpty) "sin datos que restaurar" else "${back.restored.size} de ${r.distinctCount} restaurados"
+                val out = if (r.isEmpty) texts.string(R.string.router_trace_restore_nothing) else texts.string(R.string.router_trace_restored, back.restored.size, r.distinctCount)
                 val detail = buildList {
-                    if (back.missing.isNotEmpty()) add("el modelo no usó: " + back.missing.joinToString { it.placeholder })
-                    if (back.unknown.isNotEmpty()) add("marcadores desconocidos, sin tocar: " + back.unknown.joinToString())
+                    if (back.missing.isNotEmpty()) add(texts.string(R.string.router_trace_model_missed, back.missing.joinToString { it.placeholder }))
+                    if (back.unknown.isNotEmpty()) add(texts.string(R.string.router_trace_unknown_placeholders, back.unknown.joinToString()))
                 }.joinToString("\n").ifEmpty { null }
                 LocalOutcome(back, output = out, detail = detail)
             }
@@ -372,11 +383,11 @@ class RouterPipeline(
         // A cloud judge only ever sees masked text, even when the answering engine was local.
         val call = guarded(
             kind = if (judging) StepKind.JUDGE else StepKind.VALIDATE,
-            title = if (judging) "Juez · ${judge.label()}" else "Autoevaluación · ${judge.label()}",
+            title = if (judging) texts.string(R.string.router_trace_judge, judge.label()) else texts.string(R.string.router_trace_self_assessment, judge.label()),
             tier = judge,
             text = prompt,
             config = GenerationConfig(temperature = 0.0f, maxOutputTokens = 8),
-            purpose = if (judging) "juez" else "autoevaluación",
+            purpose = if (judging) ExposurePurpose.JUDGE else ExposurePurpose.SELF_ASSESSMENT,
             gatewayEnabled = request.settings.gatewayEnabled,
             exposures = exposures,
         )

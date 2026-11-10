@@ -1,0 +1,269 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Screen -->
+    <string name="router_prompt_label">Prompt</string>
+    <string name="router_prompt_placeholder">Try an email, a phone number or an IBAN inside the text</string>
+    <string name="router_run">Run</string>
+    <string name="router_running">Running…</string>
+    <string name="router_cancel">Cancel</string>
+
+    <!-- Engines -->
+    <string name="router_engines_none">No engine usable right now</string>
+    <string name="router_engines_usable">Usable: %1$d on the device · %2$d in the cloud</string>
+    <string name="router_engine_cloud">cloud</string>
+    <string name="router_engine_local">local</string>
+    <string name="router_availability_available">ready</string>
+    <string name="router_availability_downloadable">to download</string>
+    <string name="router_availability_unavailable">not available</string>
+    <string name="router_availability_checking">checking…</string>
+    <string name="router_availability_unknown">not checked</string>
+
+    <!-- Policies -->
+    <string name="router_policy_section">Route policy</string>
+    <string name="router_policy_local_first_label">Local first</string>
+    <string name="router_policy_local_first_description">Tries the on-device engines and only moves up to the cloud if they are not enough.</string>
+    <string name="router_policy_cloud_first_label">Cloud first</string>
+    <string name="router_policy_cloud_first_description">Starts with the cloud; local engines are the backup.</string>
+    <string name="router_policy_privacy_first_label">Privacy first</string>
+    <string name="router_policy_privacy_first_description">Anything with personal data or marked as sensitive never leaves the device.</string>
+    <string name="router_policy_cost_aware_label">Cost</string>
+    <string name="router_policy_cost_aware_description">Local first, and the cloud only if the query fits the budget and is not trivial.</string>
+    <string name="router_policy_latency_aware_label">Latency</string>
+    <string name="router_policy_latency_aware_description">Sorts the engines by expected latency (or the one observed in this session).</string>
+    <string name="router_policy_manual_label">Manual</string>
+    <string name="router_policy_manual_description">A single engine picked by hand, with no escalation.</string>
+
+    <!-- Options -->
+    <string name="router_option_gateway_title">Filter personal data before the cloud</string>
+    <string name="router_option_gateway_hint">Emails, phones, IBANs, cards, DNI/NIE, IPs, URLs with keys and API keys are replaced with placeholders and restored here.</string>
+    <string name="router_option_sensitive_title">Mark the prompt as sensitive</string>
+    <string name="router_option_sensitive_hint">With “Privacy first” it will not leave the device even if no data is detected.</string>
+    <string name="router_option_json_title">Expect JSON</string>
+    <string name="router_option_json_hint">The cloud uses JSON mode; local engines get the instruction. An answer that is not valid JSON escalates.</string>
+    <string name="router_quality_section">Quality check</string>
+    <string name="router_confidence_none">Heuristics only</string>
+    <string name="router_confidence_self_assess">Self-assessment</string>
+    <string name="router_confidence_judge">Judge</string>
+    <string name="router_judge_engine">Judge engine</string>
+    <string name="router_judge_auto">Automatic</string>
+    <string name="router_classifier_section">Classifier</string>
+    <string name="router_classifier_heuristic">Heuristic</string>
+    <string name="router_classifier_llm">LLM · %1$s</string>
+    <string name="router_classifier_hint">The LLM only runs on local engines and its reading can never remove the sensitivity that was detected.</string>
+    <string name="router_escalations_title">Maximum escalations</string>
+    <string name="router_escalations_hint">How many times it can move to the next engine</string>
+
+    <!-- Route and answer cards -->
+    <string name="router_reading_title">Prompt reading</string>
+    <string name="router_route_line">Route: %1$s</string>
+    <string name="router_route_blocked">blocked (%1$s)</string>
+    <string name="router_answered_local">on the device</string>
+    <string name="router_answered_cloud">in the cloud</string>
+    <plurals name="router_escalations_count">
+        <item quantity="one">%1$d escalation</item>
+        <item quantity="other">%1$d escalations</item>
+    </plurals>
+    <string name="router_answer_stats">%1$s · estimated cloud %2$s</string>
+    <string name="router_answer_not_accepted">No engine passed the quality check: the last useful answer is shown.</string>
+
+    <!-- Exposure panel -->
+    <string name="router_exposure_title">What left the device: %1$s</string>
+    <string name="router_exposure_nothing">nothing</string>
+    <plurals name="router_exposure_unfiltered">
+        <item quantity="one">%1$d item NOT filtered</item>
+        <item quantity="other">%1$d items NOT filtered</item>
+    </plurals>
+    <plurals name="router_exposure_sends">
+        <item quantity="one">%1$d send</item>
+        <item quantity="other">%1$d sends</item>
+    </plurals>
+    <plurals name="router_exposure_masked">
+        <item quantity="one">%1$d item masked</item>
+        <item quantity="other">%1$d items masked</item>
+    </plurals>
+    <string name="router_collapse">Collapse</string>
+    <string name="router_expand">Expand</string>
+    <string name="router_exposure_empty">No request reached a cloud engine: everything was resolved on the device or the route did not include the cloud.</string>
+    <string name="router_exposure_before">before (only on the device)</string>
+    <string name="router_exposure_sent_filtered">sent to the cloud (after the filter)</string>
+    <string name="router_exposure_sent_raw">sent to the cloud (NO filter)</string>
+    <string name="router_exposure_replaced">replaced</string>
+    <string name="router_exposure_leaked">Data that went out as is: %1$s</string>
+    <string name="router_purpose_classification">classification</string>
+    <string name="router_purpose_answer">answer</string>
+    <string name="router_purpose_self_assess">self-assessment</string>
+    <string name="router_purpose_judge">judge</string>
+
+    <!-- Policy comparison -->
+    <string name="router_compare_title">Compare policies</string>
+    <string name="router_compare_intro">Runs a set of prompts (simple, code, calculation, personal data, recent data, JSON, long text) under each policy with the engines usable right now. Each engine answers each text only once, so the differences come from the route, not from chance. The cost is an estimate with the Gemini Flash price that Stats uses.</string>
+    <string name="router_compare_quick">Quick (%1$d)</string>
+    <string name="router_compare_full">Full (%1$d)</string>
+    <plurals name="router_compare_prompts">
+        <item quantity="one">%1$d prompt per policy</item>
+        <item quantity="other">%1$d prompts per policy</item>
+    </plurals>
+    <string name="router_compare_legend">“PII avoided”: personal data in the prompts that did not reach the cloud in clear (it stayed on the device or the filter masked it), compared with sending everything unfiltered. “Leaks”: those that did go out unmasked.</string>
+    <string name="router_metric_local">local</string>
+    <string name="router_metric_latency">latency</string>
+    <string name="router_metric_escalations">escalations</string>
+    <string name="router_metric_cloud_cost">cloud cost</string>
+    <string name="router_metric_pii_avoided">PII avoided</string>
+    <string name="router_metric_leaks">leaks</string>
+    <plurals name="router_summary_blocked">
+        <item quantity="one">%1$d blocked</item>
+        <item quantity="other">%1$d blocked</item>
+    </plurals>
+    <string name="router_summary_failed">%1$d without an answer</string>
+    <string name="router_summary_accepted">%1$s passed the check</string>
+    <string name="router_col_policy">policy</string>
+    <string name="router_col_local">local</string>
+    <string name="router_col_latency">latency</string>
+    <string name="router_col_escalations">esc.</string>
+    <string name="router_col_cost">cost</string>
+    <string name="router_col_pii_avoided">PII avoided</string>
+    <string name="router_col_leaks">leaks</string>
+    <string name="router_col_check">check</string>
+
+    <!-- Benchmark prompt labels -->
+    <string name="router_bench_trivial">Simple</string>
+    <string name="router_bench_translate">Translation</string>
+    <string name="router_bench_code">Code</string>
+    <string name="router_bench_math">Maths</string>
+    <string name="router_bench_plan">Several steps</string>
+    <string name="router_bench_pii_contact">Contact details</string>
+    <string name="router_bench_pii_bank">Bank details</string>
+    <string name="router_bench_fresh">Recent data</string>
+    <string name="router_bench_long">Long text</string>
+    <string name="router_bench_json">JSON</string>
+
+    <!-- Kinds of personal data -->
+    <string name="router_pii_email">email</string>
+    <string name="router_pii_phone">phone</string>
+    <string name="router_pii_iban">IBAN</string>
+    <string name="router_pii_card">card</string>
+    <string name="router_pii_dni">DNI</string>
+    <string name="router_pii_nie">NIE</string>
+    <string name="router_pii_ip">IP address</string>
+    <string name="router_pii_url">URL with credentials</string>
+    <string name="router_pii_secret">key or secret</string>
+
+    <!-- Classification -->
+    <string name="router_complexity_trivial">simple</string>
+    <string name="router_complexity_moderate">medium</string>
+    <string name="router_complexity_complex">complex</string>
+    <string name="router_language_es">Spanish</string>
+    <string name="router_language_en">English</string>
+    <string name="router_language_other">other language</string>
+    <string name="router_summary_complexity">complexity %1$s (%2$d/100)</string>
+    <string name="router_summary_sensitive">sensitive</string>
+    <string name="router_summary_fresh">recent data</string>
+    <string name="router_summary_via_llm">via LLM</string>
+    <string name="router_reason_points">%1$s (+%2$d)</string>
+    <string name="router_reason_len_very_long">very long prompt (~%1$d tok)</string>
+    <string name="router_reason_len_long">long prompt (~%1$d tok)</string>
+    <string name="router_reason_len_medium">medium-length prompt (~%1$d tok)</string>
+    <string name="router_reason_len_short">short prompt (~%1$d tok)</string>
+    <string name="router_reason_len_very_short">very short prompt (~%1$d tok)</string>
+    <string name="router_reason_code">contains or asks for code</string>
+    <string name="router_reason_math">calculation or maths</string>
+    <string name="router_reason_multi_step">several steps or a comparison</string>
+    <string name="router_reason_long_form">long answer requested</string>
+    <string name="router_reason_language">unusual language for a small model</string>
+    <string name="router_reason_reasoning">asks for reasoning</string>
+    <string name="router_reason_fresh">needs recent data (a local model does not know them)</string>
+    <string name="router_reason_pii">personal data: %1$s</string>
+    <string name="router_reason_marked_sensitive">marked as sensitive by the user</string>
+    <string name="router_reason_llm_complexity">LLM: complexity %1$s</string>
+    <string name="router_reason_llm_complexity_corrects">LLM: complexity %1$s (corrects the heuristic: %2$s)</string>
+    <string name="router_reason_llm_sensitive">LLM: considers it sensitive</string>
+    <string name="router_reason_llm_fresh">LLM: needs recent data</string>
+
+    <!-- Quality gate -->
+    <string name="router_gate_not_empty">is not empty</string>
+    <string name="router_gate_not_empty_detail">empty answer</string>
+    <string name="router_gate_not_refusal">is not a refusal</string>
+    <string name="router_gate_not_refusal_detail">refusal (\"%1$s\")</string>
+    <string name="router_gate_long_enough">long enough</string>
+    <string name="router_gate_long_enough_detail">too short (%1$d &lt; %2$d characters)</string>
+    <string name="router_gate_valid_json">valid JSON</string>
+    <string name="router_gate_valid_json_detail">not valid JSON</string>
+    <string name="router_gate_no_repetition">no repetition</string>
+    <plurals name="router_gate_accepted">
+        <item quantity="one">accepted (%1$d check)</item>
+        <item quantity="other">accepted (%1$d checks)</item>
+    </plurals>
+    <string name="router_gate_rejected">rejected: %1$s</string>
+    <string name="router_gate_check_ok">ok</string>
+    <string name="router_gate_check_fail">FAILED</string>
+    <string name="router_repeat_line">the same line repeats %1$d times</string>
+    <string name="router_repeat_text">very repetitive text (%1$d%% distinct spans)</string>
+    <string name="router_repeat_tail">the end repeats in a loop</string>
+
+    <!-- Route planning -->
+    <string name="router_plan_no_engine">no engine is available</string>
+    <string name="router_plan_no_manual_choice">you have not picked an engine</string>
+    <string name="router_plan_manual_unavailable">the chosen engine is not available right now</string>
+    <string name="router_plan_picked_by_hand">picked by hand</string>
+    <string name="router_plan_sensitive_stays">sensitive: it does not leave the device</string>
+    <string name="router_plan_discarded">%1$s discarded: the prompt (~%2$d tok) does not fit its context</string>
+    <string name="router_plan_simple_no_cloud">simple query: the cloud is not paid for</string>
+    <string name="router_plan_over_budget">estimated cost %1$s above the budget %2$s: no cloud</string>
+    <string name="router_plan_cloud_first">cloud first</string>
+    <string name="router_plan_local_backup">local backup</string>
+    <string name="router_plan_observed_latency">observed latency %1$d ms</string>
+    <string name="router_plan_expected_latency">expected latency</string>
+    <string name="router_plan_local_best">local, best quality first</string>
+    <string name="router_plan_escalated_cloud">escalated to the cloud</string>
+    <string name="router_plan_fresh_cloud_first">needs recent data: the cloud goes first</string>
+    <string name="router_plan_no_cloud_usable">no usable cloud engine</string>
+    <string name="router_plan_no_local_usable">no usable local engine</string>
+    <string name="router_plan_blocked_sensitive">it is sensitive and no local engine can handle it, so it is not sent to the cloud</string>
+    <string name="router_plan_blocked_no_engine">no engine can handle this prompt</string>
+    <string name="router_plan_describe_blocked">blocked: %1$s</string>
+
+    <!-- Pipeline (trace steps and messages) -->
+    <string name="router_trace_classify">Classify the prompt</string>
+    <string name="router_trace_classify_with">Classify with %1$s</string>
+    <string name="router_trace_classify_llm">Classify with LLM</string>
+    <string name="router_trace_classify_skipped">the chosen engine is not available or is not local</string>
+    <string name="router_trace_read_llm">Read the LLM classification</string>
+    <string name="router_trace_llm_unreadable">could not be read: the heuristic is kept</string>
+    <string name="router_trace_route">Choose route · %1$s</string>
+    <string name="router_trace_marked_sensitive_note">marked as sensitive: only recognisable data is masked</string>
+    <string name="router_trace_answer">Answer</string>
+    <string name="router_trace_route_blocked">route blocked: %1$s</string>
+    <string name="router_trace_nothing_run">Nothing was run: %1$s.</string>
+    <string name="router_trace_answer_with">Answer · %1$s</string>
+    <string name="router_trace_limit_reached">escalation limit reached</string>
+    <string name="router_trace_not_needed">not needed: the previous answer passed the check</string>
+    <string name="router_trace_quality">Quality check</string>
+    <string name="router_error_generic">Error</string>
+    <string name="router_trace_engine_failed_next">the engine failed: escalating to %1$s</string>
+    <string name="router_trace_engine_failed_last">the engine failed and there are no more</string>
+    <string name="router_trace_pending_confidence">accepted by heuristics; the confidence check is still missing</string>
+    <string name="router_trace_accepted">accepted</string>
+    <string name="router_trace_rejected_next">%1$s → escalating to %2$s</string>
+    <string name="router_trace_rejected_last">%1$s; it is the last option and is returned anyway</string>
+    <string name="router_trace_decision">Decision</string>
+    <string name="router_trace_no_score">no readable score: accepted</string>
+    <string name="router_trace_confidence_ok">confidence %1$s ≥ %2$s: accepted</string>
+    <string name="router_trace_confidence_low_next">confidence %1$s &lt; %2$s → escalating to %3$s</string>
+    <string name="router_trace_confidence_low_last">low confidence but no more engines</string>
+    <string name="router_trace_confidence_check">Confidence check</string>
+    <string name="router_trace_confidence_skipped">last engine of the route: nowhere to escalate</string>
+    <string name="router_error_no_engine_answered">No engine could answer.</string>
+    <string name="router_trace_redact">Filter personal data · %1$s</string>
+    <string name="router_trace_redact_nothing">nothing to filter</string>
+    <string name="router_trace_restore">Restore data · %1$s</string>
+    <string name="router_trace_restore_nothing">no data to restore</string>
+    <string name="router_trace_restored">%1$d of %2$d restored</string>
+    <string name="router_trace_model_missed">the model did not use: %1$s</string>
+    <string name="router_trace_unknown_placeholders">unknown placeholders, left untouched: %1$s</string>
+    <plurals name="router_trace_send_cancelled">
+        <item quantity="one">sending cancelled: %1$d item left unfiltered</item>
+        <item quantity="other">sending cancelled: %1$d items left unfiltered</item>
+    </plurals>
+    <string name="router_trace_judge">Judge · %1$s</string>
+    <string name="router_trace_self_assessment">Self-assessment · %1$s</string>
+</resources>
