@@ -33,29 +33,30 @@ class TextImportAndStateTest {
 
     @Test
     fun `titles come from the file name without its extension`() {
-        assertEquals("notas", TextImport.titleFromFileName("notas.md"))
-        assertEquals("notas.v2", TextImport.titleFromFileName("notas.v2.txt"))
-        assertEquals("README", TextImport.titleFromFileName("README"))
-        assertEquals("Documento", TextImport.titleFromFileName(null))
-        assertEquals("Documento", TextImport.titleFromFileName("   "))
-        assertEquals("Documento", TextImport.titleFromFileName(".md"))
+        assertEquals("notas", TextImport.titleFromFileName("notas.md", "Document"))
+        assertEquals("notas.v2", TextImport.titleFromFileName("notas.v2.txt", "Document"))
+        assertEquals("README", TextImport.titleFromFileName("README", "Document"))
+        assertEquals("Document", TextImport.titleFromFileName(null, "Document"))
+        assertEquals("Document", TextImport.titleFromFileName("   ", "Document"))
+        assertEquals("Documento", TextImport.titleFromFileName(".md", "Documento"))
     }
 
     @Test
     fun `new documents get distinct ids and a fallback title`() {
-        val a = TextImport.newDocument("  ", "texto", DocumentOrigin.PASTED, 5L)
-        val b = TextImport.newDocument("Mi nota", "texto", DocumentOrigin.FILE, 6L)
+        val a = TextImport.newDocument("  ", "texto", DocumentOrigin.PASTED, 5L, "Document")
+        val b = TextImport.newDocument("Mi nota", "texto", DocumentOrigin.FILE, 6L, "Document")
         assertNotEquals(a.id, b.id)
-        assertEquals("Documento", a.title)
+        assertEquals("Document", a.title)
         assertEquals("Mi nota", b.title)
         assertFalse(a.isIndexed)
     }
 
     @Test
     fun `settings label lists only the options that are on`() {
-        assertEquals("frag. 400 · k=3", settingsLabel(400, RetrievalOptions(topK = 3)))
-        assertEquals("frag. 250 · k=5 · MMR", settingsLabel(250, RetrievalOptions(topK = 5, mmr = true)))
-        assertEquals("frag. mixto · k=1 · ≥0.20",settingsLabel(null, RetrievalOptions(topK = 1, minScore = 0.2)).replace(',', '.'))
+        assertEquals("chunk 400 · k=3", settingsLabel(400, RetrievalOptions(topK = 3), XmlTexts.english))
+        assertEquals("frag. 400 · k=3", settingsLabel(400, RetrievalOptions(topK = 3), XmlTexts.spanish))
+        assertEquals("chunk 250 · k=5 · MMR", settingsLabel(250, RetrievalOptions(topK = 5, mmr = true), XmlTexts.english))
+        assertEquals("chunk mixed · k=1 · ≥0.20", settingsLabel(null, RetrievalOptions(topK = 1, minScore = 0.2), XmlTexts.english).replace(',', '.'))
     }
 
     @Test

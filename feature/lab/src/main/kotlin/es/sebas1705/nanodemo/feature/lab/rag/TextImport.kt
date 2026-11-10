@@ -23,7 +23,7 @@ object TextImport {
     }
 
     /** `notes.v2.md` -> `notes.v2`; falls back to `fallback` for an empty name. */
-    fun titleFromFileName(name: String?, fallback: String = "Documento"): String {
+    fun titleFromFileName(name: String?, fallback: String): String {
         val trimmed = name?.trim().orEmpty()
         val base = trimmed.substringBeforeLast('.', missingDelimiterValue = trimmed)
         return base.ifBlank { fallback }
@@ -31,6 +31,6 @@ object TextImport {
 
     fun newDocumentId(): String = "doc-" + UUID.randomUUID().toString().take(8)
 
-    fun newDocument(title: String, text: String, origin: DocumentOrigin, now: Long): RagDocument =
-        RagDocument(id = newDocumentId(), title = title.trim().ifBlank { "Documento" }, text = text, origin = origin, addedAtMs = now)
+    fun newDocument(title: String, text: String, origin: DocumentOrigin, now: Long, fallbackTitle: String): RagDocument =
+        RagDocument(id = newDocumentId(), title = title.trim().ifBlank { fallbackTitle }, text = text, origin = origin, addedAtMs = now)
 }

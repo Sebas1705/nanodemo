@@ -8,6 +8,7 @@ import es.sebas1705.nanodemo.domain.models.StepResult
 import es.sebas1705.nanodemo.domain.models.StepStatus
 import es.sebas1705.nanodemo.feature.lab.trace.PipelineRunner
 import es.sebas1705.nanodemo.feature.lab.trace.StepExecutor
+import es.sebas1705.nanodemo.feature.lab.R
 import kotlinx.coroutines.runBlocking
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
@@ -32,7 +33,7 @@ class RagPipelineTest {
 
     private val embedder = BagOfWordsEmbedder()
     private val index: List<IndexedChunk> = runBlocking {
-        DocumentIndexer(embedder).indexAll(
+        DocumentIndexer(embedder, XmlTexts.english).indexAll(
             SampleCorpus.documents.map { RagDocument(it.id, it.title, it.text, DocumentOrigin.SAMPLE) },
             ChunkerConfig.forTarget(400),
         ).toIndex()
@@ -40,7 +41,7 @@ class RagPipelineTest {
 
     private fun pipeline(script: Script, embed: suspend (String) -> FloatArray? = embedder::embed): Pair<RagPipeline, PipelineRunner> {
         val runner = PipelineRunner(script)
-        return RagPipeline(runner, embed) to runner
+        return RagPipeline(runner, embed, XmlTexts.english) to runner
     }
 
     private val question = "¿Cuántos días de vacaciones tengo al año?"
@@ -102,7 +103,7 @@ class RagPipelineTest {
         val run = pipeline.answerWithRag("¿?",InferenceTier.ML_KIT_NANO, null, index, RetrievalOptions(topK = 3, minScore = 0.2))
 
         assertTrue(run.modelSkipped)
-        assertEquals(RagPrompts.NOT_FOUND, run.answer)
+        assertEquals(XmlTexts.english.string(R.string.rag_answer_not_found), run.answer)
         assertTrue(script.calls.isEmpty())
         val steps = runner.recorder.trace.value.steps
         assertEquals(listOf(StepKind.RETRIEVE, StepKind.GENERATE), steps.map { it.kind })
@@ -202,8 +203,8 @@ class RagPipelineTest {
         pipeline.answerPlain(question, InferenceTier.ML_KIT_NANO, null)
         pipeline.answerWithRag(question, InferenceTier.ML_KIT_NANO, null, index, RetrievalOptions())
         val titles = runner.recorder.trace.value.steps.map { it.title }
-        assertTrue(titles.first().startsWith("Sin recuperación"))
-        assertTrue(titles.last().startsWith("Con recuperación"))
+        assertTrue(titles.first().startsWith("Without retrieval"))
+        assertTrue(titles.last().startsWith("With retrieval"))
         assertEquals(4, titles.size)
     }
 
@@ -212,8 +213,8 @@ class RagPipelineTest {
         val hits = listOf(ScoredChunk(indexed("a", 1f, heading = "Gastos"), 0.8312))
         // The decimal separator follows the device locale, so compare ignoring it.
         assertEquals("[1] 0.83 · Gastos", describeHits(hits).replace(',', '.'))
-        assertTrue(describe(Groundedness(GroundingVerdict.SUPPORTED, 0.9, "")).startsWith("respaldada"))
-        assertTrue(describe(Groundedness(GroundingVerdict.UNSUPPORTED, null, "")).startsWith("no respaldada"))
-        assertTrue(describe(Groundedness(GroundingVerdict.UNKNOWN, null, "")).contains("no interpretable"))
+        assertTrue(describe(Groundedness(GroundingVerdict.SUPPORTED, 0.9, ""), XmlTexts.english).startsWith("supported"))
+        assertTrue(describe(Groundedness(GroundingVerdict.UNSUPPORTED, null, ""), XmlTexts.english).startsWith("not supported"))
+        assertTrue(describe(Groundedness(GroundingVerdict.UNKNOWN, null, ""), XmlTexts.english).contains("could not be read"))
     }
 }

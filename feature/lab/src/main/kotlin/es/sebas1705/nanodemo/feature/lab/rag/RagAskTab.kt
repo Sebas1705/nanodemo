@@ -29,6 +29,8 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalSoftwareKeyboardController
+import androidx.compose.ui.res.pluralStringResource
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.unit.dp
 import androidx.compose.foundation.text.KeyboardActions
@@ -43,6 +45,7 @@ import es.sebas1705.nanodemo.core.designsystem.TypingDots
 import es.sebas1705.nanodemo.core.ui.DemoColors
 import es.sebas1705.nanodemo.core.ui.readoutStyle
 import es.sebas1705.nanodemo.domain.models.InferenceTier
+import es.sebas1705.nanodemo.feature.lab.R
 import es.sebas1705.nanodemo.feature.lab.common.LabTierSelector
 import es.sebas1705.nanodemo.feature.lab.trace.PipelineTraceView
 
@@ -76,16 +79,16 @@ internal fun RagAskTab(viewModel: RagViewModel, sizeClass: ScreenSizeClass, onGo
     ) {
         if (indexedChunks == 0) {
             AppCard(Modifier.fillMaxWidth()) {
-                Text("Aún no hay nada indexado", style = MaterialTheme.typography.titleSmall, color = DemoColors.Ink)
+                Text(stringResource(R.string.rag_ask_empty_title), style = MaterialTheme.typography.titleSmall, color = DemoColors.Ink)
                 Text(
-                    "Carga el corpus de ejemplo (o tus documentos) e indéxalo para poder preguntar.",
+                    stringResource(R.string.rag_ask_empty_hint),
                     style = MaterialTheme.typography.bodyMedium, color = DemoColors.Muted,
                 )
-                Button(onClick = onGoToDocuments) { Text("Ir a Documentos") }
+                Button(onClick = onGoToDocuments) { Text(stringResource(R.string.rag_go_to_documents)) }
             }
         }
 
-        SectionLabel("Motor que responde")
+        SectionLabel(stringResource(R.string.rag_ask_engine))
         LabTierSelector(settings.tier, availability, viewModel::setTier)
         Text(contextHint(capabilities.contextTokens, settings, question.length), style = MaterialTheme.typography.bodySmall, color = DemoColors.Muted)
 
@@ -98,11 +101,11 @@ internal fun RagAskTab(viewModel: RagViewModel, sizeClass: ScreenSizeClass, onGo
         )
         JudgeCard(settings, availability, viewModel::setJudgeEnabled, viewModel::setJudgeTier, enabled = !busy)
 
-        SectionLabel("Pregunta")
+        SectionLabel(stringResource(R.string.rag_question_section))
         OutlinedTextField(
             value = question,
             onValueChange = { question = it },
-            label = { Text("Pregunta sobre tus documentos") },
+            label = { Text(stringResource(R.string.rag_question_label)) },
             modifier = Modifier.fillMaxWidth(),
             minLines = 2,
             maxLines = 5,
@@ -112,16 +115,16 @@ internal fun RagAskTab(viewModel: RagViewModel, sizeClass: ScreenSizeClass, onGo
         SuggestedQuestionsList(onPick = { question = it })
         Row(horizontalArrangement = Arrangement.spacedBy(10.dp), verticalAlignment = Alignment.CenterVertically) {
             Button(onClick = { send() }, enabled = question.isNotBlank() && !busy && indexedChunks > 0) {
-                Text(if (ask.running) "Preguntando…" else "Preguntar con y sin RAG")
+                Text(stringResource(if (ask.running) R.string.rag_ask_button_running else R.string.rag_ask_button))
             }
-            if (ask.running) OutlinedButton(onClick = viewModel::cancel) { Text("Cancelar") }
+            if (ask.running) OutlinedButton(onClick = viewModel::cancel) { Text(stringResource(R.string.rag_cancel)) }
         }
 
         ask.error?.let { ErrorCard(it) }
         if (ask.question != null && ask.error == null) {
             ask.stage?.let { stage ->
                 LinearProgressIndicator(modifier = Modifier.fillMaxWidth())
-                Text("Ahora: $stage", style = readoutStyle, color = DemoColors.Muted)
+                Text(stringResource(R.string.rag_stage_now, stringResource(stage.labelRes)), style = readoutStyle, color = DemoColors.Muted)
             }
             AnswerComparison(ask, sizeClass)
             ask.rag?.let { rag ->
@@ -134,14 +137,14 @@ internal fun RagAskTab(viewModel: RagViewModel, sizeClass: ScreenSizeClass, onGo
 }
 
 /** How much retrieved text the chosen engine can take, so the user sees why a small engine gets fewer chunks. */
+@Composable
 private fun contextHint(contextTokens: Int?, settings: RagSettings, questionChars: Int): String {
     val budget = RagPrompts.contextBudgetChars(contextTokens, RagPrompts.maxAnswerTokens(contextTokens), questionChars.coerceAtLeast(60))
     val fits = (budget / settings.chunkTargetChars).coerceAtLeast(1)
     return if (contextTokens == null) {
-        "Este motor tiene una ventana grande: caben unos $budget caracteres de contexto (~$fits fragmentos de ${settings.chunkTargetChars})."
+        pluralStringResource(R.plurals.rag_ask_context_large, fits, budget, fits, settings.chunkTargetChars)
     } else {
-        "Ventana de $contextTokens tokens en total: quedan unos $budget caracteres para el contexto (~$fits fragmentos de ${settings.chunkTargetChars}); " +
-            "si k es mayor, los últimos no entran."
+        pluralStringResource(R.plurals.rag_ask_context_small, fits, contextTokens, budget, fits, settings.chunkTargetChars)
     }
 }
 
@@ -157,15 +160,15 @@ private fun JudgeCard(
         Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(12.dp)) {
             Switch(checked = settings.judgeEnabled, onCheckedChange = onEnabled, enabled = enabled)
             Column(Modifier.weight(1f)) {
-                Text("Comprobar la fundamentación", style = MaterialTheme.typography.bodyMedium, color = DemoColors.Ink)
+                Text(stringResource(R.string.rag_judge_title), style = MaterialTheme.typography.bodyMedium, color = DemoColors.Ink)
                 Text(
-                    "Un segundo modelo revisa si cada afirmación de la respuesta está respaldada por el contexto.",
+                    stringResource(R.string.rag_judge_hint),
                     style = MaterialTheme.typography.bodySmall, color = DemoColors.Muted,
                 )
             }
         }
         if (settings.judgeEnabled) {
-            SectionLabel("Motor que juzga")
+            SectionLabel(stringResource(R.string.rag_judge_engine))
             LabTierSelector(settings.judgeTier, availability, onTier)
         }
     }
@@ -175,7 +178,7 @@ private fun JudgeCard(
 private fun SuggestedQuestionsList(onPick: (String) -> Unit) {
     var expanded by remember { mutableStateOf(false) }
     Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
-        TextButton(onClick = { expanded = !expanded }) { Text(if (expanded) "Ocultar preguntas de ejemplo" else "Preguntas de ejemplo (corpus de muestra)") }
+        TextButton(onClick = { expanded = !expanded }) { Text(stringResource(if (expanded) R.string.rag_examples_hide else R.string.rag_examples_show)) }
         if (expanded) {
             SuggestedQuestions.forEach { q ->
                 Text(
@@ -197,11 +200,11 @@ private fun SuggestedQuestionsList(onPick: (String) -> Unit) {
 @Composable
 private fun AnswerComparison(ask: AskState, sizeClass: ScreenSizeClass) {
     val plain: @Composable (Modifier) -> Unit = { modifier ->
-        AnswerCard("Sin recuperación", "Solo lo que el modelo sabe", ask.plain, waiting = ask.running, accent = DemoColors.Muted, modifier = modifier)
+        AnswerCard(stringResource(R.string.rag_answer_plain_title), stringResource(R.string.rag_answer_plain_subtitle), ask.plain, waiting = ask.running, accent = DemoColors.Muted, modifier = modifier)
     }
     val rag: @Composable (Modifier) -> Unit = { modifier ->
         AnswerCard(
-            "Con recuperación", "Con los fragmentos de tus documentos", ask.rag,
+            stringResource(R.string.rag_answer_rag_title), stringResource(R.string.rag_answer_rag_subtitle), ask.rag,
             waiting = ask.running, queued = ask.plain == null, accent = DemoColors.TierA, modifier = modifier,
         )
     }
@@ -232,23 +235,26 @@ private fun AnswerCard(
         Text(title, style = MaterialTheme.typography.titleSmall, color = DemoColors.Ink)
         Text(subtitle, style = MaterialTheme.typography.bodySmall, color = DemoColors.Muted)
         when {
-            run == null && queued && waiting -> Text("En cola…", style = MaterialTheme.typography.bodyMedium, color = DemoColors.Muted)
+            run == null && queued && waiting -> Text(stringResource(R.string.rag_answer_queued), style = MaterialTheme.typography.bodyMedium, color = DemoColors.Muted)
             run == null && waiting -> TypingDots(accent)
             run == null -> Text("—", style = MaterialTheme.typography.bodyMedium, color = DemoColors.Muted)
             run.error != null -> ErrorCard(run.error)
             else -> {
                 if (run.modelSkipped) {
                     Text(
-                        "Ningún fragmento superó el umbral, así que no se llamó al modelo.",
+                        stringResource(R.string.rag_answer_skipped),
                         style = MaterialTheme.typography.bodySmall, color = DemoColors.TierB,
                     )
                 }
-                MarkdownText(run.answer.ifBlank { "(respuesta vacía)" })
+                MarkdownText(run.answer.ifBlank { stringResource(R.string.rag_answer_empty) })
                 run.metric?.let { MetricsLine(it) }
                 if (run.retrieved.isNotEmpty() || run.modelSkipped) {
                     Text(
-                        "búsqueda ${run.retrievalMs.asDuration()} (embedding ${run.embedMs.asDuration()} + similitud ${run.searchMs.asDuration()})" +
-                            " · ${run.citedChunks} de ${run.retrieved.size} fragmentos en el contexto (${run.contextChars}/${run.contextBudgetChars} car)",
+                        pluralStringResource(
+                            R.plurals.rag_answer_stats, run.retrieved.size,
+                            run.retrievalMs.asDuration(), run.embedMs.asDuration(), run.searchMs.asDuration(),
+                            run.citedChunks, run.retrieved.size, run.contextChars, run.contextBudgetChars,
+                        ),
                         style = MaterialTheme.typography.labelSmall, color = DemoColors.Muted,
                     )
                 }
@@ -260,7 +266,7 @@ private fun AnswerCard(
 @Composable
 private fun SourcesCard(rag: AnswerRun) {
     AppCard(Modifier.fillMaxWidth()) {
-        Text("Fragmentos recuperados", style = MaterialTheme.typography.titleSmall, color = DemoColors.Ink)
+        Text(stringResource(R.string.rag_sources_title), style = MaterialTheme.typography.titleSmall, color = DemoColors.Ink)
         rag.retrieved.forEachIndexed { i, hit ->
             val inContext = i < rag.citedChunks
             var expanded by remember(hit.chunk.chunkId) { mutableStateOf(false) }
@@ -284,7 +290,7 @@ private fun SourcesCard(rag: AnswerRun) {
                     style = MaterialTheme.typography.bodySmall, color = DemoColors.Muted,
                 )
                 if (!inContext) {
-                    Text("No cupo en el contexto del motor", style = MaterialTheme.typography.labelSmall, color = DemoColors.TierB)
+                    Text(stringResource(R.string.rag_source_not_fit), style = MaterialTheme.typography.labelSmall, color = DemoColors.TierB)
                 }
             }
         }
@@ -299,8 +305,8 @@ private fun GroundingCard(rag: AnswerRun) {
     val error = rag.groundingError
     if (grounding == null && error == null) return
     AppCard(Modifier.fillMaxWidth()) {
-        Text("Fundamentación", style = MaterialTheme.typography.titleSmall, color = DemoColors.Ink)
-        if (error != null) ErrorCard("El juez falló: $error")
+        Text(stringResource(R.string.rag_grounding_title), style = MaterialTheme.typography.titleSmall, color = DemoColors.Ink)
+        if (error != null) ErrorCard(stringResource(R.string.rag_grounding_judge_failed, error))
         if (grounding != null) {
             val color = when (grounding.verdict) {
                 GroundingVerdict.SUPPORTED -> DemoColors.TierA
@@ -308,8 +314,8 @@ private fun GroundingCard(rag: AnswerRun) {
                 GroundingVerdict.UNSUPPORTED -> DemoColors.Danger
                 GroundingVerdict.UNKNOWN -> DemoColors.Muted
             }
-            Text(describe(grounding).replaceFirstChar { it.uppercase() }, style = MaterialTheme.typography.titleMedium, color = color)
-            Text("Dijo el juez: ${grounding.raw.replace('\n', ' ')}", style = MaterialTheme.typography.bodySmall, color = DemoColors.Muted)
+            Text(describe(grounding, rememberRagTexts()).replaceFirstChar { it.uppercase() }, style = MaterialTheme.typography.titleMedium, color = color)
+            Text(stringResource(R.string.rag_grounding_judge_said, grounding.raw.replace('\n', ' ')), style = MaterialTheme.typography.bodySmall, color = DemoColors.Muted)
             rag.groundingMetric?.let { MetricsLine(it) }
         }
     }

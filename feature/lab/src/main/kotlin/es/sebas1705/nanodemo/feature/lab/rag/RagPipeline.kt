@@ -5,6 +5,7 @@ import es.sebas1705.nanodemo.domain.models.GenerationMetric
 import es.sebas1705.nanodemo.domain.models.InferenceTier
 import es.sebas1705.nanodemo.domain.models.Role
 import es.sebas1705.nanodemo.domain.models.StepKind
+import es.sebas1705.nanodemo.feature.lab.R
 import es.sebas1705.nanodemo.feature.lab.trace.LocalOutcome
 import es.sebas1705.nanodemo.feature.lab.trace.PipelineRunner
 import kotlinx.coroutines.CancellationException
@@ -42,6 +43,7 @@ data class AnswerRun(
 class RagPipeline(
     private val runner: PipelineRunner,
     private val embedQuery: suspend (String) -> FloatArray?,
+    private val texts: RagTexts,
     private val nanoClock: () -> Long = System::nanoTime,
 ) {
     private class Retrieval(val hits: List<ScoredChunk>, val embedMs: Double, val searchMs: Double)
@@ -50,7 +52,7 @@ class RagPipeline(
     suspend fun answerPlain(question: String, tier: InferenceTier, contextTokens: Int?): AnswerRun {
         val result = runner.generate(
             kind = StepKind.GENERATE,
-            title = "Sin recuperación: respuesta",
+            title = texts.string(R.string.rag_trace_plain_title),
             tier = tier,
             messages = userMessage(RagPrompts.plainPrompt(question)),
             config = RagPrompts.answerConfig(contextTokens),
@@ -71,32 +73,35 @@ class RagPipeline(
         } catch (e: CancellationException) {
             throw e
         } catch (e: Exception) {
-            return AnswerRun(answer = "", metric = null, error = e.message ?: "Falló la recuperación")
+            return AnswerRun(answer = "", metric = null, error = e.message ?: texts.string(R.string.rag_retrieval_failed))
         }
 
         if (retrieval.hits.isEmpty()) {
             runner.recorder.skip(
-                StepKind.GENERATE, "Con recuperación: respuesta",
-                "Ningún fragmento supera el umbral de similitud: no se llama al modelo", tier,
+                StepKind.GENERATE, texts.string(R.string.rag_trace_rag_title),
+                texts.string(R.string.rag_trace_skip_detail), tier,
             )
             return AnswerRun(
-                answer = RagPrompts.NOT_FOUND, metric = null, retrieved = emptyList(),
+                answer = texts.string(R.string.rag_answer_not_found), metric = null, retrieved = emptyList(),
                 embedMs = retrieval.embedMs, searchMs = retrieval.searchMs, modelSkipped = true,
             )
         }
 
         val maxAnswer = RagPrompts.maxAnswerTokens(contextTokens)
         val budget = RagPrompts.contextBudgetChars(contextTokens, maxAnswer, question.length)
-        val context = runner.local(StepKind.TOOL, "Construir el prompt con citas", input = "${retrieval.hits.size} fragmentos") {
+        val context = runner.local(
+            StepKind.TOOL, texts.string(R.string.rag_trace_build_title),
+            input = texts.plural(R.plurals.rag_trace_build_input, retrieval.hits.size, retrieval.hits.size),
+        ) {
             val built = RagPrompts.buildContext(retrieval.hits, budget)
             val prompt = RagPrompts.ragPrompt(question, built)
             LocalOutcome(
                 value = built to prompt,
                 output = prompt,
                 detail = buildList {
-                    add("${built.used.size} de ${retrieval.hits.size} fragmentos en el contexto")
-                    add("${built.text.length} de ${budget} car")
-                    if (built.firstTruncated) add("el primero se recortó")
+                    add(texts.plural(R.plurals.rag_trace_context_chunks, retrieval.hits.size, built.used.size, retrieval.hits.size))
+                    add(texts.string(R.string.rag_trace_context_chars, built.text.length, budget))
+                    if (built.firstTruncated) add(texts.string(R.string.rag_trace_first_cut))
                 }.joinToString(" · "),
             )
         }
@@ -104,7 +109,7 @@ class RagPipeline(
 
         val result = runner.generate(
             kind = StepKind.GENERATE,
-            title = "Con recuperación: respuesta",
+            title = texts.string(R.string.rag_trace_rag_title),
             tier = tier,
             messages = userMessage(prompt),
             config = RagPrompts.answerConfig(contextTokens),
@@ -122,9 +127,9 @@ class RagPipeline(
     }
 
     private suspend fun retrieve(question: String, index: List<IndexedChunk>, options: RetrievalOptions): Retrieval =
-        runner.local(StepKind.RETRIEVE, "Buscar fragmentos", input = question) {
+        runner.local(StepKind.RETRIEVE, texts.string(R.string.rag_trace_search_title), input = question) {
             val start = nanoClock()
-            val vector = embedQuery(question) ?: error("No se pudo calcular el embedding de la pregunta")
+            val vector = embedQuery(question) ?: error(texts.string(R.string.rag_error_embed_question))
             val embedded = nanoClock()
             val hits = Retriever.search(vector, index, options)
             val done = nanoClock()
@@ -132,14 +137,14 @@ class RagPipeline(
             val searchMs = (done - embedded) / NANOS_PER_MS
             LocalOutcome(
                 value = Retrieval(hits, embedMs, searchMs),
-                output = if (hits.isEmpty()) "Sin resultados por encima del umbral" else describeHits(hits),
+                output = if (hits.isEmpty()) texts.string(R.string.rag_trace_no_results) else describeHits(hits),
                 detail = buildList {
-                    add("embedding ${"%.1f".format(embedMs)} ms")
-                    add("búsqueda ${"%.1f".format(searchMs)} ms")
-                    add("${index.size} fragmentos en el índice")
+                    add(texts.string(R.string.rag_trace_embedding_ms, "%.1f".format(embedMs)))
+                    add(texts.string(R.string.rag_trace_search_ms, "%.1f".format(searchMs)))
+                    add(texts.plural(R.plurals.rag_trace_index_size, index.size, index.size))
                     add("k=${options.topK}")
                     if (options.mmr) add("MMR")
-                    if (options.minScore > 0) add("umbral ${"%.2f".format(options.minScore)}")
+                    if (options.minScore > 0) add(texts.string(R.string.rag_trace_threshold, "%.2f".format(options.minScore)))
                 }.joinToString(" · "),
             )
         }
@@ -156,15 +161,15 @@ class RagPipeline(
         val judgedContext = RagPrompts.buildContext(context.used, budget)
         val verdictResult = runner.generate(
             kind = StepKind.JUDGE,
-            title = "Comprobar que la respuesta está respaldada",
+            title = texts.string(R.string.rag_trace_judge_title),
             tier = judgeTier,
             messages = userMessage(RagPrompts.judgePrompt(question, judgedContext.text, run.answer)),
             config = RagPrompts.judgeConfig(),
         )
         if (!verdictResult.ok) return run.copy(groundingError = verdictResult.error)
-        val grounding = runner.local(StepKind.VALIDATE, "Interpretar el veredicto", input = verdictResult.text) {
+        val grounding = runner.local(StepKind.VALIDATE, texts.string(R.string.rag_trace_verdict_title), input = verdictResult.text) {
             val parsed = GroundednessParser.parse(verdictResult.text)
-            LocalOutcome(parsed, output = describe(parsed))
+            LocalOutcome(parsed, output = describe(parsed, texts))
         }
         return run.copy(grounding = grounding, groundingMetric = verdictResult.metric)
     }
@@ -180,12 +185,12 @@ class RagPipeline(
 fun describeHits(hits: List<ScoredChunk>): String =
     hits.mapIndexed { i, h -> "[${i + 1}] ${"%.2f".format(h.score)} · ${h.chunk.label}" }.joinToString("\n")
 
-fun describe(grounding: Groundedness): String {
+fun describe(grounding: Groundedness, texts: RagTexts): String {
     val verdict = when (grounding.verdict) {
-        GroundingVerdict.SUPPORTED -> "respaldada"
-        GroundingVerdict.PARTIAL -> "parcialmente respaldada"
-        GroundingVerdict.UNSUPPORTED -> "no respaldada"
-        GroundingVerdict.UNKNOWN -> "veredicto no interpretable"
+        GroundingVerdict.SUPPORTED -> texts.string(R.string.rag_verdict_supported)
+        GroundingVerdict.PARTIAL -> texts.string(R.string.rag_verdict_partial)
+        GroundingVerdict.UNSUPPORTED -> texts.string(R.string.rag_verdict_unsupported)
+        GroundingVerdict.UNKNOWN -> texts.string(R.string.rag_verdict_unknown)
     }
     val score = grounding.score?.let { " · ${(it * 10).let { s -> "%.1f".format(s) }}/10" }.orEmpty()
     return verdict + score

@@ -17,7 +17,7 @@ class DocumentIndexerTest {
     fun `every chunk is embedded with its heading and gets a vector and a timing`() = runBlocking {
         val embedder = BagOfWordsEmbedder()
         var tick = 0L
-        val indexer = DocumentIndexer(embedder, nanoClock = { tick += 3_000_000; tick }, wallClock = { 1234L })
+        val indexer = DocumentIndexer(embedder, XmlTexts.english, nanoClock = { tick += 3_000_000; tick }, wallClock = { 1234L })
         val result = indexer.indexAll(listOf(doc("a", "# Tema\n\n$sentences")), ChunkerConfig(200, 30))
 
         val indexed = result.single()
@@ -44,7 +44,7 @@ class DocumentIndexerTest {
                 return floatArrayOf(1f)
             }
         }
-        DocumentIndexer(embedder).indexAll(listOf(doc("a", "# Manual\n## Gastos\nSe reclaman en Rendi.")), ChunkerConfig())
+        DocumentIndexer(embedder, XmlTexts.english).indexAll(listOf(doc("a", "# Manual\n## Gastos\nSe reclaman en Rendi.")), ChunkerConfig())
         assertEquals(listOf("Manual > Gastos\nSe reclaman en Rendi."), seen)
     }
 
@@ -52,7 +52,7 @@ class DocumentIndexerTest {
     fun `progress counts chunks across all documents and documents are delivered one by one`() = runBlocking {
         val progress = mutableListOf<IndexProgress>()
         val delivered = mutableListOf<String>()
-        val result = DocumentIndexer(BagOfWordsEmbedder()).indexAll(
+        val result = DocumentIndexer(BagOfWordsEmbedder(), XmlTexts.english).indexAll(
             documents = listOf(doc("a", sentences), doc("b", "Un solo fragmento corto.")),
             config = ChunkerConfig(200, 30),
             onProgress = { progress += it },
@@ -71,7 +71,7 @@ class DocumentIndexerTest {
         val embedder = BagOfWordsEmbedder(failOn = { "frase número 7" in it })
         val delivered = mutableListOf<String>()
         try {
-            DocumentIndexer(embedder).indexAll(
+            DocumentIndexer(embedder, XmlTexts.english).indexAll(
                 listOf(doc("ok", "Corto."), doc("bad", sentences)), ChunkerConfig(200, 30), onDocument = { delivered += it.id },
             )
             fail("expected an error")
@@ -84,7 +84,7 @@ class DocumentIndexerTest {
 
     @Test
     fun `a blank document yields no chunks and is not reported as indexed`() = runBlocking {
-        val result = DocumentIndexer(BagOfWordsEmbedder()).indexAll(listOf(doc("empty", "# Solo título")), ChunkerConfig())
+        val result = DocumentIndexer(BagOfWordsEmbedder(), XmlTexts.english).indexAll(listOf(doc("empty", "# Solo título")), ChunkerConfig())
         assertTrue(result.single().chunks.isEmpty())
         assertFalse(result.single().isIndexed)
     }
@@ -100,7 +100,7 @@ class DocumentIndexerTest {
             }
         }
         try {
-            DocumentIndexer(embedder).indexAll(listOf(doc("a", sentences)), ChunkerConfig(200, 30))
+            DocumentIndexer(embedder, XmlTexts.english).indexAll(listOf(doc("a", sentences)), ChunkerConfig(200, 30))
             fail("expected cancellation")
         } catch (e: CancellationException) {
             assertEquals(3, embedded)
@@ -110,7 +110,7 @@ class DocumentIndexerTest {
     @Test
     fun `stats only count fully indexed documents`() = runBlocking {
         var tick = 0L
-        val indexer = DocumentIndexer(BagOfWordsEmbedder(), nanoClock = { tick += 2_000_000; tick })
+        val indexer = DocumentIndexer(BagOfWordsEmbedder(), XmlTexts.english, nanoClock = { tick += 2_000_000; tick })
         val indexed = indexer.indexAll(listOf(doc("a", sentences)), ChunkerConfig(200, 30))
         val stats = (indexed + doc("pending", "Sin indexar.")).indexStats()
         assertEquals(1, stats.documents)
@@ -121,7 +121,7 @@ class DocumentIndexerTest {
 
     @Test
     fun `the index flattens only indexed documents`() = runBlocking {
-        val indexed = DocumentIndexer(BagOfWordsEmbedder()).indexAll(listOf(doc("a", sentences)), ChunkerConfig(200, 30))
+        val indexed = DocumentIndexer(BagOfWordsEmbedder(), XmlTexts.english).indexAll(listOf(doc("a", sentences)), ChunkerConfig(200, 30))
         val flat = (indexed + doc("pending", "Sin indexar.")).toIndex()
         assertEquals(indexed.single().chunks.size, flat.size)
         assertTrue(flat.all { it.docId == "a" && it.docTitle == "Título a" })

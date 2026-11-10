@@ -20,6 +20,8 @@ import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.res.pluralStringResource
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import es.sebas1705.nanodemo.core.designsystem.AdaptiveGrid
@@ -29,6 +31,7 @@ import es.sebas1705.nanodemo.core.designsystem.SectionLabel
 import es.sebas1705.nanodemo.core.designsystem.rememberScreenSizeClass
 import es.sebas1705.nanodemo.core.ui.DemoColors
 import es.sebas1705.nanodemo.core.ui.readoutStyle
+import es.sebas1705.nanodemo.feature.lab.R
 import es.sebas1705.nanodemo.core.designsystem.ScreenSizeClass
 
 /**
@@ -52,17 +55,16 @@ internal fun RagEvalTab(viewModel: RagViewModel, onGoToDocuments: () -> Unit) {
         verticalArrangement = Arrangement.spacedBy(14.dp),
     ) {
         Text(
-            "Mide si la búsqueda encuentra el fragmento que contiene la respuesta, sin llamar a ningún modelo. " +
-                "Cambia el tamaño de fragmento (Documentos, reindexando), k, MMR o el umbral y compara las ejecuciones.",
+            stringResource(R.string.rag_eval_intro),
             style = MaterialTheme.typography.bodyMedium, color = DemoColors.Muted,
         )
         if (sampleIndexed == 0) {
             AppCard(Modifier.fillMaxWidth()) {
                 Text(
-                    if (indexedDocs == 0) "Aún no hay nada indexado." else "Las preguntas de evaluación son del corpus de ejemplo y no está indexado.",
+                    stringResource(if (indexedDocs == 0) R.string.rag_eval_nothing_indexed else R.string.rag_eval_sample_not_indexed),
                     style = MaterialTheme.typography.titleSmall, color = DemoColors.Ink,
                 )
-                Button(onClick = onGoToDocuments) { Text("Ir a Documentos") }
+                Button(onClick = onGoToDocuments) { Text(stringResource(R.string.rag_go_to_documents)) }
             }
         }
 
@@ -74,20 +76,20 @@ internal fun RagEvalTab(viewModel: RagViewModel, onGoToDocuments: () -> Unit) {
             enabled = !busy,
         )
         Text(
-            "Se evaluará con: ${settingsLabel(documents.commonChunkTarget(), settings.retrieval)}",
+            stringResource(R.string.rag_eval_will_use, settingsLabel(documents.commonChunkTarget(), settings.retrieval, rememberRagTexts())),
             style = readoutStyle, color = DemoColors.Ink,
         )
 
         Row(horizontalArrangement = Arrangement.spacedBy(10.dp), verticalAlignment = Alignment.CenterVertically) {
             Button(onClick = viewModel::runEvaluation, enabled = !busy && sampleIndexed > 0) {
-                Text(if (eval.running) "Evaluando…" else "Evaluar ${SampleCorpus.questions.size} preguntas")
+                Text(if (eval.running) stringResource(R.string.rag_eval_running) else pluralStringResource(R.plurals.rag_eval_button, SampleCorpus.questions.size, SampleCorpus.questions.size))
             }
-            if (eval.running) OutlinedButton(onClick = viewModel::cancel) { Text("Cancelar") }
+            if (eval.running) OutlinedButton(onClick = viewModel::cancel) { Text(stringResource(R.string.rag_cancel)) }
         }
         if (eval.running) {
             if (eval.total > 0) {
                 LinearProgressIndicator(progress = { eval.done / eval.total.toFloat() }, modifier = Modifier.fillMaxWidth())
-                Text("${eval.done} de ${eval.total}", style = readoutStyle, color = DemoColors.Muted)
+                Text(stringResource(R.string.rag_eval_progress, eval.done, eval.total), style = readoutStyle, color = DemoColors.Muted)
             } else {
                 LinearProgressIndicator(modifier = Modifier.fillMaxWidth())
             }
@@ -111,21 +113,20 @@ private fun ReportTiles(report: RetrievalReport, sizeClass: ScreenSizeClass) {
         Triple("hit@3", report.hitAt3.asPercent(), report.hitAt3),
         Triple("hit@${report.k}", report.hitAtK.asPercent(), report.hitAtK),
         Triple("MRR", report.mrr.format(2), report.mrr),
-        Triple("latencia media", report.meanLatencyMs.asDuration(), null),
+        Triple(stringResource(R.string.rag_report_latency), report.meanLatencyMs.asDuration(), null),
     )
-    SectionLabel("Resultado · ${report.questions} preguntas")
+    SectionLabel(pluralStringResource(R.plurals.rag_report_title, report.questions, report.questions))
     AdaptiveGrid(items = tiles, columns = if (sizeClass == ScreenSizeClass.COMPACT) 2 else 5, spacing = 10.dp) { (caption, value, ratio), modifier ->
         MetricTile(value, caption, ratio, if (ratio == null) DemoColors.TierC else DemoColors.TierA, modifier)
     }
     if (report.skipped > 0) {
         Text(
-            "${report.skipped} preguntas se omitieron porque su documento no está indexado.",
+            pluralStringResource(R.plurals.rag_report_skipped, report.skipped, report.skipped),
             style = MaterialTheme.typography.bodySmall, color = DemoColors.TierB,
         )
     }
     Text(
-        "hit@n: la respuesta está entre los n primeros fragmentos. MRR: media de 1/posición del primer acierto (1 = siempre primero). " +
-            "La latencia incluye vectorizar la pregunta y buscar.",
+        stringResource(R.string.rag_report_legend),
         style = MaterialTheme.typography.bodySmall, color = DemoColors.Muted,
     )
 }
@@ -133,7 +134,7 @@ private fun ReportTiles(report: RetrievalReport, sizeClass: ScreenSizeClass) {
 @Composable
 private fun QuestionRows(evals: List<QuestionEval>) {
     AppCard(Modifier.fillMaxWidth()) {
-        Text("Por pregunta", style = MaterialTheme.typography.titleSmall, color = DemoColors.Ink)
+        Text(stringResource(R.string.rag_per_question), style = MaterialTheme.typography.titleSmall, color = DemoColors.Ink)
         evals.forEach { e ->
             Row(horizontalArrangement = Arrangement.spacedBy(10.dp), verticalAlignment = Alignment.Top) {
                 Text(
@@ -149,7 +150,7 @@ private fun QuestionRows(evals: List<QuestionEval>) {
                 Column(Modifier.weight(1f)) {
                     Text(e.question.question, style = MaterialTheme.typography.bodyMedium, color = DemoColors.Ink)
                     Text(
-                        "mejor puntuación ${e.topScore?.format(2) ?: "—"} · ${e.latencyMs.asDuration()}",
+                        stringResource(R.string.rag_question_best, e.topScore?.format(2) ?: "—", e.latencyMs.asDuration()),
                         style = readoutStyle, color = DemoColors.Muted,
                     )
                 }
@@ -163,8 +164,8 @@ private fun HistoryTable(history: List<EvalRun>, onClear: () -> Unit) {
     val bestMrr = history.maxOf { it.report.mrr }
     AppCard(Modifier.fillMaxWidth()) {
         Row(verticalAlignment = Alignment.CenterVertically) {
-            Text("Comparar ejecuciones", style = MaterialTheme.typography.titleSmall, color = DemoColors.Ink, modifier = Modifier.weight(1f))
-            TextButton(onClick = onClear) { Text("Borrar") }
+            Text(stringResource(R.string.rag_history_title), style = MaterialTheme.typography.titleSmall, color = DemoColors.Ink, modifier = Modifier.weight(1f))
+            TextButton(onClick = onClear) { Text(stringResource(R.string.rag_history_clear)) }
         }
         history.forEach { run ->
             val best = run.report.mrr == bestMrr
@@ -176,8 +177,10 @@ private fun HistoryTable(history: List<EvalRun>, onClear: () -> Unit) {
                     fontWeight = if (best) FontWeight.SemiBold else FontWeight.Normal,
                 )
                 Text(
-                    "hit@1 ${run.report.hitAt1.asPercent()} · hit@3 ${run.report.hitAt3.asPercent()} · MRR ${run.report.mrr.format(2)} · " +
-                        run.report.meanLatencyMs.asDuration() + if (best) " · mejor MRR" else "",
+                    stringResource(
+                        R.string.rag_history_line,
+                        run.report.hitAt1.asPercent(), run.report.hitAt3.asPercent(), run.report.mrr.format(2), run.report.meanLatencyMs.asDuration(),
+                    ) + if (best) " · " + stringResource(R.string.rag_history_best) else "",
                     style = readoutStyle, color = if (best) DemoColors.TierA else DemoColors.Muted,
                 )
             }
