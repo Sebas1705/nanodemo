@@ -76,6 +76,7 @@ data class AgentRunResult(
 class AgentRunner(
     private val runner: PipelineRunner,
     private val clock: () -> Long = System::currentTimeMillis,
+    private val texts: AgentTexts = AgentTexts,
 ) {
     private class ToolFailure(message: String) : Exception(message)
 
@@ -116,11 +117,11 @@ class AgentRunner(
         try {
             while (true) {
                 if (steps >= settings.maxSteps) {
-                    return stopped(AgentOutcome.MAX_STEPS, "Sin respuesta", "límite de ${settings.maxSteps} pasos alcanzado")
+                    return stopped(AgentOutcome.MAX_STEPS, texts.noAnswer, texts.maxStepsReason(settings.maxSteps))
                 }
                 val remaining = started + settings.timeBudgetMs - clock()
                 if (remaining <= 0) {
-                    return stopped(AgentOutcome.TIMEOUT, "Sin respuesta", "presupuesto de tiempo agotado")
+                    return stopped(AgentOutcome.TIMEOUT, texts.noAnswer, texts.timeBudgetSpent)
                 }
                 steps++
                 val lastStep = steps == settings.maxSteps
@@ -130,7 +131,7 @@ class AgentRunner(
                 val generation = withTimeoutOrNull(remaining) {
                     runner.generate(
                         kind = StepKind.GENERATE,
-                        title = "Paso $steps · pensar",
+                        title = texts.thinkTitle(steps),
                         tier = tier,
                         messages = listOf(ChatMessage(Role.USER, prompt)),
                         config = GenerationConfig(
@@ -140,12 +141,12 @@ class AgentRunner(
                     )
                 }
                 if (generation == null) {
-                    failRunningSteps("presupuesto de tiempo agotado")
-                    return stopped(AgentOutcome.TIMEOUT, "Sin respuesta", "presupuesto de tiempo agotado")
+                    failRunningSteps(texts.timeBudgetSpent)
+                    return stopped(AgentOutcome.TIMEOUT, texts.noAnswer, texts.timeBudgetSpent)
                 }
                 if (!generation.ok) {
-                    val message = generation.error ?: "Error del modelo"
-                    return stopped(AgentOutcome.MODEL_ERROR, "Sin respuesta", message, error = message)
+                    val message = generation.error ?: texts.modelError
+                    return stopped(AgentOutcome.MODEL_ERROR, texts.noAnswer, message, error = message)
                 }
                 tokens += generation.metric?.responseTokens ?: (generation.text.length / AgentBudget.CHARS_PER_TOKEN)
 
@@ -153,12 +154,8 @@ class AgentRunner(
                     is AgentReply.Final -> {
                         if (reply.implicit) implicitAnswers++
                         val answer = reply.answer
-                        runner.local(StepKind.VALIDATE, "Respuesta final", input = null) {
-                            val detail = buildString {
-                                append("$steps ${if (steps == 1) "paso" else "pasos"}")
-                                append(" · ${toolCalls.size} ${if (toolCalls.size == 1) "herramienta" else "herramientas"}")
-                                if (reply.implicit) append(" · sin etiqueta «Final Answer»")
-                            }
+                        runner.local(StepKind.VALIDATE, texts.finalTitle, input = null) {
+                            val detail = texts.finalDetail(steps, toolCalls.size, reply.implicit)
                             LocalOutcome(Unit, output = answer, detail = detail)
                         }
                         return result(AgentOutcome.ANSWERED, answer)
@@ -167,11 +164,11 @@ class AgentRunner(
                     is AgentReply.Malformed -> {
                         parseFailures++
                         consecutiveFormatErrors++
-                        val id = runner.recorder.begin(StepKind.VALIDATE, "Formato no válido", input = generation.text)
+                        val id = runner.recorder.begin(StepKind.VALIDATE, texts.invalidFormat, input = generation.text)
                         runner.recorder.fail(id, reply.reason)
                         if (consecutiveFormatErrors > settings.maxFormatErrors) {
                             val best = (reply.thought ?: generation.text).trim()
-                            return stopped(AgentOutcome.FORMAT_FAILURE, "Sin respuesta", "el modelo no sigue el formato", answer = best)
+                            return stopped(AgentOutcome.FORMAT_FAILURE, texts.noAnswer, texts.modelIgnoresFormat, answer = best)
                         }
                         entries += ScratchEntry(
                             thought = null, action = null, input = null,
@@ -187,10 +184,10 @@ class AgentRunner(
                         val earlier = seen[signature]
                         if (earlier != null) {
                             loops++
-                            runner.recorder.skip(StepKind.TOOL, "Repetida · $toolName", "misma acción y entrada que antes; no se ejecuta")
+                            runner.recorder.skip(StepKind.TOOL, texts.repeatedTitle(toolName), texts.repeatedNotRun)
                             if (loops >= settings.maxRepeats) {
                                 return stopped(
-                                    AgentOutcome.LOOP, "Sin respuesta", "el modelo repite la misma acción",
+                                    AgentOutcome.LOOP, texts.noAnswer, texts.repeatsAction,
                                     answer = if (earlier.second) earlier.first else "",
                                 )
                             }
@@ -205,7 +202,7 @@ class AgentRunner(
                         }
 
                         val observation = try {
-                            runner.local(StepKind.TOOL, "Paso $steps · $toolName", input = reply.input.ifBlank { null }) {
+                            runner.local(StepKind.TOOL, texts.toolTitle(steps, toolName), input = reply.input.ifBlank { null }) {
                                 val timeLeft = started + settings.timeBudgetMs - clock()
                                 val invocation = registry.invoke(reply.tool, reply.input, budget.toolOutputChars, timeLeft)
                                 if (!invocation.ok) throw ToolFailure(invocation.text)
@@ -228,7 +225,7 @@ class AgentRunner(
                 }
             }
         } catch (e: CancellationException) {
-            failRunningSteps("cancelado")
+            failRunningSteps(texts.cancelled)
             throw e
         }
     }

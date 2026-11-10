@@ -44,18 +44,18 @@ class AgentBenchmarkTest {
 
     @Test
     fun `containsNumber honours the tolerance`() {
-        assertTrue(Checks.containsNumber("es 399,5", 399.5).passed)
-        assertTrue(Checks.containsNumber("22.22 C", 22.2, 0.1).passed)
-        assertFalse(Checks.containsNumber("22.5", 22.2, 0.1).passed)
-        assertFalse(Checks.containsNumber("no idea", 5.0).passed)
-        assertFalse(Checks.containsNumber("400", 399.5).passed)
+        assertTrue(Checks.containsNumber(AgentTexts, "es 399,5", 399.5).passed)
+        assertTrue(Checks.containsNumber(AgentTexts, "22.22 C", 22.2, 0.1).passed)
+        assertFalse(Checks.containsNumber(AgentTexts, "22.5", 22.2, 0.1).passed)
+        assertFalse(Checks.containsNumber(AgentTexts, "no idea", 5.0).passed)
+        assertFalse(Checks.containsNumber(AgentTexts, "400", 399.5).passed)
     }
 
     @Test
     fun `containsAny ignores case and accents`() {
-        assertTrue(Checks.containsAny("La capital es PARIS.", "París").passed)
-        assertTrue(Checks.containsAny("Siete días", "7", "siete").passed)
-        assertFalse(Checks.containsAny("Roma", "París").passed)
+        assertTrue(Checks.containsAny(AgentTexts, "La capital es PARIS.", "París").passed)
+        assertTrue(Checks.containsAny(AgentTexts, "Siete días", "7", "siete").passed)
+        assertFalse(Checks.containsAny(AgentTexts, "Roma", "París").passed)
     }
 
     @Test
@@ -74,7 +74,7 @@ class AgentBenchmarkTest {
         val cases = BenchmarkSuite.cases
         assertTrue(cases.size >= 10)
         assertEquals(cases.size, cases.map { it.id }.toSet().size)
-        assertTrue(cases.all { it.prompt.isNotBlank() && it.title.isNotBlank() })
+        assertTrue(cases.all { it.prompt.isNotBlank() && it.title != 0 })
     }
 
     @Test
@@ -129,10 +129,10 @@ class AgentBenchmarkTest {
         assertTrue(verdict("notes", run("Tu nota: comprar leche", listOf(save, read))).passed)
         val noSave = verdict("notes", run("Tu nota: comprar leche", listOf(read)))
         assertFalse(noSave.passed)
-        assertEquals("no llegó a guardar la nota", noSave.check.reason)
+        assertEquals("it never managed to save the note", noSave.check.reason)
         val noRead = verdict("notes", run("Guardada", listOf(save)))
         assertFalse(noRead.passed)
-        assertEquals("no leyó las notas después de guardar", noRead.check.reason)
+        assertEquals("it did not read the notes after saving", noRead.check.reason)
         assertFalse(verdict("notes", run("Hecho", listOf(save, read))).passed) // the answer does not mention it
         // Reading BEFORE saving does not count as reading after.
         assertFalse(verdict("notes", run("leche", listOf(read, save))).passed)
@@ -154,7 +154,7 @@ class AgentBenchmarkTest {
         assertTrue(verdict("no-tool-capital", run("La capital de Francia es París.")).passed)
         val used = verdict("no-tool-capital", run("París", listOf(call("web_search"))))
         assertFalse(used.passed)
-        assertTrue(used.check.reason.contains("herramientas"))
+        assertTrue(used.check.reason.contains("without needing them"))
         assertFalse(verdict("no-tool-capital", run("Lyon")).passed)
         assertTrue(verdict("no-tool-week", run("Una semana tiene siete días.")).passed)
         assertTrue(verdict("no-tool-week", run("7")).passed)
@@ -167,13 +167,13 @@ class AgentBenchmarkTest {
     fun `a run that did not end with an answer fails whatever the text says`() {
         val outcome = verdict("percent", run("399.5", outcome = AgentOutcome.MAX_STEPS))
         assertFalse(outcome.passed)
-        assertEquals("se quedó sin pasos", outcome.failureReason)
+        assertEquals("ran out of steps", outcome.failureReason)
         assertNull(verdict("percent", run("399.5")).failureReason)
     }
 
     @Test
     fun `every outcome has a description`() {
-        AgentOutcome.entries.forEach { assertTrue(it.describe().isNotBlank()) }
+        AgentOutcome.entries.forEach { assertTrue(AgentTexts.outcome(it).isNotBlank()) }
     }
 
     // ---- aggregation ----
