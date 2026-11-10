@@ -52,6 +52,7 @@ import es.sebas1705.nanodemo.core.ui.DemoColors
 import es.sebas1705.nanodemo.core.ui.readoutStyle
 import es.sebas1705.nanodemo.domain.models.InferenceTier
 import es.sebas1705.nanodemo.feature.lab.Experiment
+import es.sebas1705.nanodemo.feature.lab.R
 import es.sebas1705.nanodemo.feature.lab.ExperimentCategory
 import es.sebas1705.nanodemo.feature.lab.common.BarRow
 import es.sebas1705.nanodemo.feature.lab.common.HeatCellBox
@@ -69,8 +70,8 @@ import java.util.Locale
 val benchExperiment = Experiment(
     id = "bench",
     category = ExperimentCategory.MEASUREMENT,
-    title = "Benchmark",
-    subtitle = "Tareas con corrección automática en todos los motores: ranking, mapa de calor, latencias y determinismo.",
+    title = R.string.lab_bench_title,
+    subtitle = R.string.lab_bench_subtitle,
     icon = Icons.Filled.Speed,
     content = { BenchScreen() },
 )

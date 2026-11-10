@@ -31,6 +31,7 @@ import es.sebas1705.nanodemo.core.ui.readoutStyle
 import es.sebas1705.nanodemo.domain.models.InferenceTier
 import es.sebas1705.nanodemo.domain.models.TierAvailability
 import es.sebas1705.nanodemo.feature.lab.Experiment
+import es.sebas1705.nanodemo.feature.lab.R
 import es.sebas1705.nanodemo.feature.lab.ExperimentCategory
 import es.sebas1705.nanodemo.feature.lab.common.ChartSeries
 import es.sebas1705.nanodemo.feature.lab.common.LabTierSelector
@@ -41,8 +42,8 @@ import java.util.Locale
 val soakExperiment = Experiment(
     id = "soak",
     category = ExperimentCategory.MEASUREMENT,
-    title = "Estrés térmico",
-    subtitle = "Genera sin parar durante minutos y mira si el móvil se calienta y la velocidad cae.",
+    title = R.string.lab_soak_title,
+    subtitle = R.string.lab_soak_subtitle,
     icon = Icons.Filled.Thermostat,
     content = { SoakScreen() },
 )

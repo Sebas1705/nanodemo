@@ -58,6 +58,7 @@ import es.sebas1705.nanodemo.core.ui.DemoColors
 import es.sebas1705.nanodemo.core.ui.readoutStyle
 import es.sebas1705.nanodemo.domain.models.InferenceTier
 import es.sebas1705.nanodemo.feature.lab.Experiment
+import es.sebas1705.nanodemo.feature.lab.R
 import es.sebas1705.nanodemo.feature.lab.ExperimentCategory
 import es.sebas1705.nanodemo.feature.lab.common.LabTierSelector
 import es.sebas1705.nanodemo.feature.lab.common.isUsable
@@ -68,8 +69,8 @@ import es.sebas1705.nanodemo.feature.lab.trace.formatDuration
 val agentExperiment = Experiment(
     id = "agent",
     category = ExperimentCategory.ARCHITECTURE,
-    title = "Agente con herramientas",
-    subtitle = "Bucle pensar, actuar, observar con calculadora, hora, notas y más. Mide qué motores lo sostienen.",
+    title = R.string.lab_agent_title,
+    subtitle = R.string.lab_agent_subtitle,
     icon = Icons.Filled.Build,
     content = { AgentScreen() },
 )

@@ -26,13 +26,14 @@ import androidx.compose.ui.unit.dp
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import es.sebas1705.nanodemo.core.designsystem.rememberScreenSizeClass
 import es.sebas1705.nanodemo.feature.lab.Experiment
+import es.sebas1705.nanodemo.feature.lab.R
 import es.sebas1705.nanodemo.feature.lab.ExperimentCategory
 
 val ragExperiment = Experiment(
     id = "rag",
     category = ExperimentCategory.ARCHITECTURE,
-    title = "RAG en el móvil",
-    subtitle = "Trocea y vectoriza documentos en el dispositivo, recupera por similitud y responde con citas. Compara con y sin recuperación.",
+    title = R.string.lab_rag_title,
+    subtitle = R.string.lab_rag_subtitle,
     icon = Icons.Filled.Description,
     content = { RagScreen() },
 )

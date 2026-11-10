@@ -33,13 +33,14 @@ import es.sebas1705.nanodemo.core.ui.readoutStyle
 import es.sebas1705.nanodemo.domain.models.InferenceTier
 import es.sebas1705.nanodemo.domain.models.VoteTally
 import es.sebas1705.nanodemo.feature.lab.Experiment
+import es.sebas1705.nanodemo.feature.lab.R
 import es.sebas1705.nanodemo.feature.lab.ExperimentCategory
 
 val judgeExperiment = Experiment(
     id = "judge",
     category = ExperimentCategory.ARCHITECTURE,
-    title = "Un modelo como juez",
-    subtitle = "Un motor puntúa respuestas con una rúbrica o las enfrenta por parejas. Mide cuánto se fía uno del juez.",
+    title = R.string.lab_judge_title,
+    subtitle = R.string.lab_judge_subtitle,
     icon = Icons.Filled.Gavel,
     content = { JudgeScreen() },
 )

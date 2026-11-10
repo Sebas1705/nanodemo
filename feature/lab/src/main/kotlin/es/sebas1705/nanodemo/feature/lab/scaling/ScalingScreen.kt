@@ -34,6 +34,7 @@ import es.sebas1705.nanodemo.core.ui.DemoColors
 import es.sebas1705.nanodemo.core.ui.readoutStyle
 import es.sebas1705.nanodemo.domain.models.InferenceTier
 import es.sebas1705.nanodemo.feature.lab.Experiment
+import es.sebas1705.nanodemo.feature.lab.R
 import es.sebas1705.nanodemo.feature.lab.ExperimentCategory
 import es.sebas1705.nanodemo.feature.lab.common.ChartSeries
 import es.sebas1705.nanodemo.feature.lab.common.LineChart
@@ -44,8 +45,8 @@ import java.util.Locale
 val scalingExperiment = Experiment(
     id = "scaling",
     category = ExperimentCategory.MEASUREMENT,
-    title = "Escala del contexto",
-    subtitle = "Cuánto sube el tiempo hasta el primer token al alargar el prompt, por motor.",
+    title = R.string.lab_scaling_title,
+    subtitle = R.string.lab_scaling_subtitle,
     icon = Icons.Filled.ShowChart,
     content = { ScalingScreen() },
 )

@@ -34,6 +34,7 @@ import es.sebas1705.nanodemo.core.ui.DemoColors
 import es.sebas1705.nanodemo.core.ui.readoutStyle
 import es.sebas1705.nanodemo.domain.models.InferenceTier
 import es.sebas1705.nanodemo.feature.lab.Experiment
+import es.sebas1705.nanodemo.feature.lab.R
 import es.sebas1705.nanodemo.feature.lab.ExperimentCategory
 import es.sebas1705.nanodemo.feature.lab.trace.formatDuration
 import java.util.Locale
@@ -41,8 +42,8 @@ import java.util.Locale
 val strategiesExperiment = Experiment(
     id = "strategies",
     category = ExperimentCategory.ARCHITECTURE,
-    title = "Votar y comparar estrategias",
-    subtitle = "Autoconsistencia (N muestras y voto) y cinco formas de pedir lo mismo, con aciertos, tokens y tiempo por motor.",
+    title = R.string.lab_strategies_title,
+    subtitle = R.string.lab_strategies_subtitle,
     icon = Icons.Filled.Psychology,
     content = { StrategiesScreen() },
 )

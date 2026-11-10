@@ -1,0 +1,28 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="lab_hub_intro">Arquitecturas de IA y medición sobre los cinco motores. Cada experimento muestra el recorrido paso a paso.</string>
+    <string name="lab_back_description">Volver al laboratorio</string>
+    <string name="lab_category_architecture">Arquitecturas</string>
+    <string name="lab_category_measurement">Medición</string>
+
+    <string name="lab_sandbox_title">Un paso</string>
+    <string name="lab_sandbox_subtitle">Un prompt en un motor con configuración libre y su recorrido. La base de todos los demás.</string>
+    <string name="lab_router_title">Router híbrido</string>
+    <string name="lab_router_subtitle">Clasifica el prompt, elige motor local o nube, escala si la respuesta no pasa el control y filtra los datos personales antes de salir.</string>
+    <string name="lab_rag_title">RAG en el móvil</string>
+    <string name="lab_rag_subtitle">Trocea y vectoriza documentos en el dispositivo, recupera por similitud y responde con citas. Compara con y sin recuperación.</string>
+    <string name="lab_agent_title">Agente con herramientas</string>
+    <string name="lab_agent_subtitle">Bucle pensar, actuar, observar con calculadora, hora, notas y más. Mide qué motores lo sostienen.</string>
+    <string name="lab_refine_title">Planificar, ejecutar y criticar</string>
+    <string name="lab_refine_subtitle">Un motor planifica, otro redacta y un crítico revisa hasta aceptar. Cada rol puede usar un motor distinto.</string>
+    <string name="lab_judge_title">Un modelo como juez</string>
+    <string name="lab_judge_subtitle">Un motor puntúa respuestas con una rúbrica o las enfrenta por parejas. Mide cuánto se fía uno del juez.</string>
+    <string name="lab_strategies_title">Votar y comparar estrategias</string>
+    <string name="lab_strategies_subtitle">Autoconsistencia (N muestras y voto) y cinco formas de pedir lo mismo, con aciertos, tokens y tiempo por motor.</string>
+    <string name="lab_bench_title">Benchmark</string>
+    <string name="lab_bench_subtitle">Tareas con corrección automática en todos los motores: ranking, mapa de calor, latencias y determinismo.</string>
+    <string name="lab_scaling_title">Escala del contexto</string>
+    <string name="lab_scaling_subtitle">Cuánto sube el tiempo hasta el primer token al alargar el prompt, por motor.</string>
+    <string name="lab_soak_title">Estrés térmico</string>
+    <string name="lab_soak_subtitle">Genera sin parar durante minutos y mira si el móvil se calienta y la velocidad cae.</string>
+</resources>

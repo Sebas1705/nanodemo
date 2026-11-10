@@ -29,14 +29,15 @@ import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import es.sebas1705.nanodemo.core.designsystem.ScreenSizeClass
 import es.sebas1705.nanodemo.core.designsystem.rememberScreenSizeClass
 import es.sebas1705.nanodemo.feature.lab.Experiment
+import es.sebas1705.nanodemo.feature.lab.R
 import es.sebas1705.nanodemo.feature.lab.ExperimentCategory
 import es.sebas1705.nanodemo.feature.lab.trace.PipelineTraceView
 
 val routerExperiment = Experiment(
     id = "router",
     category = ExperimentCategory.ARCHITECTURE,
-    title = "Router híbrido",
-    subtitle = "Clasifica el prompt, elige motor local o nube, escala si la respuesta no pasa el control y filtra los datos personales antes de salir.",
+    title = R.string.lab_router_title,
+    subtitle = R.string.lab_router_subtitle,
     icon = Icons.Filled.AltRoute,
     content = { RouterScreen() },
 )

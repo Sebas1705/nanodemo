@@ -33,14 +33,15 @@ import es.sebas1705.nanodemo.core.designsystem.label
 import es.sebas1705.nanodemo.core.ui.DemoColors
 import es.sebas1705.nanodemo.core.ui.readoutStyle
 import es.sebas1705.nanodemo.feature.lab.Experiment
+import es.sebas1705.nanodemo.feature.lab.R
 import es.sebas1705.nanodemo.feature.lab.ExperimentCategory
 import es.sebas1705.nanodemo.feature.lab.trace.formatDuration
 
 val refineExperiment = Experiment(
     id = "refine",
     category = ExperimentCategory.ARCHITECTURE,
-    title = "Planificar, ejecutar y criticar",
-    subtitle = "Un motor planifica, otro redacta y un crítico revisa hasta aceptar. Cada rol puede usar un motor distinto.",
+    title = R.string.lab_refine_title,
+    subtitle = R.string.lab_refine_subtitle,
     icon = Icons.Filled.AutoFixHigh,
     content = { RefineScreen() },
 )

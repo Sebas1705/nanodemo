@@ -37,6 +37,7 @@ import es.sebas1705.nanodemo.core.designsystem.SectionLabel
 import es.sebas1705.nanodemo.core.ui.DemoColors
 import es.sebas1705.nanodemo.domain.models.GenerationConfig
 import es.sebas1705.nanodemo.feature.lab.Experiment
+import es.sebas1705.nanodemo.feature.lab.R
 import es.sebas1705.nanodemo.feature.lab.ExperimentCategory
 import es.sebas1705.nanodemo.feature.lab.common.LabTierSelector
 import es.sebas1705.nanodemo.feature.lab.trace.PipelineTraceView
@@ -44,8 +45,8 @@ import es.sebas1705.nanodemo.feature.lab.trace.PipelineTraceView
 val sandboxExperiment = Experiment(
     id = "sandbox",
     category = ExperimentCategory.ARCHITECTURE,
-    title = "Un paso",
-    subtitle = "Un prompt en un motor con configuración libre y su recorrido. La base de todos los demás.",
+    title = R.string.lab_sandbox_title,
+    subtitle = R.string.lab_sandbox_subtitle,
     icon = Icons.Filled.PlayArrow,
     content = { SandboxScreen() },
 )

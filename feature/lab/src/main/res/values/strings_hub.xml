@@ -1,0 +1,28 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="lab_hub_intro">AI architectures and measurement across the five engines. Each experiment shows the run step by step.</string>
+    <string name="lab_back_description">Back to the lab</string>
+    <string name="lab_category_architecture">Architectures</string>
+    <string name="lab_category_measurement">Measurement</string>
+
+    <string name="lab_sandbox_title">One step</string>
+    <string name="lab_sandbox_subtitle">One prompt on one engine with free configuration and its trace. The base of all the others.</string>
+    <string name="lab_router_title">Hybrid router</string>
+    <string name="lab_router_subtitle">Classifies the prompt, picks a local or cloud engine, escalates if the answer fails the check and filters personal data before it leaves.</string>
+    <string name="lab_rag_title">RAG on the phone</string>
+    <string name="lab_rag_subtitle">Chunks and embeds documents on the device, retrieves by similarity and answers with citations. Compares with and without retrieval.</string>
+    <string name="lab_agent_title">Agent with tools</string>
+    <string name="lab_agent_subtitle">A think, act, observe loop with a calculator, clock, notes and more. Measures which engines can sustain it.</string>
+    <string name="lab_refine_title">Plan, execute and critique</string>
+    <string name="lab_refine_subtitle">One engine plans, another writes and a critic reviews until it accepts. Each role can use a different engine.</string>
+    <string name="lab_judge_title">A model as judge</string>
+    <string name="lab_judge_subtitle">An engine scores answers with a rubric or pits them against each other in pairs. Measures how far the judge can be trusted.</string>
+    <string name="lab_strategies_title">Vote and compare strategies</string>
+    <string name="lab_strategies_subtitle">Self-consistency (N samples and a vote) and five ways of asking the same thing, with accuracy, tokens and time per engine.</string>
+    <string name="lab_bench_title">Benchmark</string>
+    <string name="lab_bench_subtitle">Tasks with automatic scoring on every engine: ranking, heatmap, latencies and determinism.</string>
+    <string name="lab_scaling_title">Context scaling</string>
+    <string name="lab_scaling_subtitle">How much the time to first token grows as the prompt gets longer, per engine.</string>
+    <string name="lab_soak_title">Thermal stress</string>
+    <string name="lab_soak_subtitle">Generates non-stop for minutes and shows whether the phone heats up and speed drops.</string>
+</resources>

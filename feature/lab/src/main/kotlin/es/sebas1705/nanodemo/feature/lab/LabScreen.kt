@@ -24,6 +24,7 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import es.sebas1705.nanodemo.core.designsystem.AppCard
 import es.sebas1705.nanodemo.core.designsystem.SectionLabel
@@ -45,9 +46,9 @@ fun LabScreen() {
                 verticalAlignment = Alignment.CenterVertically,
             ) {
                 IconButton(onClick = { openId = null }) {
-                    Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Volver al laboratorio", tint = DemoColors.Ink)
+                    Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = stringResource(R.string.lab_back_description), tint = DemoColors.Ink)
                 }
-                Text(experiment.title, style = MaterialTheme.typography.titleMedium, color = DemoColors.Ink)
+                Text(stringResource(experiment.title), style = MaterialTheme.typography.titleMedium, color = DemoColors.Ink)
             }
             Column(Modifier.weight(1f).fillMaxWidth()) { experiment.content() }
         }
@@ -63,7 +64,7 @@ private fun LabHub(onOpen: (Experiment) -> Unit) {
     ) {
         item {
             Text(
-                "Arquitecturas de IA y medición sobre los cinco motores. Cada experimento muestra el recorrido paso a paso.",
+                stringResource(R.string.lab_hub_intro),
                 style = MaterialTheme.typography.bodyMedium,
                 color = DemoColors.Muted,
             )
@@ -71,14 +72,14 @@ private fun LabHub(onOpen: (Experiment) -> Unit) {
         ExperimentCategory.entries.forEach { category ->
             val experiments = ExperimentRegistry.all.filter { it.category == category }
             if (experiments.isEmpty()) return@forEach
-            item(key = "header-${category.name}") { SectionLabel(category.label) }
+            item(key = "header-${category.name}") { SectionLabel(stringResource(category.label)) }
             items(experiments, key = { it.id }) { experiment ->
                 AppCard(modifier = Modifier.fillMaxWidth(), onClick = { onOpen(experiment) }) {
                     Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(14.dp)) {
                         Icon(experiment.icon, contentDescription = null, tint = DemoColors.TierA, modifier = Modifier.size(28.dp))
                         Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(2.dp)) {
-                            Text(experiment.title, style = MaterialTheme.typography.titleMedium, color = DemoColors.Ink)
-                            Text(experiment.subtitle, style = MaterialTheme.typography.bodySmall, color = DemoColors.Muted)
+                            Text(stringResource(experiment.title), style = MaterialTheme.typography.titleMedium, color = DemoColors.Ink)
+                            Text(stringResource(experiment.subtitle), style = MaterialTheme.typography.bodySmall, color = DemoColors.Muted)
                         }
                     }
                 }
