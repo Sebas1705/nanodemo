@@ -23,6 +23,8 @@ import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
+import androidx.compose.ui.res.pluralStringResource
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import es.sebas1705.nanodemo.core.designsystem.AppCard
@@ -66,13 +68,12 @@ fun ScalingScreen(viewModel: ScalingViewModel = hiltViewModel()) {
         verticalArrangement = Arrangement.spacedBy(14.dp),
     ) {
         Text(
-            "Manda prompts cada vez más largos (de ${SCALING_STEPS.first()} a ${SCALING_STEPS.last()} caracteres) y mide el tiempo hasta el primer token. " +
-                "La pendiente es lo que cuesta cada mil caracteres más de contexto. Se saltan los tamaños que no caben en el motor.",
+            stringResource(R.string.scaling_intro, SCALING_STEPS.first(), SCALING_STEPS.last()),
             style = MaterialTheme.typography.bodyMedium,
             color = DemoColors.Muted,
         )
         AppCard(Modifier.fillMaxWidth()) {
-            SectionLabel("Motores")
+            SectionLabel(stringResource(R.string.scaling_engines))
             LazyRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                 items(InferenceTier.entries) { tier ->
                     val usable = availability.isUsable(tier)
@@ -85,41 +86,43 @@ fun ScalingScreen(viewModel: ScalingViewModel = hiltViewModel()) {
                 }
             }
             Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-                Button(onClick = viewModel::start, enabled = selected.isNotEmpty() && !running) { Text(if (running) "Midiendo…" else "Medir") }
-                if (running) OutlinedButton(onClick = viewModel::cancel) { Text("Cancelar") }
+                Button(onClick = viewModel::start, enabled = selected.isNotEmpty() && !running) {
+                    Text(stringResource(if (running) R.string.scaling_measuring else R.string.scaling_measure))
+                }
+                if (running) OutlinedButton(onClick = viewModel::cancel) { Text(stringResource(R.string.scaling_cancel)) }
             }
             progress?.let { (done, total) ->
                 LinearProgressIndicator(progress = { if (total == 0) 0f else done.toFloat() / total }, modifier = Modifier.fillMaxWidth(), color = DemoColors.TierA)
-                SmallNote("$done/$total peticiones")
+                SmallNote(pluralStringResource(R.plurals.scaling_progress, total, done, total))
             }
         }
 
         val series = meanTtftBySize(points)
         if (series.isNotEmpty()) {
             AppCard(Modifier.fillMaxWidth()) {
-                SectionLabel("Primer token según el tamaño del prompt (ms)")
+                SectionLabel(stringResource(R.string.scaling_chart_title))
                 LineChart(
                     series = series.map { (tier, list) ->
                         ChartSeries("[${tier.channelLetter()}]", tier.signalColor, list.map { it.first.toFloat() to it.second.toFloat() })
                     },
-                    xLabel = "car.",
+                    xLabel = stringResource(R.string.scaling_axis_chars),
                     yLabel = "ms",
                 )
             }
             AppCard(Modifier.fillMaxWidth()) {
-                SectionLabel("Coste de un prompt más largo")
+                SectionLabel(stringResource(R.string.scaling_slope_title))
                 series.keys.forEach { tier ->
                     val slope = slopeMsPer1kChars(points.filter { it.tier == tier })
                     Text(
-                        "[${tier.channelLetter()}] " + (slope?.let { "≈ ${"%.0f".format(Locale.US, it)} ms por cada 1000 caracteres" } ?: "sin datos suficientes"),
+                        "[${tier.channelLetter()}] " + (slope?.let { stringResource(R.string.scaling_slope_value, "%.0f".format(Locale.US, it)) } ?: stringResource(R.string.scaling_slope_none)),
                         style = readoutStyle,
                         color = tier.signalColor,
                     )
                 }
-                SmallNote("Una pendiente cercana a cero indica que el motor procesa el prompt casi gratis (nube); una alta, que el prefill se nota (on-device).")
+                SmallNote(stringResource(R.string.scaling_slope_note))
             }
         }
         val failed = points.count { !it.ok }
-        if (failed > 0) SmallNote("$failed peticiones fallaron o tardaron demasiado y no cuentan.")
+        if (failed > 0) SmallNote(pluralStringResource(R.plurals.scaling_failed, failed, failed))
     }
 }

@@ -8,6 +8,7 @@ import es.sebas1705.nanodemo.domain.models.TierAvailability
 import es.sebas1705.nanodemo.domain.usescases.inference.CapabilitiesOfUseCase
 import es.sebas1705.nanodemo.domain.usescases.inference.ObserveAvailabilityUseCase
 import es.sebas1705.nanodemo.domain.usescases.inference.RunStepUseCase
+import es.sebas1705.nanodemo.feature.lab.common.LabTexts
 import es.sebas1705.nanodemo.feature.lab.common.usableTiers
 import es.sebas1705.nanodemo.feature.lab.trace.asExecutor
 import kotlinx.coroutines.CancellationException
@@ -37,9 +38,10 @@ class BenchViewModel @Inject constructor(
     observeAvailability: ObserveAvailabilityUseCase,
     private val capabilitiesOf: CapabilitiesOfUseCase,
     private val store: BenchStore,
+    private val texts: LabTexts,
 ) : ViewModel() {
 
-    private val runner = BenchRunner(runStep.asExecutor(), supportsJson = { capabilitiesOf(it).structuredOutput })
+    private val runner = BenchRunner(runStep.asExecutor(texts), supportsJson = { capabilitiesOf(it).structuredOutput }, texts = texts)
 
     val availability: StateFlow<Map<InferenceTier, TierAvailability>> = observeAvailability()
 
@@ -65,7 +67,7 @@ class BenchViewModel @Inject constructor(
     private var job: Job? = null
     private var defaultsApplied = false
 
-    /** The first time engines are known, pre-select the ones that are usable so "Ejecutar" works at once. */
+    /** The first time engines are known, pre-select the ones that are usable so "Run" works at once. */
     fun applyDefaultsIfNeeded(availability: Map<InferenceTier, TierAvailability>) {
         if (defaultsApplied) return
         val usable = availability.usableTiers()
@@ -124,7 +126,7 @@ class BenchViewModel @Inject constructor(
 
     private fun saveSession(startedAt: Long, setup: BenchSetup, samples: List<BenchSample>) {
         if (samples.isEmpty()) return
-        val label = setup.label.ifBlank { "Sesión " + SimpleDateFormat("dd/MM HH:mm", Locale.getDefault()).format(Date(startedAt)) }
+        val label = setup.label.ifBlank { texts.defaultSessionLabel(SimpleDateFormat("dd/MM HH:mm", Locale.getDefault()).format(Date(startedAt))) }
         _sessions.value = store.save(
             BenchSession(
                 id = startedAt, label = label, startedAtMs = startedAt,

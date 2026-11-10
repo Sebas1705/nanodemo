@@ -1,0 +1,28 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Short name of what a pipeline step does (StepKind). -->
+    <string name="trace_kind_route">route</string>
+    <string name="trace_kind_redact">filter</string>
+    <string name="trace_kind_retrieve">search</string>
+    <string name="trace_kind_generate">model</string>
+    <string name="trace_kind_tool">tool</string>
+    <string name="trace_kind_judge">judge</string>
+    <string name="trace_kind_plan">plan</string>
+    <string name="trace_kind_critique">critique</string>
+    <string name="trace_kind_summarize">summary</string>
+    <string name="trace_kind_validate">validation</string>
+
+    <plurals name="trace_steps_count">
+        <item quantity="one">%d step</item>
+        <item quantity="other">%d steps</item>
+    </plurals>
+    <string name="trace_running">running…</string>
+    <string name="trace_skipped">skipped</string>
+    <string name="trace_failed">failed</string>
+    <string name="trace_input">input</string>
+    <string name="trace_output">output</string>
+    <string name="trace_detail">detail</string>
+
+    <!-- Shown while a rate-limited step waits to retry: %1$d seconds, attempt %2$d of %3$d. -->
+    <string name="trace_rate_limit_wait">⏳ Service rate limit; retrying in %1$d s (%2$d/%3$d)…</string>
+</resources>

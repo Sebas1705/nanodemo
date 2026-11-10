@@ -7,6 +7,7 @@ import es.sebas1705.nanodemo.domain.models.InferenceTier
 import es.sebas1705.nanodemo.domain.models.TierAvailability
 import es.sebas1705.nanodemo.domain.usescases.inference.ObserveAvailabilityUseCase
 import es.sebas1705.nanodemo.domain.usescases.inference.RunStepUseCase
+import es.sebas1705.nanodemo.feature.lab.common.LabTexts
 import es.sebas1705.nanodemo.feature.lab.trace.asExecutor
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -23,9 +24,10 @@ val SOAK_MINUTES = listOf(1, 3, 5, 10)
 class SoakViewModel @Inject constructor(
     runStep: RunStepUseCase,
     observeAvailability: ObserveAvailabilityUseCase,
+    texts: LabTexts,
 ) : ViewModel() {
 
-    private val runner = SoakRunner(runStep.asExecutor())
+    private val runner = SoakRunner(runStep.asExecutor(texts))
 
     val availability: StateFlow<Map<InferenceTier, TierAvailability>> = observeAvailability()
 

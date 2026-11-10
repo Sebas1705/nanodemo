@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="lab_common_no_data">Not enough data yet.</string>
+    <!-- Right-hand axis caption of a line chart: %1$s is the y unit, %2$s the largest value. -->
+    <string name="lab_common_chart_max">max %1$s %2$s</string>
+
+    <!-- Short names of Android thermal status levels (PowerManager.THERMAL_STATUS_*). -->
+    <string name="lab_common_thermal_normal">normal</string>
+    <string name="lab_common_thermal_light">light</string>
+    <string name="lab_common_thermal_moderate">moderate</string>
+    <string name="lab_common_thermal_severe">severe</string>
+    <string name="lab_common_thermal_critical">critical</string>
+    <string name="lab_common_thermal_emergency">emergency</string>
+    <string name="lab_common_thermal_shutdown">shutdown</string>
+    <string name="lab_common_thermal_unknown">?</string>
+</resources>

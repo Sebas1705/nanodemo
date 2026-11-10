@@ -35,6 +35,21 @@ fun parseRetryDelayMs(error: String?): Long? {
 }
 
 /**
+ * The text this logic shows while it waits. The executor runs without a composable, so the Android build passes
+ * an implementation that reads string resources (`LabTexts`); tests and plain JVM callers use [English].
+ */
+fun interface RetryTexts {
+    /** Shown as the step's live preview while waiting `seconds` before retry number `attempt` of `maxAttempts`. */
+    fun rateLimitWait(seconds: Long, attempt: Int, maxAttempts: Int): String
+
+    companion object {
+        val English = RetryTexts { seconds, attempt, maxAttempts ->
+            "⏳ Service rate limit; retrying in $seconds s ($attempt/$maxAttempts)…"
+        }
+    }
+}
+
+/**
  * Wraps an executor so a per-minute rate limit does not turn into a failed step: it waits the time the server
  * asked for (capped at [maxWaitMs]) and tries again, up to [maxRetries] times, telling the UI while it waits.
  * Anything else, including an exhausted daily quota, is returned as is.
@@ -44,6 +59,7 @@ class RateLimitRetryExecutor(
     private val maxRetries: Int = 2,
     private val maxWaitMs: Long = MAX_RATE_LIMIT_WAIT_MS,
     private val fallbackWaitMs: Long = 20_000L,
+    private val texts: RetryTexts = RetryTexts.English,
     private val wait: suspend (Long) -> Unit = { delay(it) },
 ) : StepExecutor {
 
@@ -58,7 +74,7 @@ class RateLimitRetryExecutor(
         while (!result.ok && attempt < maxRetries && isRetryableRateLimit(result.error)) {
             attempt++
             val waitMs = (parseRetryDelayMs(result.error) ?: fallbackWaitMs).coerceAtMost(maxWaitMs)
-            onPartial("⏳ Límite de peticiones del servicio; reintento en ${(waitMs + 999) / 1000} s ($attempt/$maxRetries)…")
+            onPartial(texts.rateLimitWait((waitMs + 999) / 1000, attempt, maxRetries))
             wait(waitMs)
             result = inner.run(tier, messages, config, onPartial)
         }

@@ -19,9 +19,10 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.res.pluralStringResource
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
-import es.sebas1705.nanodemo.core.common.thermalStatusLabel
 import es.sebas1705.nanodemo.core.designsystem.AppCard
 import es.sebas1705.nanodemo.core.designsystem.SectionLabel
 import es.sebas1705.nanodemo.core.designsystem.channelLetter
@@ -37,6 +38,7 @@ import es.sebas1705.nanodemo.feature.lab.common.ChartSeries
 import es.sebas1705.nanodemo.feature.lab.common.LabTierSelector
 import es.sebas1705.nanodemo.feature.lab.common.LineChart
 import es.sebas1705.nanodemo.feature.lab.common.SmallNote
+import es.sebas1705.nanodemo.feature.lab.common.thermalStatusLabelRes
 import java.util.Locale
 
 val soakExperiment = Experiment(
@@ -63,35 +65,33 @@ fun SoakScreen(viewModel: SoakViewModel = hiltViewModel()) {
         verticalArrangement = Arrangement.spacedBy(14.dp),
     ) {
         Text(
-            "Un móvil que se calienta baja la frecuencia del procesador (throttling) y el modelo se vuelve más lento. " +
-                "Esta prueba genera texto seguido en un motor y dibuja la velocidad (tokens/s) a lo largo del tiempo. " +
-                "Mejor con el cargador desconectado y la pantalla encendida.",
+            stringResource(R.string.soak_intro),
             style = MaterialTheme.typography.bodyMedium,
             color = DemoColors.Muted,
         )
         AppCard(Modifier.fillMaxWidth()) {
-            SectionLabel("Motor")
+            SectionLabel(stringResource(R.string.soak_engine))
             LabTierSelector(selected, availability, viewModel::selectTier)
             if (selected == InferenceTier.CLOUD_GEMINI || selected == InferenceTier.FIREBASE_AI) {
-                SmallNote("Ojo: este motor es de nube; gasta cuota gratis y no calienta el móvil. Para medir el calor usa uno on-device.")
+                SmallNote(stringResource(R.string.soak_cloud_warning))
             }
-            SectionLabel("Duración")
+            SectionLabel(stringResource(R.string.soak_duration))
             Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                 SOAK_MINUTES.forEach { m ->
-                    FilterChip(selected = m == minutes, onClick = { viewModel.selectMinutes(m) }, label = { Text("$m min") }, enabled = !running)
+                    FilterChip(selected = m == minutes, onClick = { viewModel.selectMinutes(m) }, label = { Text(stringResource(R.string.soak_minutes, m)) }, enabled = !running)
                 }
             }
             Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
                 Button(onClick = { viewModel.start(selected) }, enabled = !running && availability[selected] == TierAvailability.AVAILABLE) {
-                    Text(if (running) "Generando…" else "Empezar")
+                    Text(stringResource(if (running) R.string.soak_generating else R.string.soak_start))
                 }
-                if (running) OutlinedButton(onClick = viewModel::stop) { Text("Parar") }
+                if (running) OutlinedButton(onClick = viewModel::stop) { Text(stringResource(R.string.soak_stop)) }
             }
         }
 
         if (points.isNotEmpty()) {
             AppCard(Modifier.fillMaxWidth()) {
-                SectionLabel("Velocidad a lo largo del tiempo")
+                SectionLabel(stringResource(R.string.soak_chart_title))
                 LineChart(
                     series = listOf(
                         ChartSeries(
@@ -105,21 +105,25 @@ fun SoakScreen(viewModel: SoakViewModel = hiltViewModel()) {
                 )
             }
             AppCard(Modifier.fillMaxWidth()) {
-                SectionLabel("Resultado")
-                Text("${summary.iterations} generaciones", style = readoutStyle, color = DemoColors.Ink)
+                SectionLabel(stringResource(R.string.soak_result_title))
+                Text(pluralStringResource(R.plurals.soak_generations_count, summary.iterations, summary.iterations), style = readoutStyle, color = DemoColors.Ink)
                 if (summary.startTokensPerSecond != null && summary.endTokensPerSecond != null && summary.changePercent != null) {
                     Text(
-                        "Velocidad ${"%.1f".format(Locale.US, summary.startTokensPerSecond)} → ${"%.1f".format(Locale.US, summary.endTokensPerSecond)} tok/s " +
-                            "(${"%+.0f".format(Locale.US, summary.changePercent)}%)",
+                        stringResource(
+                            R.string.soak_speed_change,
+                            "%.1f".format(Locale.US, summary.startTokensPerSecond),
+                            "%.1f".format(Locale.US, summary.endTokensPerSecond),
+                            "%+.0f".format(Locale.US, summary.changePercent),
+                        ),
                         style = readoutStyle,
                         color = if (summary.changePercent < -10) DemoColors.Danger else DemoColors.TierA,
                     )
                 } else {
-                    SmallNote("Hacen falta al menos 3 generaciones con velocidad medible para comparar el principio y el final.")
+                    SmallNote(stringResource(R.string.soak_not_enough_data))
                 }
-                Text("Estado térmico máximo: ${thermalStatusLabel(summary.maxThermalStatus)}", style = readoutStyle, color = DemoColors.Ink)
+                Text(stringResource(R.string.soak_max_thermal, stringResource(thermalStatusLabelRes(summary.maxThermalStatus))), style = readoutStyle, color = DemoColors.Ink)
                 summary.totalBatteryDrainUah?.let {
-                    Text("Batería: ${if (it > 0) "−" else ""}${kotlin.math.abs(it) / 1000} mAh (lectura gruesa)", style = readoutStyle, color = DemoColors.Ink)
+                    Text(stringResource(R.string.soak_battery, "${if (it > 0) "−" else ""}${kotlin.math.abs(it) / 1000}"), style = readoutStyle, color = DemoColors.Ink)
                 }
             }
         }

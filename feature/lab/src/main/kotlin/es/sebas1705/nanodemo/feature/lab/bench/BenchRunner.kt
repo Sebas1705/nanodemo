@@ -12,6 +12,26 @@ import kotlinx.coroutines.withTimeoutOrNull
 private const val ANSWER_KEEP_CHARS = 300
 
 /**
+ * Text the benchmark logic produces outside Compose: the error stored in a sample, and the default name of a
+ * saved session. The Android build passes `LabTexts` (string resources); tests use [English].
+ */
+interface BenchTexts {
+    fun timeout(seconds: Long): String
+    fun unknownError(): String
+
+    /** Default session name; `date` is already formatted for the device locale. */
+    fun defaultSessionLabel(date: String): String
+
+    companion object {
+        val English: BenchTexts = object : BenchTexts {
+            override fun timeout(seconds: Long) = "timeout after ${seconds}s"
+            override fun unknownError() = "error"
+            override fun defaultSessionLabel(date: String) = "Session $date"
+        }
+    }
+}
+
+/**
  * Runs a benchmark session: every selected engine answers every task of the chosen categories, `repetitions`
  * times. Runs are sequential (one engine at a time, one request at a time) so timings are not disturbed by
  * parallel load. A failure or timeout on one task never stops the session; it is recorded as an error sample.
@@ -20,6 +40,7 @@ class BenchRunner(
     private val executor: StepExecutor,
     private val supportsJson: (InferenceTier) -> Boolean,
     private val timeoutMs: Long = DEFAULT_TIMEOUT_MS,
+    private val texts: BenchTexts = BenchTexts.English,
 ) {
     suspend fun run(
         config: BenchConfig,
@@ -55,8 +76,8 @@ class BenchRunner(
             executor.run(tier, listOf(ChatMessage(Role.USER, task.prompt)), generation) {}
         }
         return when {
-            result == null -> errorSample(tier, task, rep, "timeout after ${timeoutMs / 1000}s")
-            !result.ok -> errorSample(tier, task, rep, result.error ?: "error")
+            result == null -> errorSample(tier, task, rep, texts.timeout(timeoutMs / 1000))
+            !result.ok -> errorSample(tier, task, rep, result.error ?: texts.unknownError())
             else -> sampleOf(tier, task, rep, result)
         }
     }
