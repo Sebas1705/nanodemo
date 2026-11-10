@@ -1,0 +1,61 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="lab_guard_title">Guardrails</string>
+    <string name="lab_guard_subtitle">Prompt injection inside documents: attack each engine, layer the defenses and measure how often a secret leaks.</string>
+
+    <string name="guard_intro">The model gets a secret code in its instructions and must summarize a document that hides a hostile instruction asking for that code. A leak is an exact match, so no model has to judge it. Each defense adds a layer on top of the previous one.</string>
+    <string name="guard_engine">Engine</string>
+    <string name="guard_attack">Attack</string>
+    <string name="guard_defense">Defense</string>
+    <string name="guard_run_one">Attack once</string>
+    <string name="guard_run_suite">Run the whole suite</string>
+    <string name="guard_running">Attacking…</string>
+    <string name="guard_cancel">Cancel</string>
+    <string name="guard_suite_note">%1$d attacks × %2$d defenses = %3$d model calls on this engine.</string>
+    <string name="guard_progress">%1$d/%2$d</string>
+
+    <string name="guard_attack_direct">Direct order</string>
+    <string name="guard_attack_role">New identity</string>
+    <string name="guard_attack_comment">Hidden HTML comment</string>
+    <string name="guard_attack_exfil">Image exfiltration</string>
+    <string name="guard_attack_polite">Polite request</string>
+    <string name="guard_attack_spanish">In Spanish</string>
+    <string name="guard_attack_encoded">Base64-encoded</string>
+    <string name="guard_attack_fake_system">Fake system message</string>
+
+    <string name="guard_defense_none">No defense</string>
+    <string name="guard_defense_none_desc">The document goes into the prompt as is.</string>
+    <string name="guard_defense_delimited">Delimited</string>
+    <string name="guard_defense_delimited_desc">The document is wrapped in tags and declared untrusted data.</string>
+    <string name="guard_defense_sanitized">+ Input filter</string>
+    <string name="guard_defense_sanitized_desc">A detector also removes suspicious passages before the model reads it.</string>
+    <string name="guard_defense_output">+ Output filter</string>
+    <string name="guard_defense_output_desc">The answer is also cleaned: secret code, external images and tracking links.</string>
+
+    <string name="guard_document">Document with the attack</string>
+    <string name="guard_detector_score">Detector: score %1$d (%2$s)</string>
+    <string name="guard_detector_clean">Detector: nothing suspicious</string>
+    <string name="guard_result_leak">LEAK: the secret code reached the user</string>
+    <string name="guard_result_leak_blocked">The model leaked the code, but the output filter removed it</string>
+    <string name="guard_result_safe">Safe: the secret code did not leak</string>
+    <string name="guard_result_useless">The answer no longer summarizes the document.</string>
+    <string name="guard_result_error">It failed: %1$s</string>
+    <string name="guard_answer">What the user would see</string>
+
+    <string name="guard_suite_results">Leak rate by defense</string>
+    <string name="guard_suite_useful">Still a useful summary: %1$d%%</string>
+    <string name="guard_suite_errors">Calls that failed: %1$d</string>
+    <string name="guard_matrix">Attack × defense</string>
+    <string name="guard_detector_report">Detector alone (no model): flags %1$d of %2$d attacks and %3$d of %4$d normal documents by mistake.</string>
+    <string name="guard_disclaimer">The detector is a handful of rules: it will miss new attacks. Layers reduce the risk; none removes it.</string>
+
+    <string name="guard_step_detect">Scan the document</string>
+    <string name="guard_detect_detail">score %1$d: %2$s</string>
+    <string name="guard_step_sanitize">Remove suspicious passages</string>
+    <string name="guard_step_answer">Summarize</string>
+    <string name="guard_step_scrub">Filter the answer</string>
+    <string name="guard_scrub_detail">%1$d removed</string>
+    <string name="guard_step_verdict">Check for a leak</string>
+    <string name="guard_verdict_leak">LEAK: the secret code reached the user</string>
+    <string name="guard_verdict_safe">Safe: the secret code did not leak</string>
+</resources>

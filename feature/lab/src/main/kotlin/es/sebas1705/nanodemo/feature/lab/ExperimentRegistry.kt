@@ -1,6 +1,7 @@
 package es.sebas1705.nanodemo.feature.lab
 
 import es.sebas1705.nanodemo.feature.lab.bench.benchExperiment
+import es.sebas1705.nanodemo.feature.lab.guard.guardExperiment
 import es.sebas1705.nanodemo.feature.lab.memory.memoryExperiment
 import es.sebas1705.nanodemo.feature.lab.router.routerExperiment
 import es.sebas1705.nanodemo.feature.lab.scaling.scalingExperiment
@@ -21,6 +22,7 @@ object ExperimentRegistry {
         sandboxExperiment,
         routerExperiment,
         memoryExperiment,
+        guardExperiment,
         benchExperiment,
         scalingExperiment,
         soakExperiment,
