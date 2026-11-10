@@ -26,14 +26,24 @@ registered in `ExperimentRegistry`. Pure logic has JVM unit tests.
 | `agent` | ReAct agent | Multi-step loop with several tools (time, calculator, device info, web search, notes, document lookup) and a visible thought/action/observation trace. Measures tool-use reliability per tier. |
 | `router` | Hybrid edge/cloud | Classify the prompt, route it (local vs cloud), cascade with escalation on low confidence, and a PII gateway that redacts locally before anything reaches the cloud. |
 | `refine` | Planner, worker, critic | Plan, execute, critique and revise; LLM-as-judge; self-consistency (N samples, majority vote); prompt-strategy comparison (zero-shot, few-shot, chain-of-thought). |
-| `bench` | Benchmark suite | Fixed task sets with automatic scorers run over every available tier and repetition; leaderboard, per-task heatmap, latency distribution, determinism, context-scaling curve. |
+| `bench` | Benchmark suite | 22 tasks in 7 categories with deterministic scorers, run over every usable tier and repetition; ranking, per-category heatmap, latency bars, determinism, device columns, saved sessions you can compare (CPU vs GPU, before vs after) and CSV/JSON export. |
+| `scaling` | Context scaling | Time to first token against prompt size per engine; the least-squares cost of a longer prompt in ms per 1000 characters. |
+| `soak` | Thermal soak | Back-to-back generations for 1-10 minutes; speed over time, first-vs-last-third change, peak thermal status and coarse battery drain. |
 | `memory` | Context management | Rolling summarisation and a long-term fact store to stay inside the 1k/2k token budgets of the small engines. |
 | `guard` | Guardrails | Prompt-injection detection, poisoned-document demo for RAG, output validation. |
 
+## Status
+
+Implemented: foundation, `sandbox`, `rag`, `agent`, `bench`, `scaling`, `soak`, device measurements. In progress: `router`
+(with the PII gateway) and `refine` (planner/critic, judge, strategies). Planned: `memory`, `guard`.
+None of the UI has been run on a device yet; pure logic is covered by JVM tests with fake executors.
+
 ## Mobile-specific measurements
 
-Beyond latency and tokens/s: battery charge and thermal status deltas per run, process memory (PSS),
-cold vs warm start, and energy per 1k tokens where the device exposes it. See the `bench` package.
+Every generation records, besides latency and tokens/s, the change in process memory (PSS, which includes the native
+memory of a loaded model), the battery charge counter and the thermal status (`DeviceProbe`, `GenerationMetric`, Room v5,
+CSV export). The battery counter is coarse and only meaningful summed over many runs; `soak` and `bench` aggregate it.
+Cold vs warm start is the separate `loadTimeMs`.
 
 ## Conventions
 
