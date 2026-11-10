@@ -1,7 +1,6 @@
 package es.sebas1705.nanodemo.feature.lab.refine
 
 import kotlinx.serialization.json.JsonObject
-import java.text.Normalizer
 
 enum class Verdict { ACCEPT, REVISE, UNKNOWN }
 
@@ -26,9 +25,6 @@ private val BARE_VERDICT = Regex(
     "(?i)\\b(accept(?:ed)?|approved?|lgtm|revise|revision|needs? (?:revision|improvement|changes)|reject(?:ed)?|aceptad[oa]|aprobad[oa]|revisar|rechazad[oa])\\b",
 )
 private val BULLET = Regex("^\\s*(?:[-*•]|\\d+[.)])\\s+(.+)$")
-
-private fun String.plain(): String =
-    Normalizer.normalize(this, Normalizer.Form.NFD).replace(Regex("\\p{M}+"), "").lowercase()
 
 /** Maps a verdict word in English or Spanish to a [Verdict]; `UNKNOWN` when it means nothing to us. */
 fun verdictFromWord(word: String): Verdict {
