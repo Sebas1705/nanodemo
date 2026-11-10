@@ -300,7 +300,7 @@ private fun Results(samples: List<BenchSample>, baseline: BenchSession?) {
                 failures.take(60).forEach { f ->
                     Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
                         Text("[${f.tier.channelLetter()}] ${titles[f.taskId] ?: f.taskId} · ${"%.2f".format(Locale.US, f.score)}", style = readoutStyle, color = f.tier.signalColor)
-                        Text(f.error ?: f.answer.ifBlank { "(sin respuesta)" }, style = MaterialTheme.typography.bodySmall, color = DemoColors.Muted)
+                        Text((f.error ?: f.answer.ifBlank { "(sin respuesta)" }).take(240), style = MaterialTheme.typography.bodySmall, color = DemoColors.Muted)
                     }
                 }
             }

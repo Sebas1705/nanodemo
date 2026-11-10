@@ -20,5 +20,8 @@ fun interface StepExecutor {
     ): StepResult
 }
 
-fun RunStepUseCase.asExecutor(): StepExecutor =
-    StepExecutor { tier, messages, config, onPartial -> this(tier, messages, config, onPartial) }
+fun RunStepUseCase.asExecutor(): StepExecutor {
+    val direct = StepExecutor { tier, messages, config, onPartial -> this(tier, messages, config, onPartial) }
+    // Free cloud tiers answer 429 above a per-minute rate; waiting it out beats failing every step after the fifth.
+    return RateLimitRetryExecutor(direct)
+}

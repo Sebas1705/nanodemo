@@ -85,6 +85,6 @@ class BenchRunner(
         BenchSample(tier = tier, taskId = task.id, category = task.category, rep = rep, score = 0.0, error = message)
 
     companion object {
-        const val DEFAULT_TIMEOUT_MS = 120_000L
+        const val DEFAULT_TIMEOUT_MS = 240_000L // room for a rate-limit wait and its retries
     }
 }

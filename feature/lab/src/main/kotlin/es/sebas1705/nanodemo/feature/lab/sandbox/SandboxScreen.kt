@@ -18,6 +18,7 @@ import androidx.compose.material3.Slider
 import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableFloatStateOf
@@ -57,6 +58,8 @@ fun SandboxScreen(viewModel: SandboxViewModel = hiltViewModel()) {
     val outcome by viewModel.outcome.collectAsState()
     val running by viewModel.running.collectAsState()
     val capabilities = viewModel.capabilities(tier)
+
+    LaunchedEffect(availability) { viewModel.applyDefaultIfNeeded(availability) }
 
     var prompt by rememberSaveable { mutableStateOf("") }
     var systemPrompt by rememberSaveable { mutableStateOf("") }

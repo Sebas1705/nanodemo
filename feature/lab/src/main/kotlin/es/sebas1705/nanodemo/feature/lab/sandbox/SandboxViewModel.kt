@@ -60,6 +60,16 @@ class SandboxViewModel @Inject constructor(
         _tier.value = tier
     }
 
+    private var defaultApplied = false
+
+    /** First time the engines are known, start on one that can actually run instead of an unavailable default. */
+    fun applyDefaultIfNeeded(availability: Map<InferenceTier, TierAvailability>) {
+        if (defaultApplied) return
+        val usable = InferenceTier.entries.firstOrNull { availability[it] == TierAvailability.AVAILABLE } ?: return
+        defaultApplied = true
+        _tier.value = usable
+    }
+
     fun run(prompt: String, config: GenerationConfig) {
         if (prompt.isBlank() || _running.value) return
         job = viewModelScope.launch {
