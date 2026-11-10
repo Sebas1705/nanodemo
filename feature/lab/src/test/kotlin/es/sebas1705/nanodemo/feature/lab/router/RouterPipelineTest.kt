@@ -273,7 +273,7 @@ class RouterPipelineTest {
     @Test
     fun `secrets in the prompt are masked before the cloud call`() {
         val fake = Fake { tier, _ -> if (tier.isCloud) ok(goodAnswer) else ok("") }
-        run(fake, "Mi clave es AIzaSyD-9tSrke72PouQMnMX-a7eZSW0jkFMBWY, ¿está bien guardada en el repositorio?")
+        run(fake, "Mi clave es AIzaSyFAKEFAKEFAKEFAKEFAKEFAKEFAKEFAKE0, ¿está bien guardada en el repositorio?")
         assertFalse(fake.calls.single { it.tier.isCloud }.text.contains("AIzaSy"))
     }
 

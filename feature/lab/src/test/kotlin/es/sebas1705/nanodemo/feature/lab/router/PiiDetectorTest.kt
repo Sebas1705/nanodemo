@@ -192,9 +192,9 @@ class PiiDetectorTest {
     @Test
     fun `provider api keys are found`() {
         assertEquals(1, values("OPENAI=sk-proj-AbCdEfGhIjKlMnOpQrStUvWx", PiiKind.SECRET).size)
-        assertEquals(1, values("clave AIzaSyD-9tSrke72PouQMnMX-a7eZSW0jkFMBWY puesta", PiiKind.SECRET).size)
+        assertEquals(1, values("clave AIzaSyFAKEFAKEFAKEFAKEFAKEFAKEFAKEFAKE0 puesta", PiiKind.SECRET).size)
         assertEquals(1, values("aws AKIAIOSFODNN7EXAMPLE", PiiKind.SECRET).size)
-        assertEquals(1, values("token ghp_16C7e42F292c6912E7710c838347Ae178B4a", PiiKind.SECRET).size)
+        assertEquals(1, values("token ghp_FAKEFAKEFAKEFAKEFAKEFAKEFAKEFAKEFAKE", PiiKind.SECRET).size)
         assertEquals(1, values("Authorization: Bearer abcdef0123456789abcdef0123456789", PiiKind.SECRET).size)
         assertEquals(1, values("jwt eyJhbGciOiJIUzI1NiJ9.eyJzdWIiOiIxMjM0NTYifQ.SflKxwRJSMeKKF2QT4fwpM", PiiKind.SECRET).size)
     }
