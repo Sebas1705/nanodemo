@@ -1,6 +1,8 @@
 package es.sebas1705.nanodemo.feature.lab.agent
 
+import androidx.annotation.StringRes
 import es.sebas1705.nanodemo.domain.models.InferenceTier
+import es.sebas1705.nanodemo.feature.lab.R
 import es.sebas1705.nanodemo.feature.lab.agent.tools.CalculatorTool
 import es.sebas1705.nanodemo.feature.lab.agent.tools.CurrentTimeTool
 import es.sebas1705.nanodemo.feature.lab.agent.tools.DeviceInfoTool
@@ -12,15 +14,15 @@ import es.sebas1705.nanodemo.feature.lab.agent.tools.ToolRegistry
 import es.sebas1705.nanodemo.feature.lab.agent.tools.UnitConverterTool
 import kotlin.math.abs
 
-/** Verdict of a checker. `reason` is shown in the UI (Spanish) when the check fails. */
+/** Verdict of a checker. `reason` is shown in the UI (already localized by the [AgentTexts] of the check) when it fails. */
 data class CheckResult(val passed: Boolean, val reason: String = "")
 
 /** One task of the suite. The checker is a pure function of the finished run. */
 class BenchmarkCase(
     val id: String,
-    val title: String,
+    @StringRes val title: Int,
     val prompt: String,
-    val check: (AgentRunResult) -> CheckResult,
+    val check: (AgentRunResult, AgentTexts) -> CheckResult,
 )
 
 /** Reusable, deterministic checks. */
@@ -31,24 +33,24 @@ object Checks {
     fun numbersIn(text: String): List<Double> =
         NUMBER.findAll(text).mapNotNull { it.value.replace(',', '.').toDoubleOrNull() }.toList()
 
-    fun containsNumber(answer: String, expected: Double, tolerance: Double = 0.05): CheckResult =
+    fun containsNumber(texts: AgentTexts, answer: String, expected: Double, tolerance: Double = 0.05): CheckResult =
         if (numbersIn(answer).any { abs(it - expected) <= tolerance }) {
             CheckResult(true)
         } else {
-            CheckResult(false, "faltó el valor ${expected.toString().removeSuffix(".0")} en la respuesta")
+            CheckResult(false, texts.missingValue(expected.toString().removeSuffix(".0")))
         }
 
     /** Accent- and case-insensitive containment of any of `words`. */
-    fun containsAny(answer: String, vararg words: String): CheckResult {
+    fun containsAny(texts: AgentTexts, answer: String, vararg words: String): CheckResult {
         val flat = fold(answer)
-        return if (words.any { fold(it) in flat }) CheckResult(true) else CheckResult(false, "faltó «${words.first()}» en la respuesta")
+        return if (words.any { fold(it) in flat }) CheckResult(true) else CheckResult(false, texts.missingWord(words.first()))
     }
 
-    fun usedTool(run: AgentRunResult, tool: String): CheckResult =
-        if (tool in run.toolsUsed()) CheckResult(true) else CheckResult(false, "no usó la herramienta $tool")
+    fun usedTool(texts: AgentTexts, run: AgentRunResult, tool: String): CheckResult =
+        if (tool in run.toolsUsed()) CheckResult(true) else CheckResult(false, texts.toolNotUsed(tool))
 
-    fun usedNoTools(run: AgentRunResult): CheckResult =
-        if (run.toolCalls.isEmpty()) CheckResult(true) else CheckResult(false, "usó herramientas sin necesitarlas (${run.toolsUsed().joinToString()})")
+    fun usedNoTools(texts: AgentTexts, run: AgentRunResult): CheckResult =
+        if (run.toolCalls.isEmpty()) CheckResult(true) else CheckResult(false, texts.toolsNotNeeded(run.toolsUsed().joinToString()))
 
     /** All checks must pass; the first failure's reason is reported. */
     fun all(vararg checks: CheckResult): CheckResult = checks.firstOrNull { !it.passed } ?: CheckResult(true)
@@ -65,55 +67,55 @@ object Checks {
  */
 object BenchmarkSuite {
     val cases: List<BenchmarkCase> = listOf(
-        BenchmarkCase("percent", "Porcentaje", "¿Cuánto es el 17% de 2350?") { run ->
-            Checks.containsNumber(run.answer, 399.5)
+        BenchmarkCase("percent", R.string.agent_case_percent, "¿Cuánto es el 17% de 2350?") { run, texts ->
+            Checks.containsNumber(texts, run.answer, 399.5)
         },
-        BenchmarkCase("expression", "Expresión con paréntesis", "Calcula (125 + 75) * 3 - 40 / 8") { run ->
-            Checks.containsNumber(run.answer, 595.0)
+        BenchmarkCase("expression", R.string.agent_case_expression, "Calcula (125 + 75) * 3 - 40 / 8") { run, texts ->
+            Checks.containsNumber(texts, run.answer, 595.0)
         },
-        BenchmarkCase("minutes", "Minutos entre horas", "¿Cuántos minutos hay entre las 09:15 y las 17:50?") { run ->
-            Checks.containsNumber(run.answer, 515.0)
+        BenchmarkCase("minutes", R.string.agent_case_minutes, "¿Cuántos minutos hay entre las 09:15 y las 17:50?") { run, texts ->
+            Checks.containsNumber(texts, run.answer, 515.0)
         },
-        BenchmarkCase("fahrenheit", "Fahrenheit a Celsius", "Convierte 72 grados Fahrenheit a Celsius.") { run ->
-            Checks.containsNumber(run.answer, 22.2, tolerance = 0.1)
+        BenchmarkCase("fahrenheit", R.string.agent_case_fahrenheit, "Convierte 72 grados Fahrenheit a Celsius.") { run, texts ->
+            Checks.containsNumber(texts, run.answer, 22.2, tolerance = 0.1)
         },
-        BenchmarkCase("miles", "Millas a kilómetros", "¿Cuántos kilómetros son 26.2 millas?") { run ->
-            Checks.containsNumber(run.answer, 42.16, tolerance = 0.1)
+        BenchmarkCase("miles", R.string.agent_case_miles, "¿Cuántos kilómetros son 26.2 millas?") { run, texts ->
+            Checks.containsNumber(texts, run.answer, 42.16, tolerance = 0.1)
         },
-        BenchmarkCase("time", "Hora en otra ciudad", "¿Qué hora es ahora mismo en Tokio?") { run ->
-            val usedTime = Checks.usedTool(run, "current_time")
+        BenchmarkCase("time", R.string.agent_case_time, "¿Qué hora es ahora mismo en Tokio?") { run, texts ->
+            val usedTime = Checks.usedTool(texts, run, "current_time")
             val zoneOk = if (run.toolCalls.any { it.tool == "current_time" && "tokyo" in it.input.lowercase() + it.output.lowercase() }) {
                 CheckResult(true)
             } else {
-                CheckResult(false, "no pidió la zona Asia/Tokyo")
+                CheckResult(false, texts.noZone)
             }
-            val hasClock = if (Regex("""\d{1,2}[:.]\d{2}""").containsMatchIn(run.answer)) CheckResult(true) else CheckResult(false, "la respuesta no trae una hora")
+            val hasClock = if (Regex("""\d{1,2}[:.]\d{2}""").containsMatchIn(run.answer)) CheckResult(true) else CheckResult(false, texts.noClock)
             Checks.all(usedTime, zoneOk, hasClock)
         },
-        BenchmarkCase("battery", "Batería del móvil", "¿Cuál es mi nivel de batería?") { run ->
-            Checks.all(Checks.usedTool(run, "device_info"), Checks.containsNumber(run.answer, BenchmarkEnvironment.BATTERY_PERCENT.toDouble(), 0.0))
+        BenchmarkCase("battery", R.string.agent_case_battery, "¿Cuál es mi nivel de batería?") { run, texts ->
+            Checks.all(Checks.usedTool(texts, run, "device_info"), Checks.containsNumber(texts, run.answer, BenchmarkEnvironment.BATTERY_PERCENT.toDouble(), 0.0))
         },
-        BenchmarkCase("notes", "Guardar y leer una nota", "Guarda la nota «comprar leche» y después léeme mis notas.") { run ->
+        BenchmarkCase("notes", R.string.agent_case_notes, "Guarda la nota «comprar leche» y después léeme mis notas.") { run, texts ->
             val notes = run.toolCalls.filter { it.tool == "notes" }
             val saved = notes.any { it.ok && it.output.startsWith("saved") }
             val readAfterSave = notes.dropWhile { !(it.ok && it.output.startsWith("saved")) }.drop(1).any { it.ok && "leche" in it.output.lowercase() }
             when {
-                !saved -> CheckResult(false, "no llegó a guardar la nota")
-                !readAfterSave -> CheckResult(false, "no leyó las notas después de guardar")
-                else -> Checks.containsAny(run.answer, "leche")
+                !saved -> CheckResult(false, texts.noteNotSaved)
+                !readAfterSave -> CheckResult(false, texts.noteNotRead)
+                else -> Checks.containsAny(texts, run.answer, "leche")
             }
         },
-        BenchmarkCase("two-tools", "Dos herramientas en secuencia", "Mira cuánta batería tengo y calcula cuántos puntos porcentuales me faltan para llegar al 100%.") { run ->
+        BenchmarkCase("two-tools", R.string.agent_case_two_tools, "Mira cuánta batería tengo y calcula cuántos puntos porcentuales me faltan para llegar al 100%.") { run, texts ->
             Checks.all(
-                Checks.usedTool(run, "device_info"),
-                Checks.containsNumber(run.answer, (100 - BenchmarkEnvironment.BATTERY_PERCENT).toDouble(), 0.0),
+                Checks.usedTool(texts, run, "device_info"),
+                Checks.containsNumber(texts, run.answer, (100 - BenchmarkEnvironment.BATTERY_PERCENT).toDouble(), 0.0),
             )
         },
-        BenchmarkCase("no-tool-capital", "Sin herramienta: capital", "¿Cuál es la capital de Francia?") { run ->
-            Checks.all(Checks.containsAny(run.answer, "París"), Checks.usedNoTools(run))
+        BenchmarkCase("no-tool-capital", R.string.agent_case_no_tool_capital, "¿Cuál es la capital de Francia?") { run, texts ->
+            Checks.all(Checks.containsAny(texts, run.answer, "París"), Checks.usedNoTools(texts, run))
         },
-        BenchmarkCase("no-tool-week", "Sin herramienta: días", "¿Cuántos días tiene una semana?") { run ->
-            Checks.all(Checks.containsAny(run.answer, "7", "siete"), Checks.usedNoTools(run))
+        BenchmarkCase("no-tool-week", R.string.agent_case_no_tool_week, "¿Cuántos días tiene una semana?") { run, texts ->
+            Checks.all(Checks.containsAny(texts, run.answer, "7", "siete"), Checks.usedNoTools(texts, run))
         },
     )
 }
@@ -147,19 +149,11 @@ data class BenchmarkOutcome(val case: BenchmarkCase, val tier: InferenceTier, va
     val failureReason: String?
         get() = when {
             passed -> null
-            !run.succeeded -> run.outcome.describe()
+            !run.succeeded && check.reason.isBlank() -> run.outcome.name
             else -> check.reason
         }
 }
 
-fun AgentOutcome.describe(): String = when (this) {
-    AgentOutcome.ANSWERED -> "respondió"
-    AgentOutcome.MAX_STEPS -> "se quedó sin pasos"
-    AgentOutcome.TIMEOUT -> "se acabó el tiempo"
-    AgentOutcome.LOOP -> "entró en un bucle"
-    AgentOutcome.FORMAT_FAILURE -> "no siguió el formato"
-    AgentOutcome.MODEL_ERROR -> "error del motor"
-}
 
 /** Aggregated figures of one tier over the tasks it ran. */
 data class TierSummary(
@@ -176,8 +170,8 @@ data class TierSummary(
 }
 
 object BenchmarkAggregator {
-    fun check(case: BenchmarkCase, run: AgentRunResult): BenchmarkOutcome =
-        BenchmarkOutcome(case, run.tier, run, if (run.succeeded) case.check(run) else CheckResult(false, run.outcome.describe()))
+    fun check(case: BenchmarkCase, run: AgentRunResult, texts: AgentTexts = AgentTexts): BenchmarkOutcome =
+        BenchmarkOutcome(case, run.tier, run, if (run.succeeded) case.check(run, texts) else CheckResult(false, texts.outcome(run.outcome)))
 
     /** One summary per tier that has outcomes, in tier order. */
     fun summarize(outcomes: List<BenchmarkOutcome>): List<TierSummary> =

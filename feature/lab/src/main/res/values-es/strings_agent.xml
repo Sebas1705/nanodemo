@@ -1,0 +1,133 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="agent_mode_agent">Agente</string>
+    <string name="agent_mode_reliability">Fiabilidad</string>
+    <string name="agent_section_engine">Motor</string>
+    <string name="agent_task_label">Tarea</string>
+    <string name="agent_suggestion_percent">¿Cuánto es el 17% de 2350?</string>
+    <string name="agent_suggestion_time">¿Qué hora es ahora mismo en Tokio?</string>
+    <string name="agent_suggestion_battery">¿Cuál es mi nivel de batería?</string>
+    <string name="agent_suggestion_fahrenheit">Convierte 72 grados Fahrenheit a Celsius.</string>
+    <string name="agent_suggestion_notes">Guarda la nota «comprar leche» y después léeme mis notas.</string>
+    <string name="agent_suggestion_two_tools">Mira cuánta batería tengo y calcula cuántos puntos me faltan para el 100%.</string>
+    <string name="agent_suggestion_capital">¿Cuál es la capital de Francia?</string>
+
+    <string name="agent_section_tools">Herramientas</string>
+    <string name="agent_tool_calculator_description">Aritmética exacta con paréntesis, potencias, raíces y porcentajes.</string>
+    <string name="agent_tool_current_time_description">Fecha y hora actuales en cualquier zona horaria o ciudad.</string>
+    <string name="agent_tool_device_info_description">Estado de este móvil: batería y carga, red, RAM libre y almacenamiento libre.</string>
+    <string name="agent_tool_notes_description">Notas cortas persistentes: guarda una nota o lista todas las guardadas.</string>
+    <string name="agent_tool_unit_converter_description">Convierte unidades de longitud, masa, volumen y temperatura.</string>
+    <string name="agent_tool_web_search_description">Busca en la web datos y noticias actuales y devuelve los primeros resultados.</string>
+    <string name="agent_web_search_unavailable">web_search no está disponible: falta configurar BRAVE_SEARCH_API_KEY.</string>
+    <string name="agent_notes_saved">Notas guardadas: %1$d</string>
+    <string name="agent_clear_notes">Borrar notas</string>
+    <string name="agent_context_warning">Con tantas herramientas casi no queda contexto para los pasos; prueba a desactivar alguna.</string>
+    <string name="agent_section_max_steps">Pasos máximos</string>
+    <string name="agent_run">Ejecutar</string>
+    <string name="agent_working">Trabajando…</string>
+    <string name="agent_cancel">Cancelar</string>
+    <string name="agent_engine_unavailable">Este motor no está disponible ahora mismo: elige otro.</string>
+    <string name="agent_last_obtained">Lo último que se obtuvo</string>
+
+    <string name="agent_readout_steps">%1$d/%2$d pasos</string>
+    <plurals name="agent_readout_tools">
+        <item quantity="one">%d herramienta</item>
+        <item quantity="other">%d herramientas</item>
+    </plurals>
+    <plurals name="agent_readout_format_failures">
+        <item quantity="one">%d fallo de formato</item>
+        <item quantity="other">%d fallos de formato</item>
+    </plurals>
+    <string name="agent_failure_max_steps">El agente agotó los %1$d pasos sin dar una respuesta final.</string>
+    <string name="agent_failure_timeout">Se agotó el presupuesto de tiempo antes de terminar.</string>
+    <string name="agent_failure_loop">El agente repitió la misma acción y se detuvo para no dar vueltas.</string>
+    <string name="agent_failure_format">El modelo no consigue seguir el formato Pensamiento/Acción: se detuvo tras varios intentos.</string>
+    <string name="agent_failure_model_error">El motor falló: %1$s</string>
+    <string name="agent_unknown_error">error desconocido</string>
+
+    <plurals name="agent_bench_intro">
+        <item quantity="one">La misma %1$d tarea en cada motor, con comprobaciones automáticas. El móvil es simulado (batería %2$d%%) para que la respuesta correcta sea siempre la misma.</item>
+        <item quantity="other">Las mismas %1$d tareas en cada motor, con comprobaciones automáticas. El móvil es simulado (batería %2$d%%) para que la respuesta correcta sea siempre la misma.</item>
+    </plurals>
+    <string name="agent_section_bench_engines">Motores a medir</string>
+    <string name="agent_no_engines">Ningún motor está disponible ahora mismo.</string>
+    <plurals name="agent_bench_run">
+        <item quantity="one">Ejecutar %1$d tareas × %2$d motor</item>
+        <item quantity="other">Ejecutar %1$d tareas × %2$d motores</item>
+    </plurals>
+    <string name="agent_measuring">Midiendo…</string>
+    <plurals name="agent_bench_progress">
+        <item quantity="one">%1$d de %2$d ejecución</item>
+        <item quantity="other">%1$d de %2$d ejecuciones</item>
+    </plurals>
+    <string name="agent_section_bench_result">Resultado por motor</string>
+    <string name="agent_section_bench_detail">Detalle por tarea</string>
+    <plurals name="agent_summary_passed">
+        <item quantity="one">%1$d de %2$d tarea correcta</item>
+        <item quantity="other">%1$d de %2$d tareas correctas</item>
+    </plurals>
+    <string name="agent_summary_avg_steps">pasos de media</string>
+    <string name="agent_summary_format_failures">fallos de formato</string>
+    <string name="agent_summary_tool_errors">errores de herramienta</string>
+    <string name="agent_summary_loops">bucles</string>
+    <string name="agent_summary_avg_time">tiempo medio</string>
+
+    <!-- Titles of the reliability suite tasks. The prompts sent to the model stay in code. -->
+    <string name="agent_case_percent">Porcentaje</string>
+    <string name="agent_case_expression">Expresión con paréntesis</string>
+    <string name="agent_case_minutes">Minutos entre horas</string>
+    <string name="agent_case_fahrenheit">Fahrenheit a Celsius</string>
+    <string name="agent_case_miles">Millas a kilómetros</string>
+    <string name="agent_case_time">Hora en otra ciudad</string>
+    <string name="agent_case_battery">Batería del móvil</string>
+    <string name="agent_case_notes">Guardar y leer una nota</string>
+    <string name="agent_case_two_tools">Dos herramientas en secuencia</string>
+    <string name="agent_case_no_tool_capital">Sin herramienta: capital</string>
+    <string name="agent_case_no_tool_week">Sin herramienta: días</string>
+
+    <!-- Why a run ended -->
+    <string name="agent_outcome_answered">respondió</string>
+    <string name="agent_outcome_max_steps">se quedó sin pasos</string>
+    <string name="agent_outcome_timeout">se acabó el tiempo</string>
+    <string name="agent_outcome_loop">entró en un bucle</string>
+    <string name="agent_outcome_format_failure">no siguió el formato</string>
+    <string name="agent_outcome_model_error">error del motor</string>
+
+    <!-- Why a task check failed -->
+    <string name="agent_check_missing_value">faltó el valor %1$s en la respuesta</string>
+    <string name="agent_check_missing_word">faltó «%1$s» en la respuesta</string>
+    <string name="agent_check_tool_not_used">no usó la herramienta %1$s</string>
+    <string name="agent_check_tools_not_needed">usó herramientas sin necesitarlas (%1$s)</string>
+    <string name="agent_check_no_zone">no pidió la zona Asia/Tokyo</string>
+    <string name="agent_check_no_clock">la respuesta no trae una hora</string>
+    <string name="agent_check_note_not_saved">no llegó a guardar la nota</string>
+    <string name="agent_check_note_not_read">no leyó las notas después de guardar</string>
+
+    <!-- Trace titles, details and reasons written by the agent loop -->
+    <string name="agent_msg_no_answer">Sin respuesta</string>
+    <plurals name="agent_msg_max_steps_reason">
+        <item quantity="one">límite de %d paso alcanzado</item>
+        <item quantity="other">límite de %d pasos alcanzado</item>
+    </plurals>
+    <string name="agent_msg_time_budget_spent">presupuesto de tiempo agotado</string>
+    <string name="agent_msg_think_title">Paso %1$d · pensar</string>
+    <string name="agent_msg_model_error">Error del modelo</string>
+    <string name="agent_msg_final_title">Respuesta final</string>
+    <plurals name="agent_msg_steps">
+        <item quantity="one">%d paso</item>
+        <item quantity="other">%d pasos</item>
+    </plurals>
+    <plurals name="agent_msg_tools">
+        <item quantity="one">%d herramienta</item>
+        <item quantity="other">%d herramientas</item>
+    </plurals>
+    <string name="agent_msg_no_label">sin etiqueta «Final Answer»</string>
+    <string name="agent_msg_invalid_format">Formato no válido</string>
+    <string name="agent_msg_model_ignores_format">el modelo no sigue el formato</string>
+    <string name="agent_msg_repeated_title">Repetida · %1$s</string>
+    <string name="agent_msg_repeated_not_run">misma acción y entrada que antes; no se ejecuta</string>
+    <string name="agent_msg_repeats_action">el modelo repite la misma acción</string>
+    <string name="agent_msg_tool_title">Paso %1$d · %2$s</string>
+    <string name="agent_msg_cancelled">cancelado</string>
+</resources>

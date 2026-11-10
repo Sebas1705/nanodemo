@@ -2,7 +2,10 @@ package es.sebas1705.nanodemo.feature.lab.agent
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import android.content.Context
+import androidx.annotation.StringRes
 import dagger.hilt.android.lifecycle.HiltViewModel
+import dagger.hilt.android.qualifiers.ApplicationContext
 import es.sebas1705.nanodemo.core.common.WebSearchTool
 import es.sebas1705.nanodemo.domain.models.InferenceTier
 import es.sebas1705.nanodemo.domain.models.PipelineTrace
@@ -11,6 +14,7 @@ import es.sebas1705.nanodemo.domain.models.TierCapabilities
 import es.sebas1705.nanodemo.domain.usescases.inference.CapabilitiesOfUseCase
 import es.sebas1705.nanodemo.domain.usescases.inference.ObserveAvailabilityUseCase
 import es.sebas1705.nanodemo.domain.usescases.inference.RunStepUseCase
+import es.sebas1705.nanodemo.feature.lab.R
 import es.sebas1705.nanodemo.feature.lab.agent.tools.AndroidDeviceInfoProvider
 import es.sebas1705.nanodemo.feature.lab.agent.tools.CalculatorTool
 import es.sebas1705.nanodemo.feature.lab.agent.tools.CurrentTimeTool
@@ -32,8 +36,22 @@ import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import javax.inject.Inject
 
-/** A tool as the UI lists it. */
-data class ToolOption(val name: String, val description: String)
+/**
+ * A tool as the UI lists it. `description` is the localized string resource for the user; tools without one fall
+ * back to the model-facing English `fallbackDescription`.
+ */
+data class ToolOption(val name: String, @StringRes val description: Int?, val fallbackDescription: String)
+
+@StringRes
+private fun toolDescriptionRes(name: String): Int? = when (name) {
+    "calculator" -> R.string.agent_tool_calculator_description
+    "current_time" -> R.string.agent_tool_current_time_description
+    "device_info" -> R.string.agent_tool_device_info_description
+    "notes" -> R.string.agent_tool_notes_description
+    "unit_converter" -> R.string.agent_tool_unit_converter_description
+    "web_search" -> R.string.agent_tool_web_search_description
+    else -> null
+}
 
 /** Live state of the reliability suite. `done` of `total` runs are finished; `current` is the one running. */
 data class BenchmarkState(
@@ -41,7 +59,7 @@ data class BenchmarkState(
     val outcomes: List<BenchmarkOutcome> = emptyList(),
     val total: Int = 0,
     val currentTier: InferenceTier? = null,
-    val currentCase: String? = null,
+    val currentCase: BenchmarkCase? = null,
 ) {
     val done: Int get() = outcomes.size
 }
@@ -58,10 +76,12 @@ class AgentViewModel @Inject constructor(
     private val capabilitiesOf: CapabilitiesOfUseCase,
     deviceInfo: AndroidDeviceInfoProvider,
     private val notesStore: PrefsNotesStore,
+    @ApplicationContext context: Context,
 ) : ViewModel() {
 
     private val pipeline = PipelineRunner(runStep.asExecutor())
-    private val agent = AgentRunner(pipeline)
+    private val texts = AndroidAgentTexts(context)
+    private val agent = AgentRunner(pipeline, texts = texts)
 
     /** Web search is only offered when the Brave key is configured. */
     val webSearchConfigured: Boolean = WebSearchTool.isConfigured
@@ -75,7 +95,7 @@ class AgentViewModel @Inject constructor(
         if (webSearchConfigured) add(WebSearchAgentTool())
     }
 
-    val toolOptions: List<ToolOption> = allTools.map { ToolOption(it.name, it.description) }
+    val toolOptions: List<ToolOption> = allTools.map { ToolOption(it.name, toolDescriptionRes(it.name), it.description) }
 
     val availability: StateFlow<Map<InferenceTier, TierAvailability>> = observeAvailability()
     val trace: StateFlow<PipelineTrace> = pipeline.recorder.trace
@@ -126,16 +146,12 @@ class AgentViewModel @Inject constructor(
         _noteCount.value = 0
     }
 
-    /** Prompt-size warning for the current selection, or `null` when everything fits comfortably. */
-    fun contextWarning(tier: InferenceTier, enabled: Set<String>): String? {
+    /** Whether the fixed part of the prompt (protocol and tool list) leaves little room for the steps. */
+    fun toolsCrowdContext(tier: InferenceTier, enabled: Set<String>): Boolean {
         val budget = AgentBudget.forTier(tier, capabilities(tier).contextTokens)
         val tools = allTools.filter { it.name in enabled }
         val fixed = AgentPrompt.fixedPart(tools, budget.style).length
-        return if (fixed > budget.promptChars * FIXED_SHARE_LIMIT) {
-            "Con tantas herramientas casi no queda contexto para los pasos; prueba a desactivar alguna."
-        } else {
-            null
-        }
+        return fixed > budget.promptChars * FIXED_SHARE_LIMIT
     }
 
     fun run(task: String) {
@@ -179,7 +195,7 @@ class AgentViewModel @Inject constructor(
             try {
                 for (tier in tiers) {
                     for (case in cases) {
-                        _benchmark.update { it.copy(currentTier = tier, currentCase = case.title) }
+                        _benchmark.update { it.copy(currentTier = tier, currentCase = case) }
                         pipeline.recorder.reset()
                         val run = agent.run(
                             task = case.prompt,
@@ -188,7 +204,7 @@ class AgentViewModel @Inject constructor(
                             capabilities = capabilities(tier),
                             settings = AgentSettings(timeBudgetMs = BENCH_TIME_BUDGET_MS),
                         )
-                        _benchmark.update { it.copy(outcomes = it.outcomes + BenchmarkAggregator.check(case, run)) }
+                        _benchmark.update { it.copy(outcomes = it.outcomes + BenchmarkAggregator.check(case, run, texts)) }
                     }
                 }
             } finally {

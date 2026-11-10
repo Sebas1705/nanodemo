@@ -1,5 +1,6 @@
 package es.sebas1705.nanodemo.feature.lab.agent
 
+import androidx.annotation.StringRes
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -40,6 +41,8 @@ import androidx.compose.foundation.clickable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
+import androidx.compose.ui.res.pluralStringResource
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import es.sebas1705.nanodemo.core.designsystem.AdaptiveGrid
@@ -76,13 +79,13 @@ val agentExperiment = Experiment(
 )
 
 private val SUGGESTED_TASKS = listOf(
-    "¿Cuánto es el 17% de 2350?",
-    "¿Qué hora es ahora mismo en Tokio?",
-    "¿Cuál es mi nivel de batería?",
-    "Convierte 72 grados Fahrenheit a Celsius.",
-    "Guarda la nota «comprar leche» y después léeme mis notas.",
-    "Mira cuánta batería tengo y calcula cuántos puntos me faltan para el 100%.",
-    "¿Cuál es la capital de Francia?",
+    R.string.agent_suggestion_percent,
+    R.string.agent_suggestion_time,
+    R.string.agent_suggestion_battery,
+    R.string.agent_suggestion_fahrenheit,
+    R.string.agent_suggestion_notes,
+    R.string.agent_suggestion_two_tools,
+    R.string.agent_suggestion_capital,
 )
 
 private val STEP_CHOICES = listOf(4, 6, 8, 10)
@@ -104,7 +107,7 @@ fun AgentScreen(viewModel: AgentViewModel = hiltViewModel()) {
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 private fun ModeSwitch(selected: Int, onSelect: (Int) -> Unit) {
-    val labels = listOf("Agente", "Fiabilidad")
+    val labels = listOf(stringResource(R.string.agent_mode_agent), stringResource(R.string.agent_mode_reliability))
     SingleChoiceSegmentedButtonRow(Modifier.fillMaxWidth()) {
         labels.forEachIndexed { index, text ->
             SegmentedButton(
@@ -128,36 +131,41 @@ private fun AgentRunPanel(viewModel: AgentViewModel) {
     val noteCount by viewModel.noteCount.collectAsState()
     var task by rememberSaveable { mutableStateOf("") }
 
-    SectionLabel("Motor")
+    SectionLabel(stringResource(R.string.agent_section_engine))
     LabTierSelector(tier, availability, viewModel::selectTier)
 
     OutlinedTextField(
         value = task,
         onValueChange = { task = it },
-        label = { Text("Tarea") },
+        label = { Text(stringResource(R.string.agent_task_label)) },
         modifier = Modifier.fillMaxWidth(),
         minLines = 2,
     )
     LazyRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-        items(SUGGESTED_TASKS) { suggestion ->
+        items(SUGGESTED_TASKS) { suggestionRes ->
+            val suggestion = stringResource(suggestionRes)
             AssistChip(onClick = { task = suggestion }, label = { Text(suggestion, maxLines = 1) })
         }
     }
 
     AppCard(Modifier.fillMaxWidth()) {
-        SectionLabel("Herramientas")
+        SectionLabel(stringResource(R.string.agent_section_tools))
         viewModel.toolOptions.forEach { option ->
             Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(12.dp)) {
                 Switch(checked = option.name in enabled, onCheckedChange = { viewModel.setToolEnabled(option.name, it) })
                 Column(Modifier.weight(1f)) {
                     Text(option.name, style = readoutStyle, color = DemoColors.Ink)
-                    Text(option.description, style = MaterialTheme.typography.bodySmall, color = DemoColors.Muted)
+                    Text(
+                        option.description?.let { stringResource(it) } ?: option.fallbackDescription,
+                        style = MaterialTheme.typography.bodySmall,
+                        color = DemoColors.Muted,
+                    )
                 }
             }
         }
         if (!viewModel.webSearchConfigured) {
             Text(
-                "web_search no está disponible: falta configurar BRAVE_SEARCH_API_KEY.",
+                stringResource(R.string.agent_web_search_unavailable),
                 style = MaterialTheme.typography.bodySmall,
                 color = DemoColors.Muted,
             )
@@ -165,21 +173,21 @@ private fun AgentRunPanel(viewModel: AgentViewModel) {
         if (noteCount > 0) {
             Row(verticalAlignment = Alignment.CenterVertically) {
                 Text(
-                    "Notas guardadas: $noteCount",
+                    stringResource(R.string.agent_notes_saved, noteCount),
                     style = MaterialTheme.typography.bodySmall,
                     color = DemoColors.Muted,
                     modifier = Modifier.weight(1f),
                 )
-                TextButton(onClick = viewModel::clearNotes) { Text("Borrar notas") }
+                TextButton(onClick = viewModel::clearNotes) { Text(stringResource(R.string.agent_clear_notes)) }
             }
         }
-        viewModel.contextWarning(tier, enabled)?.let {
-            Text(it, style = MaterialTheme.typography.bodySmall, color = DemoColors.TierB)
+        if (viewModel.toolsCrowdContext(tier, enabled)) {
+            Text(stringResource(R.string.agent_context_warning), style = MaterialTheme.typography.bodySmall, color = DemoColors.TierB)
         }
     }
 
     AppCard(Modifier.fillMaxWidth()) {
-        SectionLabel("Pasos máximos")
+        SectionLabel(stringResource(R.string.agent_section_max_steps))
         LazyRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
             items(STEP_CHOICES) { n ->
                 FilterChip(selected = maxSteps == n, onClick = { viewModel.setMaxSteps(n) }, label = { Text("$n") })
@@ -191,11 +199,11 @@ private fun AgentRunPanel(viewModel: AgentViewModel) {
         Button(
             onClick = { viewModel.run(task) },
             enabled = task.isNotBlank() && !running && availability.isUsable(tier),
-        ) { Text(if (running) "Trabajando…" else "Ejecutar") }
-        if (running) OutlinedButton(onClick = viewModel::cancel) { Text("Cancelar") }
+        ) { Text(stringResource(if (running) R.string.agent_working else R.string.agent_run)) }
+        if (running) OutlinedButton(onClick = viewModel::cancel) { Text(stringResource(R.string.agent_cancel)) }
     }
     if (!availability.isUsable(tier)) {
-        Text("Este motor no está disponible ahora mismo: elige otro.", style = MaterialTheme.typography.bodySmall, color = DemoColors.Muted)
+        Text(stringResource(R.string.agent_engine_unavailable), style = MaterialTheme.typography.bodySmall, color = DemoColors.Muted)
     }
 
     PipelineTraceView(trace)
@@ -214,7 +222,7 @@ private fun ResultCard(result: AgentRunResult) {
         ErrorCard(failureMessage(result))
         if (result.answer.isNotBlank()) {
             AppCard(Modifier.fillMaxWidth()) {
-                SectionLabel("Lo último que se obtuvo")
+                SectionLabel(stringResource(R.string.agent_last_obtained))
                 MarkdownText(result.answer)
             }
         }
@@ -222,21 +230,28 @@ private fun ResultCard(result: AgentRunResult) {
     }
 }
 
+@Composable
 private fun runReadout(result: AgentRunResult): String = buildList {
-    add("${result.steps}/${result.maxSteps} pasos")
-    add("${result.toolCalls.size} ${if (result.toolCalls.size == 1) "herramienta" else "herramientas"}")
+    add(stringResource(R.string.agent_readout_steps, result.steps, result.maxSteps))
+    add(pluralStringResource(R.plurals.agent_readout_tools, result.toolCalls.size, result.toolCalls.size))
     add(formatDuration(result.durationMs))
     if (result.tokens > 0) add("~${result.tokens} tok")
-    if (result.parseFailures > 0) add("${result.parseFailures} fallos de formato")
+    if (result.parseFailures > 0) {
+        add(pluralStringResource(R.plurals.agent_readout_format_failures, result.parseFailures, result.parseFailures))
+    }
 }.joinToString(" · ")
 
+@Composable
 private fun failureMessage(result: AgentRunResult): String = when (result.outcome) {
     AgentOutcome.ANSWERED -> ""
-    AgentOutcome.MAX_STEPS -> "El agente agotó los ${result.maxSteps} pasos sin dar una respuesta final."
-    AgentOutcome.TIMEOUT -> "Se agotó el presupuesto de tiempo antes de terminar."
-    AgentOutcome.LOOP -> "El agente repitió la misma acción y se detuvo para no dar vueltas."
-    AgentOutcome.FORMAT_FAILURE -> "El modelo no consigue seguir el formato Pensamiento/Acción: se detuvo tras varios intentos."
-    AgentOutcome.MODEL_ERROR -> "El motor falló: ${result.error ?: "error desconocido"}"
+    AgentOutcome.MAX_STEPS -> stringResource(R.string.agent_failure_max_steps, result.maxSteps)
+    AgentOutcome.TIMEOUT -> stringResource(R.string.agent_failure_timeout)
+    AgentOutcome.LOOP -> stringResource(R.string.agent_failure_loop)
+    AgentOutcome.FORMAT_FAILURE -> stringResource(R.string.agent_failure_format)
+    AgentOutcome.MODEL_ERROR -> stringResource(
+        R.string.agent_failure_model_error,
+        result.error ?: stringResource(R.string.agent_unknown_error),
+    )
 }
 
 @Composable
@@ -250,13 +265,12 @@ private fun BenchmarkPanel(viewModel: AgentViewModel) {
     val cases = BenchmarkSuite.cases
 
     Text(
-        "Las mismas ${cases.size} tareas en cada motor, con comprobaciones automáticas. El móvil es simulado " +
-            "(batería ${BenchmarkEnvironment.BATTERY_PERCENT}%) para que la respuesta correcta sea siempre la misma.",
+        pluralStringResource(R.plurals.agent_bench_intro, cases.size, cases.size, BenchmarkEnvironment.BATTERY_PERCENT),
         style = MaterialTheme.typography.bodyMedium,
         color = DemoColors.Muted,
     )
 
-    SectionLabel("Motores a medir")
+    SectionLabel(stringResource(R.string.agent_section_bench_engines))
     LazyRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
         items(InferenceTier.entries) { tier ->
             val isUsable = tier in usable
@@ -269,20 +283,26 @@ private fun BenchmarkPanel(viewModel: AgentViewModel) {
         }
     }
     if (usable.isEmpty()) {
-        Text("Ningún motor está disponible ahora mismo.", style = MaterialTheme.typography.bodySmall, color = DemoColors.Muted)
+        Text(stringResource(R.string.agent_no_engines), style = MaterialTheme.typography.bodySmall, color = DemoColors.Muted)
     }
 
     Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
         Button(onClick = viewModel::runBenchmark, enabled = !state.running && selected.isNotEmpty()) {
-            Text(if (state.running) "Midiendo…" else "Ejecutar ${cases.size} tareas × ${selected.size} motor(es)")
+            Text(
+                if (state.running) {
+                    stringResource(R.string.agent_measuring)
+                } else {
+                    pluralStringResource(R.plurals.agent_bench_run, selected.size, cases.size, selected.size)
+                },
+            )
         }
-        if (state.running) OutlinedButton(onClick = viewModel::cancel) { Text("Cancelar") }
+        if (state.running) OutlinedButton(onClick = viewModel::cancel) { Text(stringResource(R.string.agent_cancel)) }
     }
 
     if (state.running) {
         AppCard(Modifier.fillMaxWidth()) {
             Text(
-                "${state.currentTier?.label().orEmpty()} · ${state.currentCase.orEmpty()}",
+                "${state.currentTier?.label().orEmpty()} · ${state.currentCase?.let { stringResource(it.title) }.orEmpty()}",
                 style = MaterialTheme.typography.bodyMedium,
                 color = DemoColors.Ink,
             )
@@ -290,18 +310,21 @@ private fun BenchmarkPanel(viewModel: AgentViewModel) {
                 progress = { if (state.total == 0) 0f else state.done.toFloat() / state.total },
                 modifier = Modifier.fillMaxWidth(),
             )
-            Text("${state.done} de ${state.total} ejecuciones", style = readoutStyle, color = DemoColors.Muted)
+            Text(
+                pluralStringResource(R.plurals.agent_bench_progress, state.total, state.done, state.total),
+                style = readoutStyle, color = DemoColors.Muted,
+            )
         }
         PipelineTraceView(trace)
     }
 
     if (state.outcomes.isNotEmpty()) {
         val summaries = BenchmarkAggregator.summarize(state.outcomes)
-        SectionLabel("Resultado por motor")
+        SectionLabel(stringResource(R.string.agent_section_bench_result))
         AdaptiveGrid(summaries, rememberScreenSizeClass().tierColumns, Modifier.fillMaxWidth()) { summary, modifier ->
             SummaryCard(summary, modifier)
         }
-        SectionLabel("Detalle por tarea")
+        SectionLabel(stringResource(R.string.agent_section_bench_detail))
         cases.forEach { case ->
             val rows = state.outcomes.filter { it.case.id == case.id }
             if (rows.isNotEmpty()) CaseRow(case, rows)
@@ -317,19 +340,22 @@ private fun SummaryCard(summary: TierSummary, modifier: Modifier) {
             Text(summary.tier.label(), style = MaterialTheme.typography.titleSmall, color = DemoColors.Ink, modifier = Modifier.weight(1f))
         }
         Text("${(summary.successRate * 100).toInt()}%", style = MaterialTheme.typography.headlineMedium, color = DemoColors.Ink)
-        Text("${summary.passed} de ${summary.runs} tareas correctas", style = readoutStyle, color = DemoColors.Muted)
-        Readout("pasos de media", "%.1f".format(summary.avgSteps))
-        Readout("fallos de formato", "${summary.parseFailures}")
-        Readout("errores de herramienta", "${summary.toolErrors}")
-        Readout("bucles", "${summary.loops}")
-        Readout("tiempo medio", formatDuration(summary.avgDurationMs))
+        Text(
+            pluralStringResource(R.plurals.agent_summary_passed, summary.runs, summary.passed, summary.runs),
+            style = readoutStyle, color = DemoColors.Muted,
+        )
+        Readout(R.string.agent_summary_avg_steps, "%.1f".format(summary.avgSteps))
+        Readout(R.string.agent_summary_format_failures, "${summary.parseFailures}")
+        Readout(R.string.agent_summary_tool_errors, "${summary.toolErrors}")
+        Readout(R.string.agent_summary_loops, "${summary.loops}")
+        Readout(R.string.agent_summary_avg_time, formatDuration(summary.avgDurationMs))
     }
 }
 
 @Composable
-private fun Readout(label: String, value: String) {
+private fun Readout(@StringRes label: Int, value: String) {
     Row(Modifier.fillMaxWidth()) {
-        Text(label, style = MaterialTheme.typography.bodySmall, color = DemoColors.Muted, modifier = Modifier.weight(1f))
+        Text(stringResource(label), style = MaterialTheme.typography.bodySmall, color = DemoColors.Muted, modifier = Modifier.weight(1f))
         Text(value, style = readoutStyle, color = DemoColors.Ink)
     }
 }
@@ -344,7 +370,7 @@ private fun CaseRow(case: BenchmarkCase, outcomes: List<BenchmarkOutcome>) {
         verticalArrangement = Arrangement.spacedBy(6.dp),
     ) {
         Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-            Text(case.title, style = MaterialTheme.typography.bodyMedium, color = DemoColors.Ink, modifier = Modifier.weight(1f))
+            Text(stringResource(case.title), style = MaterialTheme.typography.bodyMedium, color = DemoColors.Ink, modifier = Modifier.weight(1f))
             outcomes.forEach { o ->
                 Text(
                     "${o.tier.channelLetter()} ${if (o.passed) "✓" else "✗"}",

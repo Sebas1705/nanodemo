@@ -49,6 +49,7 @@ class JudgePipeline(
     private val runner: PipelineRunner,
     private val profileOf: ProfileOf = { EngineProfile() },
     private val random: Random = Random.Default,
+    private val texts: RefineTexts = RefineTexts,
 ) {
 
     suspend fun run(
@@ -81,23 +82,23 @@ class JudgePipeline(
 
         fun stop(error: String?): JudgeResult {
             publish { it.copy(finished = true, error = error) }
-            onProgress(LabProgress(total, total, if (error == null) "Listo" else "Detenido"))
+            onProgress(LabProgress(total, total, if (error == null) texts.done else texts.stopped))
             return result
         }
 
         // 1. The answers to judge.
         val candidates = when (source) {
             is JudgeSource.Typed -> source.answers.filter { it.isNotBlank() }
-                .mapIndexed { i, text -> Candidate(i + 1, "Respuesta ${i + 1}", null, text.trim()) }
+                .mapIndexed { i, text -> Candidate(i + 1, texts.typedAnswerLabel(i + 1), null, text.trim()) }
             is JudgeSource.Engines -> {
                 val made = mutableListOf<Candidate>()
                 source.tiers.forEach { tier ->
-                    step("Respuesta de ${tier.name}") {
+                    step(texts.answerFrom(tier.name)) {
                         val profile = profileOf(tier)
                         val out = profile.outputTokens(ANSWER_TOKENS)
                         val reply = runner.ask(
-                            StepKind.GENERATE, "Responder", tier, answerPrompt(question, profile, out),
-                            GenerationConfig(temperature = 0.7f, maxOutputTokens = out),
+                            StepKind.GENERATE, texts.answerTitle, tier, answerPrompt(question, profile, out),
+                            GenerationConfig(temperature = 0.7f, maxOutputTokens = out), emptyReply = texts.emptyReply,
                         )
                         publish { it.copy(answerStats = it.answerStats + reply) }
                         if (reply.ok) {
@@ -111,18 +112,18 @@ class JudgePipeline(
             }
         }
         publish { it.copy(candidates = candidates) }
-        if (candidates.size < 2) return stop("Hacen falta al menos dos respuestas para juzgar.")
+        if (candidates.size < 2) return stop(texts.needTwoAnswers)
 
         // 2. The judging.
         when (mode) {
             JudgeMode.RUBRIC -> candidates.shuffled(random).forEach { c ->
-                step("Puntuando ${c.label}") {
-                    val reply = askJudge(judge, rubricPrompt(question, c.text, profileOf(judge), JUDGE_TOKENS), "Puntuar ${c.label}")
+                step(texts.scoring(c.label)) {
+                    val reply = askJudge(judge, rubricPrompt(question, c.text, profileOf(judge), JUDGE_TOKENS), texts.scoreTitle(c.label))
                     publish { it.copy(judgeStats = it.judgeStats + reply) }
                     val scores = if (reply.ok) {
-                        runner.local(StepKind.VALIDATE, "Leer puntuación", input = reply.text) {
+                        runner.local(StepKind.VALIDATE, texts.readScore, input = reply.text) {
                             val parsed = parseRubric(reply.text)
-                            LocalOutcome(parsed, output = parsed?.let { "${"%.1f".format(it.average)} de 5" } ?: "ilegible")
+                            LocalOutcome(parsed, output = parsed?.let { texts.scoreOutOfFive("%.1f".format(it.average)) } ?: texts.unreadable)
                         }
                     } else {
                         null
@@ -140,20 +141,20 @@ class JudgePipeline(
                     val orders = listOf(if (firstA) a to b else b to a, if (firstA) b to a else a to b)
                     val runs = mutableListOf<PairRun>()
                     orders.forEachIndexed { index, (first, second) ->
-                        step("${a.label} vs ${b.label} (${index + 1}/2)") {
+                        step(texts.pairLabel(a.label, b.label, index + 1)) {
                             val prompt = pairPrompt(question, first.text, second.text, profileOf(judge), JUDGE_TOKENS)
-                            val reply = askJudge(judge, prompt, "${first.label} (A) vs ${second.label} (B)")
+                            val reply = askJudge(judge, prompt, texts.pairTitle(first.label, second.label))
                             publish { it.copy(judgeStats = it.judgeStats + reply) }
                             val pick = if (reply.ok) {
-                                runner.local(StepKind.VALIDATE, "Leer veredicto", input = reply.text) {
+                                runner.local(StepKind.VALIDATE, texts.readVerdict, input = reply.text) {
                                     val parsed = parsePick(reply.text)
                                     LocalOutcome(
                                         parsed,
                                         output = when (parsed) {
-                                            Pick.FIRST -> "gana A (${first.label})"
-                                            Pick.SECOND -> "gana B (${second.label})"
-                                            Pick.TIE -> "empate"
-                                            null -> "ilegible"
+                                            Pick.FIRST -> texts.winsFirst(first.label)
+                                            Pick.SECOND -> texts.winsSecond(second.label)
+                                            Pick.TIE -> texts.tie
+                                            null -> texts.unreadable
                                         },
                                     )
                                 }
@@ -178,7 +179,7 @@ class JudgePipeline(
         val profile = profileOf(judge)
         return runner.ask(
             StepKind.JUDGE, title, judge, prompt,
-            GenerationConfig(temperature = GREEDY_TEMPERATURE, maxOutputTokens = profile.outputTokens(JUDGE_TOKENS), jsonMode = profile.structuredOutput),
+            GenerationConfig(temperature = GREEDY_TEMPERATURE, maxOutputTokens = profile.outputTokens(JUDGE_TOKENS), jsonMode = profile.structuredOutput), emptyReply = texts.emptyReply,
         )
     }
 

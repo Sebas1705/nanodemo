@@ -1,11 +1,14 @@
 package es.sebas1705.nanodemo.feature.lab.refine
 
-enum class PromptStrategy(val label: String, val hint: String) {
-    ZERO_SHOT("Zero-shot", "La pregunta tal cual, solo la respuesta final."),
-    FEW_SHOT("Few-shot", "Tres ejemplos resueltos antes de la pregunta."),
-    CHAIN_OF_THOUGHT("Cadena de pensamiento", "\"Piensa paso a paso\" y una última línea con la respuesta."),
-    STEP_BACK("Paso atrás", "Primero el principio general, después la respuesta."),
-    ROLE("Rol", "Se le asigna un experto del área antes de preguntar."),
+import androidx.annotation.StringRes
+import es.sebas1705.nanodemo.feature.lab.R
+
+enum class PromptStrategy(@StringRes val label: Int, @StringRes val hint: Int) {
+    ZERO_SHOT(R.string.strategies_strategy_zero_shot, R.string.strategies_hint_zero_shot),
+    FEW_SHOT(R.string.strategies_strategy_few_shot, R.string.strategies_hint_few_shot),
+    CHAIN_OF_THOUGHT(R.string.strategies_strategy_chain_of_thought, R.string.strategies_hint_chain_of_thought),
+    STEP_BACK(R.string.strategies_strategy_step_back, R.string.strategies_hint_step_back),
+    ROLE(R.string.strategies_strategy_role, R.string.strategies_hint_role),
 }
 
 /** Number of model calls a strategy needs per task (step-back asks for the principle first). */

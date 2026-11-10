@@ -1,5 +1,6 @@
 package es.sebas1705.nanodemo.feature.lab.refine
 
+import androidx.annotation.StringRes
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -20,6 +21,7 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.SpanStyle
 import androidx.compose.ui.text.buildAnnotatedString
 import androidx.compose.ui.text.style.TextDecoration
@@ -46,11 +48,7 @@ val refineExperiment = Experiment(
     content = { RefineScreen() },
 )
 
-private val EXAMPLES = listOf(
-    "Explica la fotosíntesis en tres frases para un niño de 8 años.",
-    "Escribe un correo cortés para pedir una semana más de plazo en una entrega.",
-    "Dame tres ventajas y tres riesgos de ejecutar un modelo de IA en el móvil.",
-)
+private val EXAMPLES = listOf(R.string.refine_example_1, R.string.refine_example_2, R.string.refine_example_3)
 
 @Composable
 fun RefineScreen(viewModel: RefineViewModel = hiltViewModel()) {
@@ -65,36 +63,44 @@ fun RefineScreen(viewModel: RefineViewModel = hiltViewModel()) {
 
     LabPane(
         controls = {
-            SectionLabel("Tarea")
+            SectionLabel(stringResource(R.string.refine_section_task))
             OutlinedTextField(
                 value = task,
                 onValueChange = { task = it },
-                label = { Text("¿Qué quieres que redacte el trabajador?") },
+                label = { Text(stringResource(R.string.refine_task_label)) },
                 modifier = Modifier.fillMaxWidth(),
                 minLines = 3,
             )
             LazyRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                items(EXAMPLES) { example ->
+                items(EXAMPLES) { exampleRes ->
+                    val example = stringResource(exampleRes)
                     AssistChip(onClick = { task = example }, label = { Text(example.take(34) + "…") })
                 }
             }
 
-            SectionLabel("Roles y motores")
+            SectionLabel(stringResource(R.string.refine_section_roles))
             RefineRole.entries.forEach { role ->
-                EngineRow(roleTitle(role), setup.tierOf(role), availability) { viewModel.selectTier(role, it) }
+                EngineRow(stringResource(roleHint(role)), setup.tierOf(role), availability) { viewModel.selectTier(role, it) }
             }
             if (RefineRole.entries.any { viewModel.contextOf(setup.tierOf(it)) != null }) {
                 Text(
-                    "Alguno de los motores elegidos tiene un contexto pequeño: los textos intermedios se recortan para que quepan.",
+                    stringResource(R.string.refine_small_context_note),
                     style = MaterialTheme.typography.bodySmall,
                     color = DemoColors.Muted,
                 )
             }
 
-            SectionLabel("Rondas de revisión como máximo")
-            ChoiceChips(listOf(0, 1, 2, 3), setup.maxRevisions, { if (it == 0) "Ninguna" else "$it" }, viewModel::setMaxRevisions)
+            SectionLabel(stringResource(R.string.refine_section_rounds))
+            ChoiceChips(
+                listOf(0, 1, 2, 3), setup.maxRevisions,
+                { if (it == 0) stringResource(R.string.refine_rounds_none) else "$it" },
+                viewModel::setMaxRevisions,
+            )
 
-            RunBar(running, canRun = task.isNotBlank(), runLabel = "Ejecutar", onRun = { viewModel.run(task) }, onCancel = viewModel::cancel)
+            RunBar(
+                running, canRun = task.isNotBlank(), runLabel = stringResource(R.string.refine_run),
+                onRun = { viewModel.run(task) }, onCancel = viewModel::cancel,
+            )
             ProgressBlock(progress)
         },
         results = {
@@ -105,16 +111,18 @@ fun RefineScreen(viewModel: RefineViewModel = hiltViewModel()) {
     )
 }
 
-private fun roleTitle(role: RefineRole) = when (role) {
-    RefineRole.PLANNER -> "Planificador: escribe el plan"
-    RefineRole.WORKER -> "Trabajador: redacta y reescribe"
-    RefineRole.CRITIC -> "Crítico: acepta o pide cambios"
+@StringRes
+private fun roleHint(role: RefineRole) = when (role) {
+    RefineRole.PLANNER -> R.string.refine_role_planner_hint
+    RefineRole.WORKER -> R.string.refine_role_worker_hint
+    RefineRole.CRITIC -> R.string.refine_role_critic_hint
 }
 
+@StringRes
 private fun roleName(role: RefineRole) = when (role) {
-    RefineRole.PLANNER -> "Planificador"
-    RefineRole.WORKER -> "Trabajador"
-    RefineRole.CRITIC -> "Crítico"
+    RefineRole.PLANNER -> R.string.refine_role_planner
+    RefineRole.WORKER -> R.string.refine_role_worker
+    RefineRole.CRITIC -> R.string.refine_role_critic
 }
 
 @Composable
@@ -123,18 +131,22 @@ private fun RefineResultView(result: RefineResult, setup: RefineSetup) {
 
     result.stop?.let { stop ->
         when (stop) {
-            RefineStop.FAILED -> ErrorCard(result.error ?: "Un motor falló.")
+            RefineStop.FAILED -> ErrorCard(result.error ?: stringResource(R.string.refine_engine_failed))
             else -> ResultCard(
-                title = "Resultado",
+                title = stringResource(R.string.refine_result_title),
                 accent = if (stop == RefineStop.ACCEPTED) DemoColors.TierA else null,
             ) {
-                Text(stopMessage(stop, result.drafts.size), style = MaterialTheme.typography.bodyMedium, color = DemoColors.Ink)
+                Text(
+                    stringResource(stopMessage(stop), result.drafts.size),
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = DemoColors.Ink,
+                )
             }
         }
     }
 
     if (result.plan.isNotEmpty()) {
-        ResultCard("Plan") { MarkdownText(result.plan) }
+        ResultCard(stringResource(R.string.refine_plan_title)) { MarkdownText(result.plan) }
     }
 
     result.drafts.forEach { draft -> DraftCard(draft, isLast = draft === result.drafts.last() && result.stop != null) }
@@ -142,11 +154,13 @@ private fun RefineResultView(result: RefineResult, setup: RefineSetup) {
     if (result.drafts.size > 1) {
         val first = result.drafts.first()
         val last = result.drafts.last()
-        ResultCard("Qué cambió de v1 a v${last.version}") {
+        ResultCard(stringResource(R.string.refine_changes_title, last.version)) {
             val whole = diffDrafts(first.text, last.text)
             Text(
-                "${whole.added} añadidas · ${whole.removed} quitadas · ${(whole.similarity * 100).toInt()}% igual · " +
-                    "${if (whole.lengthDelta >= 0) "+" else ""}${whole.lengthDelta} caracteres",
+                stringResource(
+                    R.string.refine_changes_summary,
+                    whole.added, whole.removed, (whole.similarity * 100).toInt(), whole.lengthDelta,
+                ),
                 style = readoutStyle,
                 color = DemoColors.Muted,
             )
@@ -155,15 +169,23 @@ private fun RefineResultView(result: RefineResult, setup: RefineSetup) {
     }
 
     if (result.stats.isNotEmpty()) {
-        ResultCard("Coste por rol") {
+        ResultCard(stringResource(R.string.refine_cost_title)) {
             StatTable(
-                header = listOf("Rol", "Motor", "Llamadas", "Tiempo", "Tokens"),
+                header = listOf(
+                    stringResource(R.string.refine_col_role),
+                    stringResource(R.string.refine_col_engine),
+                    stringResource(R.string.refine_col_calls),
+                    stringResource(R.string.refine_col_time),
+                    stringResource(R.string.refine_col_tokens),
+                ),
                 rows = RefineRole.entries.mapNotNull { role ->
                     result.stats[role]?.let { s ->
-                        listOf(roleName(role), setup.tierOf(role).label(), "${s.calls}", formatDuration(s.latencyMs), "~${s.tokens}")
+                        listOf(stringResource(roleName(role)), setup.tierOf(role).label(), "${s.calls}", formatDuration(s.latencyMs), "~${s.tokens}")
                     }
                 } + listOf(
-                    result.total.let { listOf("Total", "", "${it.calls}", formatDuration(it.latencyMs), "~${it.tokens}") },
+                    result.total.let {
+                        listOf(stringResource(R.string.refine_total), "", "${it.calls}", formatDuration(it.latencyMs), "~${it.tokens}")
+                    },
                 ),
                 firstWeight = 1.5f,
             )
@@ -171,22 +193,26 @@ private fun RefineResultView(result: RefineResult, setup: RefineSetup) {
     }
 }
 
-private fun stopMessage(stop: RefineStop, drafts: Int) = when (stop) {
-    RefineStop.ACCEPTED -> "El crítico aceptó la versión $drafts."
-    RefineStop.MAX_REVISIONS -> "Se agotaron las rondas de revisión y el crítico seguía viendo problemas en la versión $drafts."
-    RefineStop.CRITIC_UNREADABLE -> "No se pudo leer la crítica, así que se detuvo con la versión $drafts en vez de adivinar."
-    RefineStop.FAILED -> "Un motor falló."
+@StringRes
+private fun stopMessage(stop: RefineStop) = when (stop) {
+    RefineStop.ACCEPTED -> R.string.refine_stop_accepted
+    RefineStop.MAX_REVISIONS -> R.string.refine_stop_max_revisions
+    RefineStop.CRITIC_UNREADABLE -> R.string.refine_stop_critic_unreadable
+    RefineStop.FAILED -> R.string.refine_engine_failed
 }
 
 @Composable
 private fun DraftCard(draft: RefineDraft, isLast: Boolean) {
     ResultCard(
-        title = "Versión ${draft.version}" + if (isLast) " (final)" else "",
+        title = stringResource(if (isLast) R.string.refine_version_final else R.string.refine_version_title, draft.version),
         accent = if (isLast && draft.critique?.verdict == Verdict.ACCEPT) DemoColors.TierA else null,
     ) {
         draft.change?.let { change ->
             Text(
-                "Respecto a v${draft.version - 1}: +${change.added} −${change.removed} · ${(change.similarity * 100).toInt()}% igual",
+                stringResource(
+                    R.string.refine_draft_change,
+                    draft.version - 1, change.added, change.removed, (change.similarity * 100).toInt(),
+                ),
                 style = readoutStyle,
                 color = DemoColors.Muted,
             )
@@ -195,13 +221,9 @@ private fun DraftCard(draft: RefineDraft, isLast: Boolean) {
         draft.critique?.let { critique ->
             Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
                 Row(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalAlignment = Alignment.CenterVertically) {
-                    Text("Crítica", style = readoutStyle, color = DemoColors.Muted)
+                    Text(stringResource(R.string.refine_critique), style = readoutStyle, color = DemoColors.Muted)
                     Text(
-                        when (critique.verdict) {
-                            Verdict.ACCEPT -> "aceptada"
-                            Verdict.REVISE -> "pide cambios"
-                            Verdict.UNKNOWN -> "ilegible"
-                        },
+                        stringResource(critique.verdict.labelRes()),
                         style = readoutStyle,
                         color = when (critique.verdict) {
                             Verdict.ACCEPT -> DemoColors.TierA
@@ -210,7 +232,7 @@ private fun DraftCard(draft: RefineDraft, isLast: Boolean) {
                         },
                     )
                     if (!critique.structured && critique.verdict != Verdict.UNKNOWN) {
-                        Text("(texto libre)", style = MaterialTheme.typography.labelSmall, color = DemoColors.Muted)
+                        Text(stringResource(R.string.refine_free_text), style = MaterialTheme.typography.labelSmall, color = DemoColors.Muted)
                     }
                 }
                 critique.issues.forEach { issue ->

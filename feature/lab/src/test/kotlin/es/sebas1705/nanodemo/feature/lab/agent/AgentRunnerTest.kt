@@ -175,7 +175,7 @@ class AgentRunnerTest {
         assertEquals(AgentOutcome.ANSWERED, result.outcome)
         assertEquals(1, result.parseFailures)
         assertTrue(executor.prompts[1].contains("Format error"))
-        val failedFormat = pipeline.recorder.trace.value.steps.single { it.title == "Formato no válido" }
+        val failedFormat = pipeline.recorder.trace.value.steps.single { it.title == "Invalid format" }
         assertEquals(StepStatus.FAILED, failedFormat.status)
         assertEquals("Thought: let me think", failedFormat.input)
     }
@@ -333,7 +333,7 @@ class AgentRunnerTest {
         assertTrue(executor.prompts[2].contains(AgentPrompt.LAST_STEP_NUDGE))
         val last = pipeline.recorder.trace.value.steps.last()
         assertEquals(StepStatus.FAILED, last.status)
-        assertTrue(last.detail!!.contains("3 pasos"))
+        assertTrue(last.detail!!.contains("3 steps"))
     }
 
     @Test

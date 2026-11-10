@@ -1,11 +1,14 @@
 package es.sebas1705.nanodemo.feature.lab.refine
 
-enum class TaskCategory(val label: String, val role: String) {
-    ARITHMETIC("Aritmética", "a careful math teacher who double-checks every calculation"),
-    LOGIC("Lógica", "a rigorous logician"),
-    EXTRACTION("Extracción", "a precise data-extraction assistant"),
-    CLASSIFICATION("Clasificación", "an experienced text classifier"),
-    SPANISH("Español", "a knowledgeable teacher who answers in Spanish"),
+import androidx.annotation.StringRes
+import es.sebas1705.nanodemo.feature.lab.R
+
+enum class TaskCategory(@StringRes val label: Int, val role: String) {
+    ARITHMETIC(R.string.strategies_category_arithmetic, "a careful math teacher who double-checks every calculation"),
+    LOGIC(R.string.strategies_category_logic, "a rigorous logician"),
+    EXTRACTION(R.string.strategies_category_extraction, "a precise data-extraction assistant"),
+    CLASSIFICATION(R.string.strategies_category_classification, "an experienced text classifier"),
+    SPANISH(R.string.strategies_category_spanish, "a knowledgeable teacher who answers in Spanish"),
 }
 
 /** A deterministic check of the short final answer of a task. */

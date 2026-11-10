@@ -80,6 +80,7 @@ fun bestStrategies(stats: Map<PromptStrategy, CellStats>): Set<PromptStrategy> {
  */
 class StrategyBenchmark(
     private val runner: PipelineRunner,
+    private val texts: RefineTexts = RefineTexts,
     private val profileOf: ProfileOf = { EngineProfile() },
 ) {
 
@@ -100,14 +101,14 @@ class StrategyBenchmark(
                 for (task in tasks) {
                     for (strategy in strategies) {
                         currentCoroutineContext().ensureActive()
-                        onProgress(LabProgress(outcomes.size, total, "${tier.name} · ${strategy.label} · ${task.id}"))
+                        onProgress(LabProgress(outcomes.size, total, "${tier.name} · ${texts.strategyName(strategy)} · ${task.id}"))
                         outcomes += runOne(tier, strategy, task, rep, temperature)
                         onUpdate(outcomes.toList())
                     }
                 }
             }
         }
-        onProgress(LabProgress(total, total, "Listo"))
+        onProgress(LabProgress(total, total, texts.done))
         return outcomes
     }
 
@@ -120,6 +121,7 @@ class StrategyBenchmark(
             val reply = runner.ask(
                 StepKind.GENERATE, "$title · ${task.id}", tier, step.prompt,
                 GenerationConfig(temperature = temperature, maxOutputTokens = profile.outputTokens(step.wantedTokens)),
+                emptyReply = texts.emptyReply,
             )
             tokens += reply.tokens
             latency += reply.latencyMs
@@ -128,10 +130,10 @@ class StrategyBenchmark(
 
         fun failed(error: String?) = TaskOutcome(tier, strategy, task.id, repetition, correct = false, failed = true, tokens, latency, "", error)
 
-        var reply = call(StrategyPrompts.firstStep(strategy, task, profile), strategy.label)
+        var reply = call(StrategyPrompts.firstStep(strategy, task, profile), texts.strategyName(strategy))
         if (!reply.ok) return failed(reply.error)
         if (strategy == PromptStrategy.STEP_BACK) {
-            reply = call(StrategyPrompts.stepBackAnswer(task, reply.text, profile), "${strategy.label} (respuesta)")
+            reply = call(StrategyPrompts.stepBackAnswer(task, reply.text, profile), texts.stepBackAnswer(texts.strategyName(strategy)))
             if (!reply.ok) return failed(reply.error)
         }
         val score = scoreTask(task, reply.text)

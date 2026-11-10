@@ -15,7 +15,7 @@ import es.sebas1705.nanodemo.feature.lab.trace.TraceRecorder
  */
 const val GREEDY_TEMPERATURE = 0.1f
 
-const val EMPTY_REPLY_MESSAGE = "El motor devolvió una respuesta vacía"
+const val EMPTY_REPLY_MESSAGE = "The engine returned an empty reply"
 
 /** What one model call cost and returned, in the terms the experiments report. */
 data class ModelReply(val text: String, val error: String?, val latencyMs: Long, val tokens: Int) {
@@ -46,12 +46,13 @@ suspend fun PipelineRunner.ask(
     prompt: String,
     config: GenerationConfig = GenerationConfig(),
     clock: () -> Long = System::currentTimeMillis,
+    emptyReply: String = EMPTY_REPLY_MESSAGE,
 ): ModelReply {
     val start = clock()
     val result = generate(kind, title, tier, listOf(ChatMessage(Role.USER, prompt)), config)
     val wall = clock() - start
     val text = result.text.trim()
-    val error = result.error ?: if (text.isEmpty()) EMPTY_REPLY_MESSAGE else null
+    val error = result.error ?: if (text.isEmpty()) emptyReply else null
     return ModelReply(
         text = text,
         error = error,
