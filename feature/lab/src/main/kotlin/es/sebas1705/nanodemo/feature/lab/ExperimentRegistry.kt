@@ -6,6 +6,9 @@ import es.sebas1705.nanodemo.feature.lab.scaling.scalingExperiment
 import es.sebas1705.nanodemo.feature.lab.soak.soakExperiment
 import es.sebas1705.nanodemo.feature.lab.rag.ragExperiment
 import es.sebas1705.nanodemo.feature.lab.agent.agentExperiment
+import es.sebas1705.nanodemo.feature.lab.refine.judgeExperiment
+import es.sebas1705.nanodemo.feature.lab.refine.refineExperiment
+import es.sebas1705.nanodemo.feature.lab.refine.strategiesExperiment
 import es.sebas1705.nanodemo.feature.lab.sandbox.sandboxExperiment
 
 /**
@@ -21,6 +24,10 @@ object ExperimentRegistry {
         soakExperiment,
         ragExperiment,
         agentExperiment,
+        // Reasoning strategies (package refine).
+        refineExperiment,
+        judgeExperiment,
+        strategiesExperiment,
     )
 
     fun find(id: String): Experiment? = all.firstOrNull { it.id == id }
