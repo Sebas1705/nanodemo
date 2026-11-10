@@ -1,12 +1,14 @@
 package es.sebas1705.nanodemo.feature.lab.refine
 
+import androidx.annotation.StringRes
+import es.sebas1705.nanodemo.feature.lab.R
 import kotlinx.serialization.json.JsonObject
 import kotlin.math.roundToInt
 
-enum class Criterion(val label: String) {
-    CORRECTNESS("Corrección"),
-    COMPLETENESS("Completitud"),
-    CLARITY("Claridad"),
+enum class Criterion(@StringRes val label: Int) {
+    CORRECTNESS(R.string.judge_criterion_correctness),
+    COMPLETENESS(R.string.judge_criterion_completeness),
+    CLARITY(R.string.judge_criterion_clarity),
 }
 
 /** Rubric scores from 1 to 5; a criterion the judge did not score is `null`. */

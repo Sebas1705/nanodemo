@@ -21,6 +21,8 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.res.pluralStringResource
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import es.sebas1705.nanodemo.core.designsystem.ErrorCard
@@ -75,20 +77,23 @@ fun JudgeScreen(viewModel: JudgeViewModel = hiltViewModel()) {
 
     LabPane(
         controls = {
-            SectionLabel("Pregunta")
+            SectionLabel(stringResource(R.string.judge_section_question))
             OutlinedTextField(
                 value = question,
                 onValueChange = { question = it },
-                label = { Text("La pregunta que se respondió") },
+                label = { Text(stringResource(R.string.judge_question_label)) },
                 modifier = Modifier.fillMaxWidth(),
                 minLines = 2,
             )
 
-            SectionLabel("Respuestas a juzgar")
-            ChoiceChips(listOf(false, true), fromEngines, { if (it) "De los motores" else "Escritas por mí" }) { fromEngines = it }
+            SectionLabel(stringResource(R.string.judge_section_answers))
+            ChoiceChips(
+                listOf(false, true), fromEngines,
+                { stringResource(if (it) R.string.judge_source_engines else R.string.judge_source_typed) },
+            ) { fromEngines = it }
             if (fromEngines) {
                 Text(
-                    "La misma pregunta se ejecuta en cada motor elegido y sus respuestas se juzgan.",
+                    stringResource(R.string.judge_engines_hint),
                     style = MaterialTheme.typography.bodySmall,
                     color = DemoColors.Muted,
                 )
@@ -99,50 +104,50 @@ fun JudgeScreen(viewModel: JudgeViewModel = hiltViewModel()) {
                         OutlinedTextField(
                             value = text,
                             onValueChange = { value -> typed = typed.mapIndexed { i, old -> if (i == index) value else old } },
-                            label = { Text("Respuesta ${index + 1}") },
+                            label = { Text(stringResource(R.string.judge_answer_label, index + 1)) },
                             modifier = Modifier.weight(1f),
                             minLines = 2,
                         )
                         if (typed.size > MIN_TYPED) {
                             IconButton(onClick = { typed = typed.filterIndexed { i, _ -> i != index } }) {
-                                Icon(Icons.Filled.Close, contentDescription = "Quitar la respuesta ${index + 1}", tint = DemoColors.Muted)
+                                Icon(
+                                    Icons.Filled.Close,
+                                    contentDescription = stringResource(R.string.judge_remove_answer, index + 1),
+                                    tint = DemoColors.Muted,
+                                )
                             }
                         }
                     }
                 }
                 if (typed.size < MAX_TYPED) {
-                    TextButton(onClick = { typed = typed + "" }) { Text("Añadir respuesta") }
+                    TextButton(onClick = { typed = typed + "" }) { Text(stringResource(R.string.judge_add_answer)) }
                 }
             }
 
-            SectionLabel("Cómo juzga")
+            SectionLabel(stringResource(R.string.judge_section_how))
             ChoiceChips(
                 JudgeMode.entries, mode,
-                { if (it == JudgeMode.RUBRIC) "Rúbrica 1–5" else "Torneo por parejas" },
+                { stringResource(if (it == JudgeMode.RUBRIC) R.string.judge_mode_rubric else R.string.judge_mode_pairwise) },
             ) { mode = it }
             Text(
-                if (mode == JudgeMode.RUBRIC) {
-                    "Cada respuesta se puntúa por separado en corrección, completitud y claridad."
-                } else {
-                    "Todas las parejas se juzgan dos veces con las posiciones cambiadas: si el veredicto cambia con el orden, es sesgo de posición."
-                },
+                stringResource(if (mode == JudgeMode.RUBRIC) R.string.judge_mode_rubric_hint else R.string.judge_mode_pairwise_hint),
                 style = MaterialTheme.typography.bodySmall,
                 color = DemoColors.Muted,
             )
-            EngineRow("Juez", judge, availability, viewModel::selectJudge)
+            EngineRow(stringResource(R.string.judge_engine_judge), judge, availability, viewModel::selectJudge)
             if (viewModel.contextOf(judge) != null) {
                 Text(
-                    "El juez tiene un contexto pequeño: las respuestas largas se recortan antes de juzgarlas.",
+                    stringResource(R.string.judge_small_context_note),
                     style = MaterialTheme.typography.bodySmall,
                     color = DemoColors.Muted,
                 )
             }
             if (judgeCalls > 0) {
-                Text("$judgeCalls llamadas al juez", style = readoutStyle, color = DemoColors.Muted)
+                Text(pluralStringResource(R.plurals.judge_calls, judgeCalls, judgeCalls), style = readoutStyle, color = DemoColors.Muted)
             }
 
             RunBar(
-                running, canRun = question.isNotBlank() && sourceReady, runLabel = "Juzgar",
+                running, canRun = question.isNotBlank() && sourceReady, runLabel = stringResource(R.string.judge_run),
                 onRun = {
                     val source = if (fromEngines) {
                         JudgeSource.Engines(InferenceTier.entries.filter { it in engines })
@@ -167,12 +172,14 @@ fun JudgeScreen(viewModel: JudgeViewModel = hiltViewModel()) {
 private fun JudgeResultView(result: JudgeResult, votes: Map<InferenceTier, VoteTally>) {
     if (result.candidates.isEmpty() && result.error == null) return
     result.error?.let { ErrorCard(it) }
-    result.skipped.forEach { ErrorCard("Sin respuesta de $it") }
+    result.skipped.forEach { ErrorCard(stringResource(R.string.judge_no_answer_from, it)) }
 
     if (result.leaderboard.isNotEmpty()) {
         val best = result.leaderboard.maxOf { it.score }
         val maxScore = if (result.mode == JudgeMode.RUBRIC) 5.0 else (2.0 * (result.candidates.size - 1)).coerceAtLeast(1.0)
-        ResultCard(if (result.mode == JudgeMode.RUBRIC) "Clasificación (media de la rúbrica)" else "Clasificación del torneo") {
+        ResultCard(
+            stringResource(if (result.mode == JudgeMode.RUBRIC) R.string.judge_leaderboard_rubric else R.string.judge_leaderboard_tournament),
+        ) {
             result.leaderboard.forEach { entry ->
                 LeaderRow(entry, result, maxScore, isBest = entry.score == best && best > 0.0)
             }
@@ -180,17 +187,23 @@ private fun JudgeResultView(result: JudgeResult, votes: Map<InferenceTier, VoteT
     }
 
     if (result.mode == JudgeMode.PAIRWISE && result.pairs.isNotEmpty()) {
-        ResultCard("Fiabilidad del juez") {
+        ResultCard(stringResource(R.string.judge_reliability_title)) {
             val consistency = result.consistency
             Text(
-                "Consistencia: ${percent(consistency.ratio)}" +
-                    if (consistency.of > 0) " (${consistency.count} de ${consistency.of} parejas con el mismo veredicto en los dos órdenes)" else "",
+                if (consistency.of > 0) {
+                    pluralStringResource(
+                        R.plurals.judge_consistency_pairs, consistency.of,
+                        consistency.count, consistency.of, percent(consistency.ratio),
+                    )
+                } else {
+                    stringResource(R.string.judge_consistency, percent(consistency.ratio))
+                },
                 style = MaterialTheme.typography.bodyMedium,
                 color = DemoColors.Ink,
             )
             result.firstShare?.let {
                 Text(
-                    "Eligió la posición A en ${percent(it.ratio)} de los veredictos con ganador (lo esperable sin sesgo es ~50%).",
+                    stringResource(R.string.judge_first_share, percent(it.ratio)),
                     style = MaterialTheme.typography.bodySmall,
                     color = DemoColors.Muted,
                 )
@@ -198,7 +211,7 @@ private fun JudgeResultView(result: JudgeResult, votes: Map<InferenceTier, VoteT
             val unreadable = result.unreadable
             if (unreadable.count > 0) {
                 Text(
-                    "${unreadable.count} de ${unreadable.of} veredictos no se pudieron leer y no puntúan.",
+                    pluralStringResource(R.plurals.judge_unreadable, unreadable.of, unreadable.count, unreadable.of),
                     style = MaterialTheme.typography.bodySmall,
                     color = DemoColors.TierB,
                 )
@@ -208,12 +221,12 @@ private fun JudgeResultView(result: JudgeResult, votes: Map<InferenceTier, VoteT
     }
 
     if (result.leaderboard.isNotEmpty() && result.candidates.any { it.tier != null }) {
-        ResultCard("Acuerdo con tus votos") {
+        ResultCard(stringResource(R.string.judge_agreement_title)) {
             val agreement = humanAgreement(result.leaderboard, votes)
             Text(
                 agreement?.let {
-                    "El juez ordena igual que tus votos de Comparar en ${it.concordant} de ${it.comparable} parejas de motores (${percent(it.ratio)})."
-                } ?: "Todavía no hay votos suficientes en Comparar para contrastar estos motores.",
+                    pluralStringResource(R.plurals.judge_agreement, it.comparable, it.concordant, it.comparable, percent(it.ratio))
+                } ?: stringResource(R.string.judge_agreement_none),
                 style = MaterialTheme.typography.bodyMedium,
                 color = DemoColors.Ink,
             )
@@ -221,9 +234,14 @@ private fun JudgeResultView(result: JudgeResult, votes: Map<InferenceTier, VoteT
     }
 
     if (result.judgeStats.calls > 0 || result.answerStats.calls > 0) {
-        ResultCard("Coste") {
-            if (result.answerStats.calls > 0) Text("Respuestas: ${result.answerStats.display()}", style = readoutStyle, color = DemoColors.Muted)
-            Text("Juez: ${result.judgeStats.display()}", style = readoutStyle, color = DemoColors.Muted)
+        ResultCard(stringResource(R.string.judge_cost_title)) {
+            if (result.answerStats.calls > 0) {
+                Text(
+                    stringResource(R.string.judge_cost_answers, result.answerStats.display()),
+                    style = readoutStyle, color = DemoColors.Muted,
+                )
+            }
+            Text(stringResource(R.string.judge_cost_judge, result.judgeStats.display()), style = readoutStyle, color = DemoColors.Muted)
         }
     }
 
@@ -245,11 +263,11 @@ private fun LeaderRow(entry: LeaderEntry, result: JudgeResult, maxScore: Double,
                 if (result.mode == JudgeMode.RUBRIC) {
                     when {
                         c.id !in result.scores -> "…"
-                        result.scores[c.id] == null -> "sin puntuar"
-                        else -> String.format(java.util.Locale.US, "%.1f / 5", entry.score)
+                        result.scores[c.id] == null -> stringResource(R.string.judge_unscored)
+                        else -> stringResource(R.string.judge_score_rubric, String.format(java.util.Locale.US, "%.1f", entry.score))
                     }
                 } else {
-                    String.format(java.util.Locale.US, "%.1f pts", entry.score)
+                    stringResource(R.string.judge_score_points, String.format(java.util.Locale.US, "%.1f", entry.score))
                 },
                 style = readoutStyle,
                 color = DemoColors.Ink,
@@ -259,7 +277,7 @@ private fun LeaderRow(entry: LeaderEntry, result: JudgeResult, maxScore: Double,
         if (result.mode == JudgeMode.RUBRIC) {
             result.scores[c.id]?.let { s ->
                 Text(
-                    Criterion.entries.joinToString(" · ") { "${it.label} ${s[it] ?: "—"}" },
+                    Criterion.entries.map { "${stringResource(it.label)} ${s[it] ?: "—"}" }.joinToString(" · "),
                     style = MaterialTheme.typography.labelSmall,
                     color = DemoColors.Muted,
                 )
@@ -271,17 +289,17 @@ private fun LeaderRow(entry: LeaderEntry, result: JudgeResult, maxScore: Double,
 @Composable
 private fun PairLine(pair: PairResult, candidates: List<Candidate>) {
     fun label(id: Int) = candidates.firstOrNull { it.id == id }?.label ?: "#$id"
-    val outcome = pair.runs.joinToString(" · ") { run ->
+    val outcome = pair.runs.map { run ->
         when (run.pick) {
-            Pick.FIRST -> "A (${label(run.firstId)})"
-            Pick.SECOND -> "B (${label(run.secondId)})"
-            Pick.TIE -> "empate"
-            null -> "ilegible"
+            Pick.FIRST -> stringResource(R.string.judge_pick_first, label(run.firstId))
+            Pick.SECOND -> stringResource(R.string.judge_pick_second, label(run.secondId))
+            Pick.TIE -> stringResource(R.string.judge_pick_tie)
+            null -> stringResource(R.string.judge_pick_unreadable)
         }
-    }
+    }.joinToString(" · ")
     val flag = when (pair.consistent) {
         true -> "✓"
-        false -> "⚠ cambia con el orden"
+        false -> stringResource(R.string.judge_pair_flipped)
         null -> ""
     }
     Text(

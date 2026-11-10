@@ -87,7 +87,7 @@ class AnswerExtractorTest {
         assertEquals("no", key("Final answer: No", AnswerKind.YES_NO))
         assertEquals("no", key("Final answer: False", AnswerKind.YES_NO))
         assertEquals("yes", key("Final answer: True.", AnswerKind.YES_NO))
-        assertEquals("sí", extractAnswer("yes", AnswerKind.YES_NO)!!.display)
+        assertEquals("yes", extractAnswer("yes", AnswerKind.YES_NO)!!.display)
         assertNull(extractAnswer("Final answer: maybe", AnswerKind.YES_NO))
     }
 

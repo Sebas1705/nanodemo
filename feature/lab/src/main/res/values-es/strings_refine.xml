@@ -1,0 +1,263 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- ===== Plan, execute and critique (refine_) ===== -->
+    <string name="refine_section_task">Tarea</string>
+    <string name="refine_task_label">¿Qué quieres que redacte el trabajador?</string>
+    <string name="refine_example_1">Explica la fotosíntesis en tres frases para un niño de 8 años.</string>
+    <string name="refine_example_2">Escribe un correo cortés para pedir una semana más de plazo en una entrega.</string>
+    <string name="refine_example_3">Dame tres ventajas y tres riesgos de ejecutar un modelo de IA en el móvil.</string>
+    <string name="refine_section_roles">Roles y motores</string>
+    <string name="refine_role_planner_hint">Planificador: escribe el plan</string>
+    <string name="refine_role_worker_hint">Trabajador: redacta y reescribe</string>
+    <string name="refine_role_critic_hint">Crítico: acepta o pide cambios</string>
+    <string name="refine_role_planner">Planificador</string>
+    <string name="refine_role_worker">Trabajador</string>
+    <string name="refine_role_critic">Crítico</string>
+    <string name="refine_small_context_note">Alguno de los motores elegidos tiene un contexto pequeño: los textos intermedios se recortan para que quepan.</string>
+    <string name="refine_section_rounds">Rondas de revisión como máximo</string>
+    <string name="refine_rounds_none">Ninguna</string>
+    <string name="refine_run">Ejecutar</string>
+    <string name="refine_running">Ejecutando…</string>
+    <string name="refine_cancel">Cancelar</string>
+    <string name="refine_progress">%1$d de %2$d · %3$s</string>
+    <string name="refine_trace_tail">Últimos %1$d de %2$d pasos</string>
+
+    <string name="refine_result_title">Resultado</string>
+    <string name="refine_engine_failed">Un motor falló.</string>
+    <string name="refine_stop_accepted">El crítico aceptó la versión %1$d.</string>
+    <string name="refine_stop_max_revisions">Se agotaron las rondas de revisión y el crítico seguía viendo problemas en la versión %1$d.</string>
+    <string name="refine_stop_critic_unreadable">No se pudo leer la crítica, así que se detuvo con la versión %1$d en vez de adivinar.</string>
+    <string name="refine_plan_title">Plan</string>
+    <string name="refine_changes_title">Qué cambió de v1 a v%1$d</string>
+    <string name="refine_changes_summary">%1$d añadidas · %2$d quitadas · %3$d%% igual · %4$+d caracteres</string>
+    <string name="refine_cost_title">Coste por rol</string>
+    <string name="refine_col_role">Rol</string>
+    <string name="refine_col_engine">Motor</string>
+    <string name="refine_col_calls">Llamadas</string>
+    <string name="refine_col_time">Tiempo</string>
+    <string name="refine_col_tokens">Tokens</string>
+    <string name="refine_total">Total</string>
+    <string name="refine_version_title">Versión %1$d</string>
+    <string name="refine_version_final">Versión %1$d (final)</string>
+    <string name="refine_draft_change">Respecto a v%1$d: +%2$d −%3$d · %4$d%% igual</string>
+    <string name="refine_critique">Crítica</string>
+    <string name="refine_verdict_accept">aceptada</string>
+    <string name="refine_verdict_revise">pide cambios</string>
+    <string name="refine_verdict_unknown">ilegible</string>
+    <string name="refine_free_text">(texto libre)</string>
+
+    <!-- Texts produced by the pipeline (trace titles, details, errors) -->
+    <string name="refine_msg_done">Listo</string>
+    <string name="refine_msg_stopped">Detenido</string>
+    <string name="refine_msg_cancelled">Cancelado</string>
+    <string name="refine_msg_error">Error</string>
+    <string name="refine_msg_empty_reply">El motor devolvió una respuesta vacía</string>
+    <string name="refine_msg_yes">sí</string>
+    <string name="refine_msg_no">no</string>
+    <string name="refine_msg_unreadable">ilegible</string>
+    <string name="refine_msg_plan_label">Plan</string>
+    <string name="refine_msg_draft_label">Borrador %1$d</string>
+    <string name="refine_msg_critique_label">Crítica %1$d</string>
+    <string name="refine_msg_revision_label">Revisión %1$d</string>
+    <string name="refine_msg_plan_title">Plan</string>
+    <string name="refine_msg_draft_title">Borrador v%1$d</string>
+    <string name="refine_msg_critique_title">Crítica de v%1$d</string>
+    <string name="refine_msg_read_critique">Leer la crítica</string>
+    <string name="refine_msg_compare_versions">Comparar versiones</string>
+    <string name="refine_msg_critique_json">JSON</string>
+    <string name="refine_msg_critique_free_text">texto libre</string>
+    <string name="refine_msg_diff_summary">+%1$d −%2$d · %3$d%% igual</string>
+    <plurals name="refine_msg_critique_summary">
+        <item quantity="one">%1$s · %2$d problema</item>
+        <item quantity="other">%1$s · %2$d problemas</item>
+    </plurals>
+
+    <!-- ===== A model as judge (judge_) ===== -->
+    <string name="judge_section_question">Pregunta</string>
+    <string name="judge_question_label">La pregunta que se respondió</string>
+    <string name="judge_section_answers">Respuestas a juzgar</string>
+    <string name="judge_source_engines">De los motores</string>
+    <string name="judge_source_typed">Escritas por mí</string>
+    <string name="judge_engines_hint">La misma pregunta se ejecuta en cada motor elegido y sus respuestas se juzgan.</string>
+    <string name="judge_answer_label">Respuesta %1$d</string>
+    <string name="judge_remove_answer">Quitar la respuesta %1$d</string>
+    <string name="judge_add_answer">Añadir respuesta</string>
+    <string name="judge_section_how">Cómo juzga</string>
+    <string name="judge_mode_rubric">Rúbrica 1–5</string>
+    <string name="judge_mode_pairwise">Torneo por parejas</string>
+    <string name="judge_mode_rubric_hint">Cada respuesta se puntúa por separado en corrección, completitud y claridad.</string>
+    <string name="judge_mode_pairwise_hint">Todas las parejas se juzgan dos veces con las posiciones cambiadas: si el veredicto cambia con el orden, es sesgo de posición.</string>
+    <string name="judge_engine_judge">Juez</string>
+    <string name="judge_small_context_note">El juez tiene un contexto pequeño: las respuestas largas se recortan antes de juzgarlas.</string>
+    <plurals name="judge_calls">
+        <item quantity="one">%d llamada al juez</item>
+        <item quantity="other">%d llamadas al juez</item>
+    </plurals>
+    <string name="judge_run">Juzgar</string>
+
+    <string name="judge_no_answer_from">Sin respuesta de %1$s</string>
+    <string name="judge_leaderboard_rubric">Clasificación (media de la rúbrica)</string>
+    <string name="judge_leaderboard_tournament">Clasificación del torneo</string>
+    <string name="judge_reliability_title">Fiabilidad del juez</string>
+    <string name="judge_consistency">Consistencia: %1$s</string>
+    <plurals name="judge_consistency_pairs">
+        <item quantity="one">Consistencia: %3$s (%1$d de %2$d pareja con el mismo veredicto en los dos órdenes)</item>
+        <item quantity="other">Consistencia: %3$s (%1$d de %2$d parejas con el mismo veredicto en los dos órdenes)</item>
+    </plurals>
+    <string name="judge_first_share">Eligió la posición A en %1$s de los veredictos con ganador (lo esperable sin sesgo es ~50%%).</string>
+    <plurals name="judge_unreadable">
+        <item quantity="one">%1$d de %2$d veredictos no se pudo leer y no puntúa.</item>
+        <item quantity="other">%1$d de %2$d veredictos no se pudieron leer y no puntúan.</item>
+    </plurals>
+    <string name="judge_agreement_title">Acuerdo con tus votos</string>
+    <plurals name="judge_agreement">
+        <item quantity="one">El juez ordena igual que tus votos de Comparar en %1$d de %2$d pareja de motores (%3$s).</item>
+        <item quantity="other">El juez ordena igual que tus votos de Comparar en %1$d de %2$d parejas de motores (%3$s).</item>
+    </plurals>
+    <string name="judge_agreement_none">Todavía no hay votos suficientes en Comparar para contrastar estos motores.</string>
+    <string name="judge_cost_title">Coste</string>
+    <string name="judge_cost_answers">Respuestas: %1$s</string>
+    <string name="judge_cost_judge">Juez: %1$s</string>
+    <string name="judge_unscored">sin puntuar</string>
+    <string name="judge_score_rubric">%1$s / 5</string>
+    <string name="judge_score_points">%1$s pts</string>
+    <string name="judge_criterion_correctness">Corrección</string>
+    <string name="judge_criterion_completeness">Completitud</string>
+    <string name="judge_criterion_clarity">Claridad</string>
+    <string name="judge_pick_first">A (%1$s)</string>
+    <string name="judge_pick_second">B (%1$s)</string>
+    <string name="judge_pick_tie">empate</string>
+    <string name="judge_pick_unreadable">ilegible</string>
+    <string name="judge_pair_flipped">⚠ cambia con el orden</string>
+
+    <!-- Texts produced by the pipeline (trace titles, details, errors) -->
+    <string name="judge_msg_answer_from">Respuesta de %1$s</string>
+    <string name="judge_msg_answer_title">Responder</string>
+    <string name="judge_msg_need_two">Hacen falta al menos dos respuestas para juzgar.</string>
+    <string name="judge_msg_scoring">Puntuando %1$s</string>
+    <string name="judge_msg_score_title">Puntuar %1$s</string>
+    <string name="judge_msg_read_score">Leer puntuación</string>
+    <string name="judge_msg_score_out">%1$s de 5</string>
+    <string name="judge_msg_pair_label">%1$s vs %2$s (%3$d/2)</string>
+    <string name="judge_msg_pair_title">%1$s (A) vs %2$s (B)</string>
+    <string name="judge_msg_read_verdict">Leer veredicto</string>
+    <string name="judge_msg_wins_first">gana A (%1$s)</string>
+    <string name="judge_msg_wins_second">gana B (%1$s)</string>
+    <string name="judge_msg_tie">empate</string>
+
+    <!-- ===== Vote and compare strategies (strategies_) ===== -->
+    <string name="strategies_tab_self_consistency">Autoconsistencia</string>
+    <string name="strategies_tab_prompts">Estrategias de prompt</string>
+    <string name="strategies_preset_change">Cambio</string>
+    <string name="strategies_preset_train">Viaje en tren</string>
+    <string name="strategies_preset_candies">Caramelos</string>
+    <string name="strategies_preset_capital">Capital</string>
+    <string name="strategies_section_question">Pregunta</string>
+    <string name="strategies_question_label">Una pregunta con respuesta corta</string>
+    <string name="strategies_expected_label">Respuesta esperada (opcional)</string>
+    <string name="strategies_expected_support">Con ella se puede decir si votar acertó donde la respuesta voraz falló.</string>
+    <string name="strategies_section_engine">Motor</string>
+    <string name="strategies_engine_answers">Quien responde</string>
+    <string name="strategies_no_temperature">Este motor no admite temperatura: las muestras saldrán casi idénticas y el voto no aportará nada.</string>
+    <string name="strategies_small_context">Contexto pequeño: la pregunta se recorta si no cabe junto a la respuesta.</string>
+    <string name="strategies_samples">Muestras: %1$d</string>
+    <string name="strategies_temperature">Temperatura: %1$s</string>
+    <string name="strategies_section_kind">Forma de la respuesta</string>
+    <string name="strategies_run_sample">Muestrear y votar</string>
+
+    <string name="strategies_kind_auto">Auto</string>
+    <string name="strategies_kind_number">Número</string>
+    <string name="strategies_kind_yes_no">Sí/No</string>
+    <string name="strategies_kind_letter">Opción (letra)</string>
+    <string name="strategies_kind_phrase">Frase corta</string>
+
+    <string name="strategies_vote_title">Votación</string>
+    <string name="strategies_vote_none">Ninguna muestra dio una respuesta legible.</string>
+    <string name="strategies_vote_line">%1$s · %2$d de %3$d</string>
+    <string name="strategies_vote_line_winner">%1$s · %2$d de %3$d  ← gana</string>
+    <string name="strategies_agreement">Acuerdo entre muestras: %1$s</string>
+    <string name="strategies_agreement_unreadable">Acuerdo entre muestras: %1$s · %2$d sin respuesta legible</string>
+    <string name="strategies_tie_note">Empate entre %1$d respuestas: se decidió a favor de la respuesta voraz si estaba entre ellas, o de la que apareció primero.</string>
+    <string name="strategies_helped_title">¿Votar ayudó?</string>
+    <string name="strategies_greedy_vs_voted">Respuesta voraz: %1$s  ·  Votada: %2$s</string>
+    <string name="strategies_expected_line">Esperada: %1$s  ·  voraz %2$s  ·  voto %3$s</string>
+    <string name="strategies_anecdote_note">Con una sola pregunta es una anécdota, no una medida: repítelo con varias para ver si votar mejora de verdad.</string>
+    <string name="strategies_samples_title">Muestras</string>
+    <string name="strategies_greedy_sample">Voraz → %1$s</string>
+    <string name="strategies_no_answer">sin respuesta</string>
+    <string name="strategies_hide_reasoning">Ocultar razonamientos</string>
+    <string name="strategies_show_reasoning">Ver razonamientos</string>
+    <string name="strategies_cost_title">Coste</string>
+
+    <string name="strategies_verdict_voting_beat_greedy">La votación acertó donde la respuesta voraz falló</string>
+    <string name="strategies_verdict_greedy_beat_voting">La respuesta voraz acertó y la votación falló</string>
+    <string name="strategies_verdict_both_correct">Las dos acertaron</string>
+    <string name="strategies_verdict_both_wrong">Las dos fallaron</string>
+    <string name="strategies_verdict_same_answer">La votación coincide con la respuesta voraz</string>
+    <string name="strategies_verdict_changed_answer">La votación cambió la respuesta voraz</string>
+    <string name="strategies_verdict_no_vote">No se pudo leer ninguna respuesta</string>
+
+    <plurals name="strategies_bench_intro">
+        <item quantity="one">%1$d tarea (aritmética, lógica, extracción, clasificación y preguntas en español) con comprobación automática, probada con cada estrategia.</item>
+        <item quantity="other">%1$d tareas (aritmética, lógica, extracción, clasificación y preguntas en español) con comprobación automática, probadas con cada estrategia.</item>
+    </plurals>
+    <string name="strategies_section_engines">Motores a comparar</string>
+    <string name="strategies_section_strategies">Estrategias</string>
+    <string name="strategies_section_repetitions">Repeticiones</string>
+    <string name="strategies_repetitions_many">Con varias repeticiones se usa temperatura 0.6 y la tabla muestra el rango de aciertos entre repeticiones.</string>
+    <string name="strategies_repetitions_one">Una repetición con temperatura casi cero: comparación determinista.</string>
+    <plurals name="strategies_planned_calls">
+        <item quantity="one">%d llamada al modelo</item>
+        <item quantity="other">%d llamadas al modelo</item>
+    </plurals>
+    <string name="strategies_long_run_warning">Es una tirada larga en motores locales: se puede cancelar y la tabla conserva lo ya medido.</string>
+    <string name="strategies_run_measure">Medir</string>
+    <string name="strategies_col_strategy">Estrategia</string>
+    <string name="strategies_col_hits">Aciertos</string>
+    <string name="strategies_col_tokens">Tokens</string>
+    <string name="strategies_col_time">Tiempo</string>
+    <string name="strategies_all_engines">Todos los motores juntos</string>
+    <plurals name="strategies_bench_footnote">
+        <item quantity="one">%1$d respuesta medida. En verde, la estrategia con más aciertos; \"!n\" son llamadas que fallaron y no cuentan. Los tokens y el tiempo suman todas las llamadas de la estrategia (paso atrás usa dos).</item>
+        <item quantity="other">%1$d respuestas medidas. En verde, la estrategia con más aciertos; \"!n\" son llamadas que fallaron y no cuentan. Los tokens y el tiempo suman todas las llamadas de la estrategia (paso atrás usa dos).</item>
+    </plurals>
+    <string name="strategies_wrong_title">Respuestas incorrectas (%1$d)</string>
+    <string name="strategies_wrong_hide">Ocultar</string>
+    <string name="strategies_wrong_show">Ver las últimas 30</string>
+
+    <string name="strategies_strategy_zero_shot">Zero-shot</string>
+    <string name="strategies_strategy_few_shot">Few-shot</string>
+    <string name="strategies_strategy_chain_of_thought">Cadena de pensamiento</string>
+    <string name="strategies_strategy_step_back">Paso atrás</string>
+    <string name="strategies_strategy_role">Rol</string>
+    <string name="strategies_hint_zero_shot">La pregunta tal cual, solo la respuesta final.</string>
+    <string name="strategies_hint_few_shot">Tres ejemplos resueltos antes de la pregunta.</string>
+    <string name="strategies_hint_chain_of_thought">\"Piensa paso a paso\" y una última línea con la respuesta.</string>
+    <string name="strategies_hint_step_back">Primero el principio general, después la respuesta.</string>
+    <string name="strategies_hint_role">Se le asigna un experto del área antes de preguntar.</string>
+
+    <string name="strategies_category_arithmetic">Aritmética</string>
+    <string name="strategies_category_logic">Lógica</string>
+    <string name="strategies_category_extraction">Extracción</string>
+    <string name="strategies_category_classification">Clasificación</string>
+    <string name="strategies_category_spanish">Español</string>
+
+    <!-- Texts produced by the pipelines (trace titles, details, errors) -->
+    <string name="strategies_msg_greedy">Respuesta voraz</string>
+    <string name="strategies_msg_sample_label">Muestra %1$d de %2$d</string>
+    <string name="strategies_msg_sample_title">Muestra %1$d</string>
+    <string name="strategies_msg_voting">Votando</string>
+    <string name="strategies_msg_extract_title">Extraer respuestas</string>
+    <plurals name="strategies_msg_extract_input">
+        <item quantity="one">%d respuesta</item>
+        <item quantity="other">%d respuestas</item>
+    </plurals>
+    <string name="strategies_msg_vote_title">Votar</string>
+    <plurals name="strategies_msg_vote_input">
+        <item quantity="one">%d muestra</item>
+        <item quantity="other">%d muestras</item>
+    </plurals>
+    <string name="strategies_msg_no_readable">sin respuestas legibles</string>
+    <string name="strategies_msg_tie_between">empate entre %1$s</string>
+    <string name="strategies_msg_step_back_answer">%1$s (respuesta)</string>
+</resources>

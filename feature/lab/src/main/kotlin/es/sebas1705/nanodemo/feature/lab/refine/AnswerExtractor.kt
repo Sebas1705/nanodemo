@@ -1,15 +1,17 @@
 package es.sebas1705.nanodemo.feature.lab.refine
 
+import androidx.annotation.StringRes
+import es.sebas1705.nanodemo.feature.lab.R
 import java.math.BigDecimal
 import java.text.Normalizer
 
 /** What shape the short final answer has; decides how it is read and normalised so equal answers vote together. */
-enum class AnswerKind(val label: String) {
-    AUTO("Auto"),
-    NUMBER("Número"),
-    YES_NO("Sí/No"),
-    LETTER("Opción (letra)"),
-    PHRASE("Frase corta"),
+enum class AnswerKind(@StringRes val label: Int) {
+    AUTO(R.string.strategies_kind_auto),
+    NUMBER(R.string.strategies_kind_number),
+    YES_NO(R.string.strategies_kind_yes_no),
+    LETTER(R.string.strategies_kind_letter),
+    PHRASE(R.string.strategies_kind_phrase),
 }
 
 /**
@@ -118,15 +120,15 @@ private fun phraseIn(segment: String): Extracted? {
 }
 
 /** Reads the short answer of `text` as `kind` (not [AnswerKind.AUTO]); `null` when there is no answer of that shape. */
-fun extractAnswer(text: String, kind: AnswerKind): Extracted? {
+fun extractAnswer(text: String, kind: AnswerKind, texts: RefineTexts = RefineTexts): Extracted? {
     val segment = finalSegment(text)
     if (segment.isEmpty()) return null
     return when (kind) {
         AnswerKind.NUMBER -> numberIn(segment)?.let { Extracted(kind, it, it) }
-        AnswerKind.YES_NO -> yesNoIn(segment)?.let { Extracted(kind, it, if (it == "yes") "sí" else "no") }
+        AnswerKind.YES_NO -> yesNoIn(segment)?.let { Extracted(kind, it, if (it == "yes") texts.yes else texts.no) }
         AnswerKind.LETTER -> letterIn(segment)?.let { Extracted(kind, it, it) }
         AnswerKind.PHRASE -> phraseIn(segment)
-        AnswerKind.AUTO -> extractAll(listOf(text), AnswerKind.AUTO).single()
+        AnswerKind.AUTO -> extractAll(listOf(text), AnswerKind.AUTO, texts).single()
     }
 }
 
@@ -148,12 +150,12 @@ fun detectKind(text: String): AnswerKind {
  * Extracts every answer with ONE shape, so that "12", "twelve apples" and "about 12" can vote together. With
  * [AnswerKind.AUTO] the shape is the most common one among the answers (a tie goes to number, yes/no, letter, phrase in that order).
  */
-fun extractAll(texts: List<String>, kind: AnswerKind): List<Extracted?> {
+fun extractAll(answers: List<String>, kind: AnswerKind, texts: RefineTexts = RefineTexts): List<Extracted?> {
     val resolved = if (kind != AnswerKind.AUTO) kind else {
-        val counts = texts.filter { finalSegment(it).isNotEmpty() }.groupingBy { detectKind(it) }.eachCount()
+        val counts = answers.filter { finalSegment(it).isNotEmpty() }.groupingBy { detectKind(it) }.eachCount()
         KIND_PRIORITY.maxByOrNull { counts[it] ?: 0 } ?: AnswerKind.PHRASE
     }
-    return texts.map { extractAnswer(it, resolved) }
+    return answers.map { extractAnswer(it, resolved, texts) }
 }
 
 /** Whether a model's answer matches the reference answer the user typed, both read with the same shape. */

@@ -1,0 +1,263 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- ===== Plan, execute and critique (refine_) ===== -->
+    <string name="refine_section_task">Task</string>
+    <string name="refine_task_label">What should the worker write?</string>
+    <string name="refine_example_1">Explain photosynthesis in three sentences for an 8-year-old.</string>
+    <string name="refine_example_2">Write a polite email asking for one more week to deliver a project.</string>
+    <string name="refine_example_3">Give me three advantages and three risks of running an AI model on a phone.</string>
+    <string name="refine_section_roles">Roles and engines</string>
+    <string name="refine_role_planner_hint">Planner: writes the plan</string>
+    <string name="refine_role_worker_hint">Worker: writes and rewrites</string>
+    <string name="refine_role_critic_hint">Critic: accepts or asks for changes</string>
+    <string name="refine_role_planner">Planner</string>
+    <string name="refine_role_worker">Worker</string>
+    <string name="refine_role_critic">Critic</string>
+    <string name="refine_small_context_note">One of the chosen engines has a small context: the intermediate texts are trimmed so they fit.</string>
+    <string name="refine_section_rounds">Revision rounds at most</string>
+    <string name="refine_rounds_none">None</string>
+    <string name="refine_run">Run</string>
+    <string name="refine_running">Running…</string>
+    <string name="refine_cancel">Cancel</string>
+    <string name="refine_progress">%1$d of %2$d · %3$s</string>
+    <string name="refine_trace_tail">Last %1$d of %2$d steps</string>
+
+    <string name="refine_result_title">Result</string>
+    <string name="refine_engine_failed">An engine failed.</string>
+    <string name="refine_stop_accepted">The critic accepted version %1$d.</string>
+    <string name="refine_stop_max_revisions">The revision rounds ran out and the critic still saw problems in version %1$d.</string>
+    <string name="refine_stop_critic_unreadable">The critique could not be read, so it stopped at version %1$d instead of guessing.</string>
+    <string name="refine_plan_title">Plan</string>
+    <string name="refine_changes_title">What changed from v1 to v%1$d</string>
+    <string name="refine_changes_summary">%1$d added · %2$d removed · %3$d%% equal · %4$+d characters</string>
+    <string name="refine_cost_title">Cost per role</string>
+    <string name="refine_col_role">Role</string>
+    <string name="refine_col_engine">Engine</string>
+    <string name="refine_col_calls">Calls</string>
+    <string name="refine_col_time">Time</string>
+    <string name="refine_col_tokens">Tokens</string>
+    <string name="refine_total">Total</string>
+    <string name="refine_version_title">Version %1$d</string>
+    <string name="refine_version_final">Version %1$d (final)</string>
+    <string name="refine_draft_change">Compared with v%1$d: +%2$d −%3$d · %4$d%% equal</string>
+    <string name="refine_critique">Critique</string>
+    <string name="refine_verdict_accept">accepted</string>
+    <string name="refine_verdict_revise">asks for changes</string>
+    <string name="refine_verdict_unknown">unreadable</string>
+    <string name="refine_free_text">(free text)</string>
+
+    <!-- Texts produced by the pipeline (trace titles, details, errors) -->
+    <string name="refine_msg_done">Done</string>
+    <string name="refine_msg_stopped">Stopped</string>
+    <string name="refine_msg_cancelled">Cancelled</string>
+    <string name="refine_msg_error">Error</string>
+    <string name="refine_msg_empty_reply">The engine returned an empty reply</string>
+    <string name="refine_msg_yes">yes</string>
+    <string name="refine_msg_no">no</string>
+    <string name="refine_msg_unreadable">unreadable</string>
+    <string name="refine_msg_plan_label">Plan</string>
+    <string name="refine_msg_draft_label">Draft %1$d</string>
+    <string name="refine_msg_critique_label">Critique %1$d</string>
+    <string name="refine_msg_revision_label">Revision %1$d</string>
+    <string name="refine_msg_plan_title">Plan</string>
+    <string name="refine_msg_draft_title">Draft v%1$d</string>
+    <string name="refine_msg_critique_title">Critique of v%1$d</string>
+    <string name="refine_msg_read_critique">Read the critique</string>
+    <string name="refine_msg_compare_versions">Compare versions</string>
+    <string name="refine_msg_critique_json">JSON</string>
+    <string name="refine_msg_critique_free_text">free text</string>
+    <string name="refine_msg_diff_summary">+%1$d −%2$d · %3$d%% equal</string>
+    <plurals name="refine_msg_critique_summary">
+        <item quantity="one">%1$s · %2$d issue</item>
+        <item quantity="other">%1$s · %2$d issues</item>
+    </plurals>
+
+    <!-- ===== A model as judge (judge_) ===== -->
+    <string name="judge_section_question">Question</string>
+    <string name="judge_question_label">The question that was answered</string>
+    <string name="judge_section_answers">Answers to judge</string>
+    <string name="judge_source_engines">From the engines</string>
+    <string name="judge_source_typed">Written by me</string>
+    <string name="judge_engines_hint">The same question runs on each chosen engine and their answers are judged.</string>
+    <string name="judge_answer_label">Answer %1$d</string>
+    <string name="judge_remove_answer">Remove answer %1$d</string>
+    <string name="judge_add_answer">Add answer</string>
+    <string name="judge_section_how">How it judges</string>
+    <string name="judge_mode_rubric">Rubric 1–5</string>
+    <string name="judge_mode_pairwise">Pairwise tournament</string>
+    <string name="judge_mode_rubric_hint">Each answer is scored on its own for correctness, completeness and clarity.</string>
+    <string name="judge_mode_pairwise_hint">Every pair is judged twice with the positions swapped: if the verdict changes with the order, it is position bias.</string>
+    <string name="judge_engine_judge">Judge</string>
+    <string name="judge_small_context_note">The judge has a small context: long answers are trimmed before judging them.</string>
+    <plurals name="judge_calls">
+        <item quantity="one">%d call to the judge</item>
+        <item quantity="other">%d calls to the judge</item>
+    </plurals>
+    <string name="judge_run">Judge</string>
+
+    <string name="judge_no_answer_from">No answer from %1$s</string>
+    <string name="judge_leaderboard_rubric">Ranking (rubric average)</string>
+    <string name="judge_leaderboard_tournament">Tournament ranking</string>
+    <string name="judge_reliability_title">Judge reliability</string>
+    <string name="judge_consistency">Consistency: %1$s</string>
+    <plurals name="judge_consistency_pairs">
+        <item quantity="one">Consistency: %3$s (%1$d of %2$d pair with the same verdict in both orders)</item>
+        <item quantity="other">Consistency: %3$s (%1$d of %2$d pairs with the same verdict in both orders)</item>
+    </plurals>
+    <string name="judge_first_share">It picked position A in %1$s of the verdicts with a winner (without bias you would expect ~50%%).</string>
+    <plurals name="judge_unreadable">
+        <item quantity="one">%1$d of %2$d verdicts could not be read and does not score.</item>
+        <item quantity="other">%1$d of %2$d verdicts could not be read and do not score.</item>
+    </plurals>
+    <string name="judge_agreement_title">Agreement with your votes</string>
+    <plurals name="judge_agreement">
+        <item quantity="one">The judge orders the same as your Compare votes in %1$d of %2$d engine pair (%3$s).</item>
+        <item quantity="other">The judge orders the same as your Compare votes in %1$d of %2$d engine pairs (%3$s).</item>
+    </plurals>
+    <string name="judge_agreement_none">There are not enough votes in Compare yet to check these engines.</string>
+    <string name="judge_cost_title">Cost</string>
+    <string name="judge_cost_answers">Answers: %1$s</string>
+    <string name="judge_cost_judge">Judge: %1$s</string>
+    <string name="judge_unscored">unscored</string>
+    <string name="judge_score_rubric">%1$s / 5</string>
+    <string name="judge_score_points">%1$s pts</string>
+    <string name="judge_criterion_correctness">Correctness</string>
+    <string name="judge_criterion_completeness">Completeness</string>
+    <string name="judge_criterion_clarity">Clarity</string>
+    <string name="judge_pick_first">A (%1$s)</string>
+    <string name="judge_pick_second">B (%1$s)</string>
+    <string name="judge_pick_tie">tie</string>
+    <string name="judge_pick_unreadable">unreadable</string>
+    <string name="judge_pair_flipped">⚠ changes with the order</string>
+
+    <!-- Texts produced by the pipeline (trace titles, details, errors) -->
+    <string name="judge_msg_answer_from">Answer from %1$s</string>
+    <string name="judge_msg_answer_title">Answer</string>
+    <string name="judge_msg_need_two">At least two answers are needed to judge.</string>
+    <string name="judge_msg_scoring">Scoring %1$s</string>
+    <string name="judge_msg_score_title">Score %1$s</string>
+    <string name="judge_msg_read_score">Read the score</string>
+    <string name="judge_msg_score_out">%1$s of 5</string>
+    <string name="judge_msg_pair_label">%1$s vs %2$s (%3$d/2)</string>
+    <string name="judge_msg_pair_title">%1$s (A) vs %2$s (B)</string>
+    <string name="judge_msg_read_verdict">Read the verdict</string>
+    <string name="judge_msg_wins_first">A wins (%1$s)</string>
+    <string name="judge_msg_wins_second">B wins (%1$s)</string>
+    <string name="judge_msg_tie">tie</string>
+
+    <!-- ===== Vote and compare strategies (strategies_) ===== -->
+    <string name="strategies_tab_self_consistency">Self-consistency</string>
+    <string name="strategies_tab_prompts">Prompt strategies</string>
+    <string name="strategies_preset_change">Change</string>
+    <string name="strategies_preset_train">Train trip</string>
+    <string name="strategies_preset_candies">Candies</string>
+    <string name="strategies_preset_capital">Capital</string>
+    <string name="strategies_section_question">Question</string>
+    <string name="strategies_question_label">A question with a short answer</string>
+    <string name="strategies_expected_label">Expected answer (optional)</string>
+    <string name="strategies_expected_support">With it we can tell whether voting got it right where the greedy answer failed.</string>
+    <string name="strategies_section_engine">Engine</string>
+    <string name="strategies_engine_answers">Who answers</string>
+    <string name="strategies_no_temperature">This engine does not support temperature: the samples will come out almost identical and the vote will add nothing.</string>
+    <string name="strategies_small_context">Small context: the question is trimmed if it does not fit next to the answer.</string>
+    <string name="strategies_samples">Samples: %1$d</string>
+    <string name="strategies_temperature">Temperature: %1$s</string>
+    <string name="strategies_section_kind">Shape of the answer</string>
+    <string name="strategies_run_sample">Sample and vote</string>
+
+    <string name="strategies_kind_auto">Auto</string>
+    <string name="strategies_kind_number">Number</string>
+    <string name="strategies_kind_yes_no">Yes/No</string>
+    <string name="strategies_kind_letter">Option (letter)</string>
+    <string name="strategies_kind_phrase">Short phrase</string>
+
+    <string name="strategies_vote_title">Vote</string>
+    <string name="strategies_vote_none">No sample gave a readable answer.</string>
+    <string name="strategies_vote_line">%1$s · %2$d of %3$d</string>
+    <string name="strategies_vote_line_winner">%1$s · %2$d of %3$d  ← wins</string>
+    <string name="strategies_agreement">Agreement between samples: %1$s</string>
+    <string name="strategies_agreement_unreadable">Agreement between samples: %1$s · %2$d with no readable answer</string>
+    <string name="strategies_tie_note">Tie between %1$d answers: it was decided in favour of the greedy answer if it was among them, or of the one that appeared first.</string>
+    <string name="strategies_helped_title">Did voting help?</string>
+    <string name="strategies_greedy_vs_voted">Greedy answer: %1$s  ·  Voted: %2$s</string>
+    <string name="strategies_expected_line">Expected: %1$s  ·  greedy %2$s  ·  vote %3$s</string>
+    <string name="strategies_anecdote_note">With a single question it is an anecdote, not a measurement: repeat it with several to see whether voting really improves.</string>
+    <string name="strategies_samples_title">Samples</string>
+    <string name="strategies_greedy_sample">Greedy → %1$s</string>
+    <string name="strategies_no_answer">no answer</string>
+    <string name="strategies_hide_reasoning">Hide reasoning</string>
+    <string name="strategies_show_reasoning">Show reasoning</string>
+    <string name="strategies_cost_title">Cost</string>
+
+    <string name="strategies_verdict_voting_beat_greedy">Voting got it right where the greedy answer failed</string>
+    <string name="strategies_verdict_greedy_beat_voting">The greedy answer got it right and voting failed</string>
+    <string name="strategies_verdict_both_correct">Both got it right</string>
+    <string name="strategies_verdict_both_wrong">Both failed</string>
+    <string name="strategies_verdict_same_answer">Voting matches the greedy answer</string>
+    <string name="strategies_verdict_changed_answer">Voting changed the greedy answer</string>
+    <string name="strategies_verdict_no_vote">No answer could be read</string>
+
+    <plurals name="strategies_bench_intro">
+        <item quantity="one">%1$d task (arithmetic, logic, extraction, classification and questions in Spanish) with automatic checking, tried with every strategy.</item>
+        <item quantity="other">%1$d tasks (arithmetic, logic, extraction, classification and questions in Spanish) with automatic checking, tried with every strategy.</item>
+    </plurals>
+    <string name="strategies_section_engines">Engines to compare</string>
+    <string name="strategies_section_strategies">Strategies</string>
+    <string name="strategies_section_repetitions">Repetitions</string>
+    <string name="strategies_repetitions_many">With several repetitions the temperature is 0.6 and the table shows the range of hits across repetitions.</string>
+    <string name="strategies_repetitions_one">One repetition at a near-zero temperature: a deterministic comparison.</string>
+    <plurals name="strategies_planned_calls">
+        <item quantity="one">%d model call</item>
+        <item quantity="other">%d model calls</item>
+    </plurals>
+    <string name="strategies_long_run_warning">It is a long run on local engines: you can cancel it and the table keeps what was already measured.</string>
+    <string name="strategies_run_measure">Measure</string>
+    <string name="strategies_col_strategy">Strategy</string>
+    <string name="strategies_col_hits">Hits</string>
+    <string name="strategies_col_tokens">Tokens</string>
+    <string name="strategies_col_time">Time</string>
+    <string name="strategies_all_engines">All engines together</string>
+    <plurals name="strategies_bench_footnote">
+        <item quantity="one">%1$d answer measured. In green, the strategy with the most hits; \"!n\" are calls that failed and do not count. Tokens and time add up all the calls of the strategy (step-back uses two).</item>
+        <item quantity="other">%1$d answers measured. In green, the strategy with the most hits; \"!n\" are calls that failed and do not count. Tokens and time add up all the calls of the strategy (step-back uses two).</item>
+    </plurals>
+    <string name="strategies_wrong_title">Wrong answers (%1$d)</string>
+    <string name="strategies_wrong_hide">Hide</string>
+    <string name="strategies_wrong_show">Show the last 30</string>
+
+    <string name="strategies_strategy_zero_shot">Zero-shot</string>
+    <string name="strategies_strategy_few_shot">Few-shot</string>
+    <string name="strategies_strategy_chain_of_thought">Chain of thought</string>
+    <string name="strategies_strategy_step_back">Step back</string>
+    <string name="strategies_strategy_role">Role</string>
+    <string name="strategies_hint_zero_shot">The question as it is, only the final answer.</string>
+    <string name="strategies_hint_few_shot">Three solved examples before the question.</string>
+    <string name="strategies_hint_chain_of_thought">\"Think step by step\" and a last line with the answer.</string>
+    <string name="strategies_hint_step_back">First the general principle, then the answer.</string>
+    <string name="strategies_hint_role">An expert in the field is assigned before asking.</string>
+
+    <string name="strategies_category_arithmetic">Arithmetic</string>
+    <string name="strategies_category_logic">Logic</string>
+    <string name="strategies_category_extraction">Extraction</string>
+    <string name="strategies_category_classification">Classification</string>
+    <string name="strategies_category_spanish">Spanish</string>
+
+    <!-- Texts produced by the pipelines (trace titles, details, errors) -->
+    <string name="strategies_msg_greedy">Greedy answer</string>
+    <string name="strategies_msg_sample_label">Sample %1$d of %2$d</string>
+    <string name="strategies_msg_sample_title">Sample %1$d</string>
+    <string name="strategies_msg_voting">Voting</string>
+    <string name="strategies_msg_extract_title">Extract answers</string>
+    <plurals name="strategies_msg_extract_input">
+        <item quantity="one">%d answer</item>
+        <item quantity="other">%d answers</item>
+    </plurals>
+    <string name="strategies_msg_vote_title">Vote</string>
+    <plurals name="strategies_msg_vote_input">
+        <item quantity="one">%d sample</item>
+        <item quantity="other">%d samples</item>
+    </plurals>
+    <string name="strategies_msg_no_readable">no readable answers</string>
+    <string name="strategies_msg_tie_between">tie between %1$s</string>
+    <string name="strategies_msg_step_back_answer">%1$s (answer)</string>
+</resources>

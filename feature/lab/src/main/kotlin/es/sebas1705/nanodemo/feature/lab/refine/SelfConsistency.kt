@@ -1,8 +1,10 @@
 package es.sebas1705.nanodemo.feature.lab.refine
 
+import androidx.annotation.StringRes
 import es.sebas1705.nanodemo.domain.models.GenerationConfig
 import es.sebas1705.nanodemo.domain.models.InferenceTier
 import es.sebas1705.nanodemo.domain.models.StepKind
+import es.sebas1705.nanodemo.feature.lab.R
 import es.sebas1705.nanodemo.feature.lab.trace.LocalOutcome
 import es.sebas1705.nanodemo.feature.lab.trace.PipelineRunner
 import kotlinx.coroutines.currentCoroutineContext
@@ -44,17 +46,17 @@ fun majorityVote(answers: List<Extracted?>, preferKey: String? = null): VoteResu
 /** One answer of the run, as text and as the short answer read from it (`null` when the call failed or nothing could be read). */
 data class SampleAnswer(val text: String, val extracted: Extracted?, val error: String? = null)
 
-enum class VoteVerdict(val label: String) {
+enum class VoteVerdict(@StringRes val label: Int) {
     /** Reference answer given: voting was right where the single greedy answer was wrong. */
-    VOTING_BEAT_GREEDY("La votación acertó donde la respuesta voraz falló"),
-    GREEDY_BEAT_VOTING("La respuesta voraz acertó y la votación falló"),
-    BOTH_CORRECT("Las dos acertaron"),
-    BOTH_WRONG("Las dos fallaron"),
+    VOTING_BEAT_GREEDY(R.string.strategies_verdict_voting_beat_greedy),
+    GREEDY_BEAT_VOTING(R.string.strategies_verdict_greedy_beat_voting),
+    BOTH_CORRECT(R.string.strategies_verdict_both_correct),
+    BOTH_WRONG(R.string.strategies_verdict_both_wrong),
 
     /** No reference answer: only whether voting changed the answer. */
-    SAME_ANSWER("La votación coincide con la respuesta voraz"),
-    CHANGED_ANSWER("La votación cambió la respuesta voraz"),
-    NO_VOTE("No se pudo leer ninguna respuesta"),
+    SAME_ANSWER(R.string.strategies_verdict_same_answer),
+    CHANGED_ANSWER(R.string.strategies_verdict_changed_answer),
+    NO_VOTE(R.string.strategies_verdict_no_vote),
 }
 
 data class SelfConsistencyResult(
@@ -104,6 +106,7 @@ fun judgeVote(vote: VoteResult?, greedy: Extracted?, expected: String?): VoteVer
  */
 class SelfConsistencyPipeline(
     private val runner: PipelineRunner,
+    private val texts: RefineTexts = RefineTexts,
     private val profileOf: ProfileOf = { EngineProfile() },
 ) {
 
@@ -130,36 +133,36 @@ class SelfConsistencyPipeline(
         }
 
         // Raw replies first (the vote needs all of them to resolve AUTO), greedy first.
-        val texts = mutableListOf<String?>()
+        val replies = mutableListOf<String?>()
         val errors = mutableListOf<String?>()
         suspend fun sample(index: Int, label: String, title: String, temp: Float) {
             currentCoroutineContext().ensureActive()
             onProgress(LabProgress(index, total, label))
-            val reply = runner.ask(StepKind.GENERATE, title, tier, prompt, GenerationConfig(temperature = temp, maxOutputTokens = out))
-            texts += reply.text.takeIf { reply.ok }
+            val reply = runner.ask(StepKind.GENERATE, title, tier, prompt, GenerationConfig(temperature = temp, maxOutputTokens = out), emptyReply = texts.emptyReply)
+            replies += reply.text.takeIf { reply.ok }
             errors += reply.error
             publish { it.copy(stats = it.stats + reply) }
         }
 
-        sample(0, "Respuesta voraz", "Respuesta voraz", GREEDY_TEMPERATURE)
-        for (i in 1..n) sample(i, "Muestra $i de $n", "Muestra $i", temperature)
-        onProgress(LabProgress(total, total, "Votando"))
+        sample(0, texts.greedyAnswer, texts.greedyAnswer, GREEDY_TEMPERATURE)
+        for (i in 1..n) sample(i, texts.sampleLabel(i, n), texts.sampleTitle(i), temperature)
+        onProgress(LabProgress(total, total, texts.voting))
 
-        val extracted = runner.local(StepKind.VALIDATE, "Extraer respuestas", input = "${texts.count { it != null }} respuestas") {
-            val all = extractAll(texts.map { it.orEmpty() }, kind).mapIndexed { i, e -> if (texts[i] == null) null else e }
+        val extracted = runner.local(StepKind.VALIDATE, texts.extractAnswers, input = texts.answersCount(replies.count { it != null })) {
+            val all = extractAll(replies.map { it.orEmpty() }, kind, texts).mapIndexed { i, e -> if (replies[i] == null) null else e }
             LocalOutcome(all, output = all.joinToString(" · ") { it?.display ?: "—" })
         }
-        val answers = texts.indices.map { SampleAnswer(texts[it].orEmpty(), extracted[it], errors[it]) }
+        val answers = replies.indices.map { SampleAnswer(replies[it].orEmpty(), extracted[it], errors[it]) }
         val greedy = answers.first()
         val sampled = answers.drop(1)
         val resolvedKind = extracted.firstNotNullOfOrNull { it?.kind } ?: kind
 
-        val vote = runner.local(StepKind.VALIDATE, "Votar", input = "${sampled.size} muestras") {
+        val vote = runner.local(StepKind.VALIDATE, texts.vote, input = texts.samplesCount(sampled.size)) {
             val v = majorityVote(sampled.map { it.extracted }, preferKey = greedy.extracted?.key)
             LocalOutcome(
                 v,
-                output = v.winner?.let { "${it.display} (${it.count}/${v.valid})" } ?: "sin respuestas legibles",
-                detail = if (v.tie) "empate entre ${v.tiedKeys.joinToString(", ")}" else null,
+                output = v.winner?.let { "${it.display} (${it.count}/${v.valid})" } ?: texts.noReadableAnswers,
+                detail = if (v.tie) texts.tieBetween(v.tiedKeys.joinToString(", ")) else null,
             )
         }
         val verdict = judgeVote(vote, greedy.extracted, result.expected)

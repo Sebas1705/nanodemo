@@ -45,7 +45,7 @@ class JudgePipelineTest {
 
         assertTrue(result.finished)
         assertEquals(3 * 2, executor.calls.size) // 3 pairs x 2 orders
-        assertEquals(listOf("Respuesta 1", "Respuesta 2", "Respuesta 3"), result.leaderboard.map { it.candidate.label })
+        assertEquals(listOf("Answer 1", "Answer 2", "Answer 3"), result.leaderboard.map { it.candidate.label })
         assertEquals(listOf(1, 2, 3), result.leaderboard.map { it.rank })
         assertEquals(1.0, result.consistency.ratio!!, 0.0001)
         assertEquals(0.5, result.firstShare!!.ratio!!, 0.0001)
@@ -127,7 +127,7 @@ class JudgePipelineTest {
         val result = pipeline(executor).run("Q?", typed, judgeTier, JudgeMode.RUBRIC)
 
         assertEquals(3, executor.calls.size)
-        assertEquals(listOf("Respuesta 1", "Respuesta 2", "Respuesta 3"), result.leaderboard.map { it.candidate.label })
+        assertEquals(listOf("Answer 1", "Answer 2", "Answer 3"), result.leaderboard.map { it.candidate.label })
         assertEquals(3, result.scores[1]!!.correctness)
         assertEquals(1, result.scores[3]!!.correctness)
         assertTrue(result.pairs.isEmpty())

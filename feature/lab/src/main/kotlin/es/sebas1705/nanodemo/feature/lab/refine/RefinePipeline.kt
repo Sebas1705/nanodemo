@@ -88,6 +88,7 @@ data class RefineResult(
  */
 class RefinePipeline(
     private val runner: PipelineRunner,
+    private val texts: RefineTexts = RefineTexts,
     private val profileOf: ProfileOf = { EngineProfile() },
 ) {
 
@@ -111,7 +112,7 @@ class RefinePipeline(
 
         fun end(stop: RefineStop, error: String? = null): RefineResult {
             publish { it.copy(stop = stop, error = error) }
-            onProgress(LabProgress(total, total, if (stop == RefineStop.FAILED) "Detenido" else "Listo"))
+            onProgress(LabProgress(total, total, if (stop == RefineStop.FAILED) texts.stopped else texts.done))
             return result
         }
 
@@ -120,7 +121,7 @@ class RefinePipeline(
         suspend fun call(role: RefineRole, label: String, kind: StepKind, title: String, prompt: String, config: GenerationConfig): ModelReply {
             currentCoroutineContext().ensureActive()
             onProgress(LabProgress(calls, total, label))
-            val reply = runner.ask(kind, title, setup.tierOf(role), prompt, config)
+            val reply = runner.ask(kind, title, setup.tierOf(role), prompt, config, emptyReply = texts.emptyReply)
             calls++
             stats[role] = (stats[role] ?: CallStats()) + reply
             return reply
@@ -131,10 +132,10 @@ class RefinePipeline(
         val planOut = planProfile.outputTokens(PLAN_TOKENS)
         val planPrompt = planPrompt(task, planProfile, planOut)
         val planReply = call(
-            RefineRole.PLANNER, "Plan", StepKind.PLAN, "Plan", planPrompt,
+            RefineRole.PLANNER, texts.planLabel, StepKind.PLAN, texts.planTitle, planPrompt,
             GenerationConfig(temperature = 0.3f, maxOutputTokens = planOut),
         )
-        if (!planReply.ok) return fail("Planificador: ${planReply.error}")
+        if (!planReply.ok) return fail("${texts.roleName(RefineRole.PLANNER)}: ${planReply.error}")
         publish { it.copy(plan = planReply.text) }
 
         // 2. First draft
@@ -142,10 +143,10 @@ class RefinePipeline(
         val workOut = workProfile.outputTokens(WORK_TOKENS)
         val workConfig = GenerationConfig(temperature = 0.5f, maxOutputTokens = workOut)
         val firstReply = call(
-            RefineRole.WORKER, "Borrador 1", StepKind.GENERATE, "Borrador v1",
+            RefineRole.WORKER, texts.draftLabel(1), StepKind.GENERATE, texts.draftTitle(1),
             workerPrompt(task, planReply.text, workProfile, workOut), workConfig,
         )
-        if (!firstReply.ok) return fail("Trabajador: ${firstReply.error}")
+        if (!firstReply.ok) return fail("${texts.roleName(RefineRole.WORKER)}: ${firstReply.error}")
         publish { it.copy(drafts = listOf(RefineDraft(1, firstReply.text))) }
 
         // 3. Critique / revise
@@ -156,18 +157,18 @@ class RefinePipeline(
             val criticProfile = profileOf(setup.critic)
             val criticOut = criticProfile.outputTokens(CRITIC_TOKENS)
             val criticReply = call(
-                RefineRole.CRITIC, "Crítica $version", StepKind.CRITIQUE, "Crítica de v$version",
+                RefineRole.CRITIC, texts.critiqueLabel(version), StepKind.CRITIQUE, texts.critiqueTitle(version),
                 criticPrompt(task, draft.text, criticProfile, criticOut),
                 GenerationConfig(temperature = 0.1f, maxOutputTokens = criticOut, jsonMode = criticProfile.structuredOutput),
             )
-            if (!criticReply.ok) return fail("Crítico: ${criticReply.error}")
+            if (!criticReply.ok) return fail("${texts.roleName(RefineRole.CRITIC)}: ${criticReply.error}")
 
-            val critique = runner.local(StepKind.VALIDATE, "Leer la crítica", input = criticReply.text) {
+            val critique = runner.local(StepKind.VALIDATE, texts.readCritique, input = criticReply.text) {
                 val parsed = parseCritique(criticReply.text)
                 LocalOutcome(
                     value = parsed,
-                    output = "${parsed.verdict.name.lowercase()} · ${parsed.issues.size} problemas",
-                    detail = if (parsed.structured) "JSON" else "texto libre",
+                    output = texts.critiqueSummary(texts.verdictName(parsed.verdict), parsed.issues.size),
+                    detail = if (parsed.structured) texts.critiqueJson else texts.critiqueFreeText,
                 )
             }
             publish { current ->
@@ -182,13 +183,13 @@ class RefinePipeline(
 
             revisions++
             val reviseReply = call(
-                RefineRole.WORKER, "Revisión $revisions", StepKind.GENERATE, "Borrador v${revisions + 1}",
+                RefineRole.WORKER, texts.revisionLabel(revisions), StepKind.GENERATE, texts.draftTitle(revisions + 1),
                 revisionPrompt(task, draft.text, critique.issues, workProfile, workOut), workConfig,
             )
-            if (!reviseReply.ok) return fail("Trabajador: ${reviseReply.error}")
-            val change = runner.local(StepKind.SUMMARIZE, "Comparar versiones", input = "v$version → v${revisions + 1}") {
+            if (!reviseReply.ok) return fail("${texts.roleName(RefineRole.WORKER)}: ${reviseReply.error}")
+            val change = runner.local(StepKind.SUMMARIZE, texts.compareVersions, input = "v$version → v${revisions + 1}") {
                 val diff = diffDrafts(draft.text, reviseReply.text)
-                LocalOutcome(diff, output = "+${diff.added} −${diff.removed} · ${(diff.similarity * 100).toInt()}% igual")
+                LocalOutcome(diff, output = texts.diffSummary(diff.added, diff.removed, (diff.similarity * 100).toInt()))
             }
             publish { it.copy(drafts = it.drafts + RefineDraft(revisions + 1, reviseReply.text, change = change)) }
         }

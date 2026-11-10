@@ -30,6 +30,7 @@ import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import es.sebas1705.nanodemo.core.designsystem.AppCard
@@ -42,6 +43,7 @@ import es.sebas1705.nanodemo.core.ui.readoutStyle
 import es.sebas1705.nanodemo.domain.models.InferenceTier
 import es.sebas1705.nanodemo.domain.models.PipelineTrace
 import es.sebas1705.nanodemo.domain.models.TierAvailability
+import es.sebas1705.nanodemo.feature.lab.R
 import es.sebas1705.nanodemo.feature.lab.common.LabTierSelector
 import es.sebas1705.nanodemo.feature.lab.common.isUsable
 import es.sebas1705.nanodemo.feature.lab.trace.PipelineTraceView
@@ -89,8 +91,8 @@ fun LabPane(
 @Composable
 fun RunBar(running: Boolean, canRun: Boolean, runLabel: String, onRun: () -> Unit, onCancel: () -> Unit) {
     Row(horizontalArrangement = Arrangement.spacedBy(10.dp), verticalAlignment = Alignment.CenterVertically) {
-        Button(onClick = onRun, enabled = canRun && !running) { Text(if (running) "Ejecutando…" else runLabel) }
-        if (running) OutlinedButton(onClick = onCancel) { Text("Cancelar") }
+        Button(onClick = onRun, enabled = canRun && !running) { Text(if (running) stringResource(R.string.refine_running) else runLabel) }
+        if (running) OutlinedButton(onClick = onCancel) { Text(stringResource(R.string.refine_cancel)) }
     }
 }
 
@@ -106,7 +108,7 @@ fun ProgressBlock(progress: LabProgress?) {
             trackColor = DemoColors.Outline,
         )
         Text(
-            "${progress.done} de ${progress.total} · ${progress.label}",
+            stringResource(R.string.refine_progress, progress.done, progress.total, progress.label),
             style = MaterialTheme.typography.labelSmall,
             color = DemoColors.Muted,
         )
@@ -149,7 +151,7 @@ fun EngineMultiSelect(
 
 /** A single-choice row of chips. */
 @Composable
-fun <T> ChoiceChips(options: List<T>, selected: T, label: (T) -> String, onSelect: (T) -> Unit) {
+fun <T> ChoiceChips(options: List<T>, selected: T, label: @Composable (T) -> String, onSelect: (T) -> Unit) {
     LazyRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
         items(options) { option ->
             FilterChip(selected = option == selected, onClick = { onSelect(option) }, label = { Text(label(option)) })
@@ -159,7 +161,7 @@ fun <T> ChoiceChips(options: List<T>, selected: T, label: (T) -> String, onSelec
 
 /** A multi-choice row of chips. */
 @Composable
-fun <T> MultiChips(options: List<T>, selected: Set<T>, label: (T) -> String, onToggle: (T) -> Unit) {
+fun <T> MultiChips(options: List<T>, selected: Set<T>, label: @Composable (T) -> String, onToggle: (T) -> Unit) {
     LazyRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
         items(options) { option ->
             FilterChip(selected = option in selected, onClick = { onToggle(option) }, label = { Text(label(option)) })
@@ -175,7 +177,7 @@ fun TailTrace(trace: PipelineTrace, maxSteps: Int = 12) {
     } else {
         Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
             Text(
-                "Últimos $maxSteps de ${trace.steps.size} pasos",
+                stringResource(R.string.refine_trace_tail, maxSteps, trace.steps.size),
                 style = MaterialTheme.typography.labelSmall,
                 color = DemoColors.Muted,
             )

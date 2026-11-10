@@ -2,7 +2,9 @@ package es.sebas1705.nanodemo.feature.lab.refine
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import android.content.Context
 import dagger.hilt.android.lifecycle.HiltViewModel
+import dagger.hilt.android.qualifiers.ApplicationContext
 import es.sebas1705.nanodemo.domain.models.InferenceTier
 import es.sebas1705.nanodemo.domain.models.PipelineTrace
 import es.sebas1705.nanodemo.domain.models.TierAvailability
@@ -25,10 +27,12 @@ class SelfConsistencyViewModel @Inject constructor(
     runStep: RunStepUseCase,
     observeAvailability: ObserveAvailabilityUseCase,
     private val capabilitiesOf: CapabilitiesOfUseCase,
+    @ApplicationContext context: Context,
 ) : ViewModel() {
 
+    private val texts = AndroidRefineTexts(context)
     private val runner = PipelineRunner(runStep.asExecutor())
-    private val pipeline = SelfConsistencyPipeline(runner) { capabilitiesOf.profile(it) }
+    private val pipeline = SelfConsistencyPipeline(runner, texts) { capabilitiesOf.profile(it) }
 
     val availability: StateFlow<Map<InferenceTier, TierAvailability>> = observeAvailability()
     val trace: StateFlow<PipelineTrace> = runner.recorder.trace
@@ -88,10 +92,10 @@ class SelfConsistencyViewModel @Inject constructor(
                     onProgress = { _progress.value = it },
                 )
             } catch (e: CancellationException) {
-                runner.recorder.failRunning("Cancelado")
+                runner.recorder.failRunning(texts.cancelled)
                 throw e
             } catch (e: Exception) {
-                runner.recorder.failRunning("Error")
+                runner.recorder.failRunning(texts.error)
                 _error.value = e.message ?: e.javaClass.simpleName
             } finally {
                 _running.value = false
@@ -110,10 +114,12 @@ class StrategyBenchmarkViewModel @Inject constructor(
     runStep: RunStepUseCase,
     observeAvailability: ObserveAvailabilityUseCase,
     private val capabilitiesOf: CapabilitiesOfUseCase,
+    @ApplicationContext context: Context,
 ) : ViewModel() {
 
+    private val texts = AndroidRefineTexts(context)
     private val runner = PipelineRunner(runStep.asExecutor())
-    private val benchmark = StrategyBenchmark(runner) { capabilitiesOf.profile(it) }
+    private val benchmark = StrategyBenchmark(runner, texts) { capabilitiesOf.profile(it) }
 
     val availability: StateFlow<Map<InferenceTier, TierAvailability>> = observeAvailability()
     val trace: StateFlow<PipelineTrace> = runner.recorder.trace
@@ -188,10 +194,10 @@ class StrategyBenchmarkViewModel @Inject constructor(
                     onProgress = { _progress.value = it },
                 )
             } catch (e: CancellationException) {
-                runner.recorder.failRunning("Cancelado")
+                runner.recorder.failRunning(texts.cancelled)
                 throw e
             } catch (e: Exception) {
-                runner.recorder.failRunning("Error")
+                runner.recorder.failRunning(texts.error)
                 _error.value = e.message ?: e.javaClass.simpleName
             } finally {
                 _running.value = false
