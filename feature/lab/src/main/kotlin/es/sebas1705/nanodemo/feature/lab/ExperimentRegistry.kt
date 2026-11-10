@@ -5,6 +5,7 @@ import es.sebas1705.nanodemo.feature.lab.router.routerExperiment
 import es.sebas1705.nanodemo.feature.lab.scaling.scalingExperiment
 import es.sebas1705.nanodemo.feature.lab.soak.soakExperiment
 import es.sebas1705.nanodemo.feature.lab.rag.ragExperiment
+import es.sebas1705.nanodemo.feature.lab.agent.agentExperiment
 import es.sebas1705.nanodemo.feature.lab.sandbox.sandboxExperiment
 
 /**
@@ -19,6 +20,7 @@ object ExperimentRegistry {
         scalingExperiment,
         soakExperiment,
         ragExperiment,
+        agentExperiment,
     )
 
     fun find(id: String): Experiment? = all.firstOrNull { it.id == id }
