@@ -39,6 +39,16 @@ jobs:
         with:
           fetch-depth: 0
 
+      # A release must only ever ship code that is on main.
+      - name: Require the release commit to be on main
+        if: github.event_name != 'workflow_dispatch' || github.ref != 'refs/heads/main'
+        run: |
+          git fetch --no-tags origin main
+          if ! git merge-base --is-ancestor "$GITHUB_SHA" origin/main; then
+            echo "::error::Commit $GITHUB_SHA ($GITHUB_REF_NAME) is not an ancestor of origin/main. Merge it into main first, then tag again; a run started by workflow_dispatch from main skips this check."
+            exit 1
+          fi
+
       - name: Resolver versión y tag
         id: ver
         env:
