@@ -75,6 +75,19 @@ on-device semantic search (MediaPipe TextEmbedder), free-tier usage counters,
 a context meter for the local engines, persisted settings, and a CPU/GPU selector
 for LiteRT-LM. The full list is in the [Spanish README](README.es.md#qué-hace).
 
+## Lab (in progress, not on `main` yet)
+
+The **Lab** is a testbed for AI *architectures* (what you build around a model) and for *measurement*,
+run through the same five tiers so any architecture can be tried on any engine. **It is not in
+`main`**: it lives on the `lab-integration` branch (a new `feature:lab` module plus a `runStep`
+foundation in the inference repository), described in that branch's `docs/LAB.md`. According to
+that document, the branch has a sandbox, an on-device RAG, a ReAct agent with tools, a hybrid
+edge/cloud router with a PII gateway, planner/worker/critic with LLM-as-judge and self-consistency,
+a 22-task benchmark suite, context-scaling and thermal-soak measurements, context management and
+guardrails experiments, and mobile measurements (memory, battery, thermal) recorded per generation.
+Its status table still lists some experiments as in progress or planned, and none of its UI has
+been run on a device. Until it is merged, none of this ships in the released app.
+
 ## Requirements
 
 - Android Studio (recent stable) with JDK 21.
@@ -153,7 +166,8 @@ export JAVA_HOME=/path/to/jdk-21 ANDROID_HOME=/path/to/Android/sdk
 With Doppler: `doppler setup` (project `nanodemo`, config `dev`) once, then
 `doppler run -- ./gradlew :app:assembleDebug`.
 
-CI (`.github/workflows/ci.yml`) builds the debug APK and runs the unit tests on
+CI (`.github/workflows/ci.yml`) builds the debug and release APKs (so R8 shrinking
+problems show up before a tag) and runs the unit tests on
 every push to `main` and on every pull request, without any secret.
 `release-apk.yml` runs on `vX.Y.Z` tags only and uploads a signed APK to Firebase
 App Distribution (`git tag v1.2.0 && git push origin v1.2.0`) — see

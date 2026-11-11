@@ -1,29 +1,32 @@
 name: Release APK
 
-# Única vía de distribución: al empujar un tag `vX.Y.Z` (o al disparar el workflow a mano
-# indicando la versión) compila el APK release firmado y lo sube a Firebase App Distribution con
-# el versionName limpio (sin sufijo "-dev").
+# The only distribution path: when a `vX.Y.Z` tag is pushed (or the workflow is run by hand with a
+# version) it builds the signed release APK and uploads it to Firebase App Distribution with a clean
+# versionName (no "-dev" suffix).
 #
-# NO crea una GitHub Release ni sube el APK como artefacto: el repo es público y el APK lleva
-# compiladas en BuildConfig las claves reales (Gemini, Brave, token de modelos, Firebase), así que
-# cualquier copia descargable desde GitHub las expondría. Los testers lo reciben solo por Firebase.
-# Antes había una segunda vía (distribute.yml) que subía un build "-dev.N" a Firebase en cada push
-# a main; se sacó a propósito para no repartir builds sin tag — solo lo que se decide marcar
-# como versión llega a los testers. Solo necesita Doppler (DOPPLER_TOKEN).
+# It does NOT create a GitHub Release or upload the APK as an artifact: the repo is public and the
+# APK has the real keys compiled into BuildConfig (Gemini, Brave, model token, Firebase), so any
+# copy downloadable from GitHub would expose them. Testers get it only through Firebase.
+# There used to be a second path (distribute.yml) that uploaded a "-dev.N" build to Firebase on every
+# push to main; it was removed on purpose so no untagged builds are handed out: only what you decide
+# to mark as a version reaches testers. It only needs Doppler (DOPPLER_TOKEN).
+#
+# This job holds the Firebase service-account key, so the actions and the firebase-tools version
+# are pinned (actions by commit SHA; bump them deliberately).
 on:
   push:
     tags: ["v*"]
   workflow_dispatch:
     inputs:
       version:
-        description: "Versión sin prefijo, p. ej. 1.2.0 (o 1.2.0-beta.1 para pre-release)"
+        description: "Version without prefix, e.g. 1.2.0 (or 1.2.0-beta.1 for a pre-release)"
         required: true
         type: string
 
 permissions:
   contents: read
 
-# Nunca cancelar una release a medias: dos tags seguidos se encolan.
+# Never cancel a release halfway: two tags in a row are queued.
 concurrency:
   group: release-apk
   cancel-in-progress: false
@@ -35,7 +38,7 @@ jobs:
     env:
       DOPPLER_TOKEN: ${{ secrets.DOPPLER_TOKEN }}
     steps:
-      - uses: actions/checkout@v7
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
         with:
           fetch-depth: 0
 
@@ -48,12 +51,12 @@ jobs:
           if [ "$EVENT" = "workflow_dispatch" ]; then RAW="$INPUT_VERSION"; else RAW="$GITHUB_REF_NAME"; fi
           VERSION="${RAW#v}"
           if ! [[ "$VERSION" =~ ^[0-9]+\.[0-9]+\.[0-9]+(-[0-9A-Za-z.]+)?$ ]]; then
-            echo "::error::Versión inválida '$RAW'. Formato esperado: X.Y.Z o X.Y.Z-sufijo (p. ej. 1.2.0, 1.2.0-beta.1)"
+            echo "::error::Invalid version '$RAW'. Expected format: X.Y.Z or X.Y.Z-suffix (e.g. 1.2.0, 1.2.0-beta.1)"
             exit 1
           fi
           TAG="v$VERSION"
           if [ "$EVENT" = "workflow_dispatch" ] && git rev-parse -q --verify "refs/tags/$TAG" >/dev/null; then
-            echo "::error::Ya existe el tag $TAG. Elegí otra versión."
+            echo "::error::The tag $TAG already exists. Pick another version."
             exit 1
           fi
           echo "version=$VERSION" >> "$GITHUB_OUTPUT"
@@ -64,7 +67,7 @@ jobs:
           version-name: ${{ steps.ver.outputs.version }}
           extra-secrets: FIREBASE_SERVICE_ACCOUNT_JSON
 
-      - name: Subir a Firebase App Distribution
+      - name: Upload to Firebase App Distribution
         env:
           TESTER_GROUP: ${{ vars.FIREBASE_TESTER_GROUP || 'testers' }}
           TAG: ${{ steps.ver.outputs.tag }}
@@ -74,11 +77,11 @@ jobs:
             umask 077
             printf "%s" "$FIREBASE_SERVICE_ACCOUNT_JSON" > "$RUNNER_TEMP/firebase-sa.json"
             export GOOGLE_APPLICATION_CREDENTIALS="$RUNNER_TEMP/firebase-sa.json"
-            npx --yes firebase-tools appdistribution:distribute app/build/outputs/apk/release/app-release.apk \
+            npx --yes firebase-tools@15.35.0 appdistribution:distribute app/build/outputs/apk/release/app-release.apk \
               --app "$FIREBASE_APP_ID" \
               --groups "$TESTER_GROUP" \
               --release-notes "$NOTES"'
 
-      - name: Borrar credenciales del runner
+      - name: Delete the credentials from the runner
         if: always()
         run: rm -f "$RUNNER_TEMP/release.jks" "$RUNNER_TEMP/firebase-sa.json"

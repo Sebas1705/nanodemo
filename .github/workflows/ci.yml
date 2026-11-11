@@ -1,10 +1,12 @@
 name: CI
 
-# Compila y corre los tests unitarios en cada push a main y en cada pull request. Existe aparte de
-# release-apk.yml porque ese solo corre al empujar un tag: sin esto, un error de compilación se vería
-# recién al publicar una versión. No usa Doppler ni ningún secreto — las keys de los tiers son opcionales
-# en el build (ver `secret()` en build.gradle.kts: si faltan quedan vacías), así que también funciona
-# en PRs de forks. El APK firmado de verdad lo arma release-apk.yml.
+# Builds the debug and release APKs and runs the unit tests on every push to main and every pull
+# request. It exists apart from release-apk.yml because that one only runs when a tag is pushed:
+# without this, a compile error (or an R8 shrinking problem, which only shows up in the release
+# build) would be seen only when publishing a version. It uses no Doppler and no secrets: the tier
+# keys are optional in the build (see `secret()` in build.gradle.kts: missing ones stay empty), so
+# it also works on fork PRs. The release build is signed with the debug key here; the real signed
+# APK is built by release-apk.yml.
 on:
   push:
     branches: [main]
@@ -13,7 +15,7 @@ on:
 permissions:
   contents: read
 
-# Un push nuevo a la misma rama cancela la corrida anterior, que ya quedó desactualizada.
+# A new push to the same branch cancels the previous run, which is now out of date.
 concurrency:
   group: ci-${{ github.ref }}
   cancel-in-progress: true
@@ -32,13 +34,13 @@ jobs:
 
       - uses: gradle/actions/setup-gradle@v6
 
-      # gradlew se commiteó sin el bit de ejecución (se creó desde Windows).
-      - name: Compilar y correr los tests
+      # gradlew was committed without the executable bit (it was created on Windows).
+      - name: Build and run the tests
         run: |
           chmod +x gradlew
-          ./gradlew :app:assembleDebug testDebugUnitTest --continue "-Dorg.gradle.jvmargs=-Xmx4g -Dfile.encoding=UTF-8"
+          ./gradlew :app:assembleDebug :app:assembleRelease testDebugUnitTest --continue "-Dorg.gradle.jvmargs=-Xmx4g -Dfile.encoding=UTF-8"
 
-      - name: Subir los reportes de tests si algo falló
+      - name: Upload the test reports if something failed
         if: failure()
         uses: actions/upload-artifact@v7
         with:
