@@ -20,6 +20,7 @@
     <string name="chat_message_placeholder">Escribe un mensaje…</string>
     <string name="chat_image_to_attach">Imagen a adjuntar</string>
     <string name="chat_remove_image">Quitar imagen</string>
+    <string name="chat_remove">Quitar</string>
     <string name="chat_attach">Adjuntar</string>
     <string name="chat_attach_image">Adjuntar imagen</string>
     <string name="chat_paste_link">Pegar un link</string>

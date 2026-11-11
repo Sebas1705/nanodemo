@@ -359,7 +359,7 @@ internal fun AttachmentPill(
         )
         if (onClear != null) {
             IconButton(onClick = onClear, modifier = Modifier.size(24.dp)) {
-                Icon(Icons.Filled.Close, contentDescription = "Quitar", tint = DemoColors.Muted, modifier = Modifier.size(14.dp))
+                Icon(Icons.Filled.Close, contentDescription = stringResource(R.string.chat_remove), tint = DemoColors.Muted, modifier = Modifier.size(14.dp))
             }
         }
     }

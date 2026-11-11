@@ -1,0 +1,29 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  What Android may copy to Google Drive backup and to a device-to-device transfer (minSdk is 31, so
+  dataExtractionRules is the only mechanism that applies; fullBackupContent is for API 30 and lower).
+  Excluded: the chat history (conversations, messages and embeddings live in nanodemo.db), the
+  anonymous install id and usage counters (they belong to this install), and the app-specific external
+  files, where the multi-GB model files are downloaded. Only the app settings are kept.
+  The app stores no credentials on the device: the API keys are compiled into BuildConfig.
+-->
+<data-extraction-rules>
+    <cloud-backup>
+        <exclude domain="database" path="nanodemo.db" />
+        <exclude domain="database" path="nanodemo.db-wal" />
+        <exclude domain="database" path="nanodemo.db-shm" />
+        <exclude domain="database" path="nanodemo.db-journal" />
+        <exclude domain="sharedpref" path="telemetry.xml" />
+        <exclude domain="sharedpref" path="usage_quota.xml" />
+        <exclude domain="external" path="." />
+    </cloud-backup>
+    <device-transfer>
+        <exclude domain="database" path="nanodemo.db" />
+        <exclude domain="database" path="nanodemo.db-wal" />
+        <exclude domain="database" path="nanodemo.db-shm" />
+        <exclude domain="database" path="nanodemo.db-journal" />
+        <exclude domain="sharedpref" path="telemetry.xml" />
+        <exclude domain="sharedpref" path="usage_quota.xml" />
+        <exclude domain="external" path="." />
+    </device-transfer>
+</data-extraction-rules>

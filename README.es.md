@@ -8,7 +8,7 @@ al siguiente si el dispositivo (o la configuración) no soporta el anterior.
 Cada motor es un módulo Gradle reutilizable — ver
 [docs/AI_MODULES.md](docs/AI_MODULES.md) para llevarlos a otra app — y el APK
 se distribuye solo por Firebase App Distribution (no hay GitHub Releases: el APK lleva claves) — ver
-[docs/DISTRIBUTION.md](docs/DISTRIBUTION.md). Los tres primeros, de más a menos
+[docs/DISTRIBUTION.es.md](docs/DISTRIBUTION.es.md). Los tres primeros, de más a menos
 exigente:
 
 1. **Tier A — ML Kit GenAI Prompt API (Gemini Nano on-device vía AICore)**:
@@ -183,6 +183,20 @@ Foundation Models framework de Apple).
     (`SettingsStore`) y el nombre del acelerador aparece en la píldora del
     motor. Sirve para medir la diferencia real con las métricas de cada
     respuesta (⚡ primer token, tok/s).
+
+## Lab (en curso, todavía no está en `main`)
+
+El **Lab** es un banco de pruebas de *arquitecturas* de IA (lo que se construye alrededor de un
+modelo) y de *medición*, que usa los mismos cinco tiers para poder probar cualquier arquitectura
+sobre cualquier motor. **No está en `main`**: vive en la rama `lab-integration` (un módulo nuevo
+`feature:lab` y una base `runStep` en el repositorio de inferencia) y se describe en el
+`docs/LAB.md` de esa rama. Según ese documento, la rama tiene un sandbox, un RAG on-device, un
+agente ReAct con herramientas, un router híbrido edge/cloud con pasarela de PII,
+planificador/ejecutor/crítico con LLM-as-judge y self-consistency, una suite de benchmark de 22
+tareas, mediciones de escalado de contexto y de saturación térmica, experimentos de gestión de
+contexto y de guardrails, y mediciones móviles (memoria, batería, temperatura) por generación.
+Su tabla de estado aún marca algunos experimentos como en curso o planificados, y nada de su UI se
+ha probado en un dispositivo. Hasta que se fusione, nada de esto va en la app publicada.
 
 ## Arquitectura (multi-módulo, clean architecture)
 
@@ -471,7 +485,7 @@ cuota, el agrupado por fecha del historial y la (de)serialización de los ajuste
 ./gradlew :core:common:testDebugUnitTest
 ```
 
-`.github/workflows/ci.yml` compila el APK debug y corre esos tests en cada push a `main` y en cada
+`.github/workflows/ci.yml` compila los APK debug y release (así los problemas de R8 se ven antes de un tag) y corre esos tests en cada push a `main` y en cada
 pull request (sin Doppler ni secretos: las keys de los tiers son opcionales en el build). Es
 independiente de `release-apk.yml`, que solo corre al empujar un tag y arma el APK firmado.
 
@@ -489,12 +503,12 @@ git tag v1.2.0 && git push origin v1.2.0   # compila y sube el APK a Firebase Ap
 ```
 
 Solo lo que se marca con un tag llega a los testers — no hay build continuo sin versión en
-cada push a `main` (ver `docs/DISTRIBUTION.md`).
+cada push a `main` (ver `docs/DISTRIBUTION.es.md`).
 
 `versionCode` sale del número de run de GitHub (`VERSION_CODE`), así cada build puede
 instalarse encima del anterior; en local sigue en 1. La preparación de una sola vez
 (keystore fijo, cuenta de servicio, grupo de testers, `DOPPLER_TOKEN`), los detalles de cada
-vía y cómo llevarlas al template están en **[docs/DISTRIBUTION.md](docs/DISTRIBUTION.md)**.
+vía y cómo llevarlas al template están en **[docs/DISTRIBUTION.es.md](docs/DISTRIBUTION.es.md)**.
 
 **Ojo con los secretos dentro del APK**: `GEMINI_API_KEY`, `BRAVE_SEARCH_API_KEY` y las
 claves de Firebase se compilan en `BuildConfig`, así que cualquiera con el APK puede
